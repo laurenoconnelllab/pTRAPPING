@@ -4,7 +4,8 @@
 #' condition using edgeR's GLM framework. Accounts for paired structure via a
 #' block variable (e.g., individual animal or tube). Supports both the
 #' likelihood ratio test (`glmLRT`) and the quasi-likelihood F-test
-#' (`glmQLFTest`) for the final hypothesis testing step.
+#' (`glmQLFTest`) for the final hypothesis testing step. Returns a tibble of
+#' differential expression results. Optionally returns a `kableExtra` HTML table of the top DE genes.
 #'
 #' @param counts_mat A numeric matrix of raw counts with genes as rows and
 #'   samples as columns. Column names must match the values in `sample_col`.

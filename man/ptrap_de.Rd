@@ -103,7 +103,8 @@ Compares IP vs INPUT fractions for a specified brain region and treatment
 condition using edgeR's GLM framework. Accounts for paired structure via a
 block variable (e.g., individual animal or tube). Supports both the
 likelihood ratio test (\code{glmLRT}) and the quasi-likelihood F-test
-(\code{glmQLFTest}) for the final hypothesis testing step.
+(\code{glmQLFTest}) for the final hypothesis testing step. Returns a tibble of
+differential expression results. Optionally returns a \code{kableExtra} HTML table of the top DE genes.
 }
 \examples{
 # Default call using LRT
