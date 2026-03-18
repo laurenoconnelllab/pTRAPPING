@@ -1,6 +1,10 @@
-# pTRAPPING
+# pTRAPPING: A Suite of Functions for the Analyses of PhosphoTRAP Data in R
 
-The goal of pTRAPPING is to ……
+The goal of pTRAPPING is to provide a user-friendly, reproducible, and
+customizable workflow for the analysis of TRAP-seq data in R. The
+package includes functions for differential expression analysis,
+visualization, and functional enrichment, all designed to work
+seamlessly together.
 
 ## Installation
 
@@ -49,9 +53,14 @@ files, so they display on GitHub and CRAN.
 
 ## All functions
 
+- [`limma_de()`](https://camilo-rl.github.io/pTRAPPING/reference/limma_de.md)
+  : Differential expression analysis using limma
 - [`ptrap_de()`](https://camilo-rl.github.io/pTRAPPING/reference/ptrap_de.md)
   : Perform differential expression analysis for TRAP-seq data using
   edgeR
+- [`ptrap_volcano()`](https://camilo-rl.github.io/pTRAPPING/reference/ptrap_volcano.md)
+  : Single volcano plot for TRAP-seq or RNA-seq differential expression
+  results
 - [`ptrap_volcano2()`](https://camilo-rl.github.io/pTRAPPING/reference/ptrap_volcano2.md)
   : Dual volcano plot comparing two treatment conditions from TRAP-seq
   DE results

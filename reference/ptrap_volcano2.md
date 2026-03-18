@@ -2,12 +2,12 @@
 
 Takes two tibbles produced by
 [`ptrap_de()`](https://camilo-rl.github.io/pTRAPPING/reference/ptrap_de.md)
-— one per treatment condition, both from the same brain region — joins
-them by gene, classifies each gene according to its differential
-expression status in each condition, and returns a scatter plot of
-logFC\\\_{\text{treatment 1}}\\ vs logFC\\\_{\text{treatment 2}}\\.
-Significant genes are highlighted and labelled; threshold lines are
-drawn at ±`lfc_threshold` on both axes.
+or similar — one per treatment condition, both from the same brain
+region — joins them by gene, classifies each gene according to its
+differential expression status in each condition, and returns a scatter
+plot of logFC\\\_{\text{treatment 1}}\\ vs logFC\\\_{\text{treatment
+2}}\\. Significant genes are highlighted and labelled; threshold lines
+are drawn at ±`lfc_threshold` on both axes.
 
 ## Usage
 
