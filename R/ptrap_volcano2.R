@@ -1,6 +1,6 @@
 #' Dual volcano plot comparing two treatment conditions from TRAP-seq DE results
 #'
-#' Takes two tibbles produced by [pTRAPPING::ptrap_de()] — one per treatment condition,
+#' Takes two tibbles produced by [pTRAPPING::ptrap_de()] or similar — one per treatment condition,
 #' both from the same brain region — joins them by gene, classifies each gene
 #' according to its differential expression status in each condition, and
 #' returns a scatter plot of logFC\eqn{_{\text{treatment 1}}} vs
@@ -134,9 +134,9 @@ ptrap_volcano2 <- function(
     ) |>
     mutate(
       DE_class = case_when(
-        .data$sig_1 &  .data$sig_2  ~ class_both,
-        .data$sig_1 & !.data$sig_2  ~ class_only1,
-        !.data$sig_1 & .data$sig_2  ~ class_only2,
+        .data$sig_1 & .data$sig_2 ~ class_both,
+        .data$sig_1 & !.data$sig_2 ~ class_only1,
+        !.data$sig_1 & .data$sig_2 ~ class_only2,
         TRUE ~ class_none
       )
     ) |>

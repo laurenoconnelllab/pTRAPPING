@@ -64,7 +64,7 @@ extracted from \code{de_result_1} is used.}
 A \code{\link[ggplot2:ggplot]{ggplot2::ggplot()}} object.
 }
 \description{
-Takes two tibbles produced by \code{\link[=ptrap_de]{ptrap_de()}} — one per treatment condition,
+Takes two tibbles produced by \code{\link[=ptrap_de]{ptrap_de()}} or similar — one per treatment condition,
 both from the same brain region — joins them by gene, classifies each gene
 according to its differential expression status in each condition, and
 returns a scatter plot of logFC\eqn{_{\text{treatment 1}}} vs

@@ -209,10 +209,10 @@ ptrap_de <- function(
   results <- topTags(test, n = Inf)$table |>
     as_tibble() |>
     mutate(
-      !!region_col    := region_name,
+      !!region_col := region_name,
       !!treatment_col := treatment_name,
       diffexpressed = case_when(
-        .data$logFC >  lfc_threshold & .data$FDR < fdr_threshold ~ "UP",
+        .data$logFC > lfc_threshold & .data$FDR < fdr_threshold ~ "UP",
         .data$logFC < -lfc_threshold & .data$FDR < fdr_threshold ~ "DOWN",
         TRUE ~ "NO"
       )

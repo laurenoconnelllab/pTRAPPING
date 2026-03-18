@@ -1,13 +1,17 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# pTRAPPING
+# pTRAPPING: A Suite of Functions for the Analyses of PhosphoTRAP Data in R <img src="man/figures/logo.png" width="180px" align="right"/>
 
 <!-- badges: start -->
 
 <!-- badges: end -->
 
-The goal of pTRAPPING is to ……
+The goal of pTRAPPING is to provide a user-friendly, reproducible, and
+customizable workflow for the analysis of TRAP-seq data in R. The
+package includes functions for differential expression analysis,
+visualization, and functional enrichment, all designed to work
+seamlessly together.
 
 ## Installation
 

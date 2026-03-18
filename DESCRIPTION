@@ -16,6 +16,7 @@ Imports:
     ggrepel,
     rlang,
     edgeR,
+    limma,
     kableExtra,
     knitr,
     ggplot2,
