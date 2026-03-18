@@ -10,12 +10,16 @@ Description: Provides a toolkit for the analysis of PhosphoTRAP sequencing data,
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
-Depends: R (>= 4.0.0)
-Imports: 
+RoxygenNote: 7.3.3
+Depends: R (>= 4.1.0)
+Imports:
     ggrepel,
-    tidyverse,
-    readr,
-    edgeR
-URL: https://github.com/camilo-rl/pTRAPPING
+    rlang,
+    edgeR,
+    kableExtra,
+    knitr,
+    ggplot2,
+    dplyr,
+    tibble
+URL: https://github.com/camilo-rl/pTRAPPING, https://camilo-rl.github.io/pTRAPPING/
 BugReports: https://github.com/camilo-rl/pTRAPPING/issues

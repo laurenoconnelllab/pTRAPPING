@@ -4,7 +4,8 @@
 #' condition using edgeR's GLM framework. Accounts for paired structure via a
 #' block variable (e.g., individual animal or tube). Supports both the
 #' likelihood ratio test (`glmLRT`) and the quasi-likelihood F-test
-#' (`glmQLFTest`) for the final hypothesis testing step.
+#' (`glmQLFTest`) for the final hypothesis testing step. Returns a tibble of
+#' differential expression results. Optionally returns a `kableExtra` HTML table of the top DE genes.
 #'
 #' @param counts_mat A numeric matrix of raw counts with genes as rows and
 #'   samples as columns. Column names must match the values in `sample_col`.
@@ -65,6 +66,7 @@
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' # Default call using LRT
 #' res_lrt <- ptrap_de(
 #'   counts_mat     = counts_mat,
@@ -94,10 +96,12 @@
 #'   lfc_threshold  = 0.5,
 #'   fdr_threshold  = 0.1
 #' )
+#' }
 #'
 #' @importFrom edgeR DGEList filterByExpr calcNormFactors estimateDisp
 #'   glmFit glmLRT glmQLFit glmQLFTest topTags
 #' @importFrom dplyr filter mutate case_when relocate slice_head
+#' @importFrom rlang .data :=
 #' @importFrom tibble as_tibble
 #' @importFrom stats as.formula model.matrix
 #' @importFrom knitr kable
@@ -125,11 +129,11 @@ ptrap_de <- function(
   test_method <- match.arg(test_method)
 
   # subset samples for the specified region and treatment
-  region_samples <- sample_df %>%
+  region_samples <- sample_df |>
     filter(
       .data[[region_col]] == region_name,
       .data[[treatment_col]] == treatment_name
-    ) %>%
+    ) |>
     mutate(
       !!fraction_col := factor(
         .data[[fraction_col]],
@@ -202,30 +206,30 @@ ptrap_de <- function(
   # note: topTags already carries the Gene column from dge$genes, so we do not
   # re-assign it here (doing so would attempt to bind the full unfiltered
   # gene_ids vector, causing a size mismatch error)
-  results <- topTags(test, n = Inf)$table %>%
-    as_tibble() %>%
+  results <- topTags(test, n = Inf)$table |>
+    as_tibble() |>
     mutate(
-      !!region_col := region_name,
+      !!region_col    := region_name,
       !!treatment_col := treatment_name,
       diffexpressed = case_when(
-        logFC > lfc_threshold & FDR < fdr_threshold ~ "UP",
-        logFC < -lfc_threshold & FDR < fdr_threshold ~ "DOWN",
+        .data$logFC >  lfc_threshold & .data$FDR < fdr_threshold ~ "UP",
+        .data$logFC < -lfc_threshold & .data$FDR < fdr_threshold ~ "DOWN",
         TRUE ~ "NO"
       )
-    ) %>%
-    relocate(Gene)
+    ) |>
+    relocate("Gene")
 
   if (kable.out) {
     return(
-      results %>%
-        slice_head(n = ngenes.out) %>%
+      results |>
+        slice_head(n = ngenes.out) |>
         kable(
           digits = 2,
           table.attr = 'data-quarto-disable-processing="true"',
           "html"
-        ) %>%
-        kable_classic(full_width = F, html_font = "Cambria") %>%
-        row_spec(0, italic = T, bold = T) %>%
+        ) |>
+        kable_classic(full_width = F, html_font = "Cambria") |>
+        row_spec(0, italic = T, bold = T) |>
         column_spec(1, italic = F, bold = T)
     )
   }
