@@ -6,7 +6,7 @@
   : Differential expression analysis using limma
 - [`ptrap_de()`](https://camilo-rl.github.io/pTRAPPING/reference/ptrap_de.md)
   : Perform differential expression analysis for TRAP-seq data using
-  edgeR
+  edgeR or a paired t-test
 - [`ptrap_volcano()`](https://camilo-rl.github.io/pTRAPPING/reference/ptrap_volcano.md)
   : Single volcano plot for TRAP-seq or RNA-seq differential expression
   results

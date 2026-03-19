@@ -132,8 +132,12 @@ When `kable_out = FALSE` (default), a named list with:
 
 - `fit`:
 
-  The fitted `MArrayLM` object returned by `treat()` or `eBayes()`, for
-  downstream use (e.g. calling `topTreat()` or `topTable()` with
+  The fitted `MArrayLM` object returned by
+  [`treat()`](https://rdrr.io/pkg/limma/man/ebayes.html) or
+  [`eBayes()`](https://rdrr.io/pkg/limma/man/ebayes.html), for
+  downstream use (e.g. calling
+  [`topTreat()`](https://rdrr.io/pkg/limma/man/toptable.html) or
+  [`topTable()`](https://rdrr.io/pkg/limma/man/toptable.html) with
   additional contrast columns).
 
 When `kable_out = TRUE`, an HTML `kableExtra` table of the top

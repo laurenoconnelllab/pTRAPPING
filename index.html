@@ -53,41 +53,541 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="section level1">
 <div class="page-header">
-<img src="logo.png" class="logo" alt=""><h1 id="ptrapping-a-suite-of-functions-for-the-analyses-of-phosphotrap-data-in-r-">pTRAPPING: A Suite of Functions for the Analyses of PhosphoTRAP Data in R <a class="anchor" aria-label="anchor" href="#ptrapping-a-suite-of-functions-for-the-analyses-of-phosphotrap-data-in-r-"></a>
+<img src="logo.png" class="logo" alt=""><h1 id="ptrapping-">pTRAPPING <a class="anchor" aria-label="anchor" href="#ptrapping-"></a>
 </h1>
 </div>
 <!-- badges: start -->
 <!-- badges: end -->
-<p>The goal of pTRAPPING is to provide a user-friendly, reproducible, and customizable workflow for the analysis of TRAP-seq data in R. The package includes functions for differential expression analysis, visualization, and functional enrichment, all designed to work seamlessly together.</p>
+<p><strong>pTRAPPING</strong> is an R package that provides a streamlined, reproducible workflow for analysing <strong>TRAP-seq</strong> and <strong>PhosphoTRAP</strong> RNA-sequencing data. It wraps the statistical power of <a href="https://bioconductor.org/packages/edgeR/" class="external-link">edgeR</a> and <a href="https://bioconductor.org/packages/limma/" class="external-link">limma</a> behind a compact set of purpose-built functions that take you from a raw counts matrix to publication-ready tables and figures in just a few lines of code.</p>
+<blockquote>
+<p><strong>What is TRAP-seq?</strong> Translating Ribosome Affinity Purification followed by sequencing (TRAP-seq) captures mRNAs that are actively translated in a specific cell type, tagged by a transgenic ribosomal subunit. The key comparison is between the <strong>IP fraction</strong> (immunoprecipitated, actively translated transcripts) and the <strong>INPUT fraction</strong> (total RNA — all transcripts). Genes significantly enriched in IP relative to INPUT are translated in the tagged cell type.</p>
+<p><strong>PhosphoTRAP</strong> adds an activity-marking phosphorylation step, so only <em>recently activated</em> neurons are captured — combining cell-type specificity with behavioural state information in a single experiment.</p>
+</blockquote>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>You can install the development version of pTRAPPING from <a href="https://github.com/" class="external-link">GitHub</a> with:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># install.packages("pak")</span></span>
-<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"camilo-rl/pTRAPPING"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="co"># install.packages("devtools")</span></span>
+<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"camilo-rl/pTRAPPING"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="example">Example<a class="anchor" aria-label="anchor" href="#example"></a>
+<h2 id="functions-at-a-glance">Functions at a glance<a class="anchor" aria-label="anchor" href="#functions-at-a-glance"></a>
 </h2>
-<p>This is a basic example which shows you how to solve a common problem:</p>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr class="header">
+<th>Function</th>
+<th>What it does</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code><a href="reference/ptrap_de.html">ptrap_de()</a></code></td>
+<td>IP vs INPUT DE analysis for TRAP-seq (edgeR LRT/QLF or paired t-test)</td>
+</tr>
+<tr class="even">
+<td><code><a href="reference/ptrap_volcano.html">ptrap_volcano()</a></code></td>
+<td>Volcano plot from a single <code><a href="reference/ptrap_de.html">ptrap_de()</a></code> result</td>
+</tr>
+<tr class="odd">
+<td><code><a href="reference/ptrap_volcano2.html">ptrap_volcano2()</a></code></td>
+<td>Dual scatter comparing two treatment conditions side by side</td>
+</tr>
+<tr class="even">
+<td><code><a href="reference/limma_de.html">limma_de()</a></code></td>
+<td>Multi-group DE for proteomics / metabolomics (limma <code>treat</code> or <code>eBayes</code>)</td>
+</tr>
+</tbody>
+</table>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="simulated-dataset">Simulated dataset<a class="anchor" aria-label="anchor" href="#simulated-dataset"></a>
+</h2>
+<p>Throughout this README we simulate a mouse TRAP-seq experiment studying <strong>pair-bonding</strong> in the <strong>preoptic area (POA)</strong> of the hypothalamus — a brain region well-known for its role in social behaviour.</p>
+<p>Mice are divided into two groups:</p>
+<ul>
+<li>
+<strong><code>nb</code></strong> – non-bonded control mice</li>
+<li>
+<strong><code>pb</code></strong> – pair-bonded mice (48 h co-housing with a partner)</li>
+</ul>
+<p>Each group has <strong>3 animals</strong> (biological replicates). Each animal contributes one IP and one INPUT library, giving <strong>12 samples</strong> total. The column-naming convention <code>&lt;treatment&gt;&lt;replicate&gt;&lt;fraction&gt;</code> (e.g. <code>nb1INPUT</code>, <code>pb2IP</code>) lets <code><a href="reference/ptrap_de.html">ptrap_de()</a></code> parse sample metadata automatically — no <code>sample_df</code> needed.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/camilo-rl/pTRAPPING" class="external-link">pTRAPPING</a></span><span class="op">)</span></span>
-<span><span class="co">## basic example code</span></span></code></pre></div>
-<p>What is special about using <code>README.Rmd</code> instead of just <code>README.md</code>? You can include R chunks like so:</p>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">n_genes</span>  <span class="op">&lt;-</span> <span class="fl">2000</span></span>
+<span><span class="va">gene_ids</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"Gene"</span>, <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="va">n_genes</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># ── Replace early positions with real mouse gene names ──────────────────────</span></span>
+<span><span class="co"># Neuronal markers — expected to be enriched in IP in BOTH groups</span></span>
+<span><span class="va">neuronal</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Snap25"</span>, <span class="st">"Rbfox3"</span>, <span class="st">"Camk2a"</span>, <span class="st">"Vglut1"</span>, <span class="st">"Syn1"</span>,</span>
+<span>                <span class="st">"Map2"</span>,   <span class="st">"Nrgn"</span>,   <span class="st">"Bdnf"</span>,   <span class="st">"Pvalb"</span>,  <span class="st">"Sst"</span><span class="op">)</span></span>
+<span><span class="co"># Pair-bonding markers — enriched in IP only in pb</span></span>
+<span><span class="va">pb_markers</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Oxtr"</span>, <span class="st">"Avpr1a"</span>, <span class="st">"Fos"</span>, <span class="st">"Arc"</span>, <span class="st">"Egr1"</span><span class="op">)</span></span>
+<span><span class="co"># Glial markers — NOT enriched in neuronal IP (control transcripts)</span></span>
+<span><span class="va">glial</span>      <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Gfap"</span>, <span class="st">"Aldh1l1"</span>, <span class="st">"S100b"</span>, <span class="st">"Cx3cr1"</span>, <span class="st">"Tmem119"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">gene_ids</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_along</a></span><span class="op">(</span><span class="va">neuronal</span><span class="op">)</span><span class="op">]</span>                                       <span class="op">&lt;-</span> <span class="va">neuronal</span></span>
+<span><span class="va">gene_ids</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">neuronal</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_along</a></span><span class="op">(</span><span class="va">pb_markers</span><span class="op">)</span><span class="op">]</span>                  <span class="op">&lt;-</span> <span class="va">pb_markers</span></span>
+<span><span class="va">gene_ids</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">neuronal</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">pb_markers</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_along</a></span><span class="op">(</span><span class="va">glial</span><span class="op">)</span><span class="op">]</span>  <span class="op">&lt;-</span> <span class="va">glial</span></span>
+<span></span>
+<span><span class="co"># ── True IP / INPUT enrichment ratios ───────────────────────────────────────</span></span>
+<span><span class="va">base_enrich</span>        <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1.0</span>, <span class="va">n_genes</span><span class="op">)</span></span>
+<span><span class="va">base_enrich</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">]</span>  <span class="op">&lt;-</span> <span class="fl">8</span>   <span class="co"># neuronal markers — constitutively enriched in both groups</span></span>
+<span><span class="va">base_enrich</span><span class="op">[</span><span class="fl">11</span><span class="op">:</span><span class="fl">15</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">1</span>   <span class="co"># pair-bonding markers — baseline (no enrichment in nb)</span></span>
+<span></span>
+<span><span class="va">pb_extra</span>           <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1.0</span>, <span class="va">n_genes</span><span class="op">)</span></span>
+<span><span class="va">pb_extra</span><span class="op">[</span><span class="fl">11</span><span class="op">:</span><span class="fl">15</span><span class="op">]</span>    <span class="op">&lt;-</span> <span class="fl">8</span>   <span class="co"># pair-bonding markers strongly enriched only in pb</span></span>
+<span></span>
+<span><span class="co"># ── Helper: simulate one IP/INPUT pair for all genes ────────────────────────</span></span>
+<span><span class="va">sim_pair</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">enrich</span>, <span class="va">mu</span> <span class="op">=</span> <span class="fl">200</span>, <span class="va">size</span> <span class="op">=</span> <span class="fl">10</span>, <span class="va">sd_noise</span> <span class="op">=</span> <span class="fl">0.15</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">input</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/NegBinomial.html" class="external-link">rnbinom</a></span><span class="op">(</span><span class="va">n_genes</span>, mu <span class="op">=</span> <span class="va">mu</span>, size <span class="op">=</span> <span class="va">size</span><span class="op">)</span></span>
+<span>  <span class="va">ip</span>    <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmax</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">input</span> <span class="op">*</span> <span class="va">enrich</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n_genes</span>, <span class="fl">0</span>, <span class="va">sd_noise</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>, <span class="fl">0L</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>input <span class="op">=</span> <span class="va">input</span>, ip <span class="op">=</span> <span class="va">ip</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="co"># ── Build counts data frame with auto-parseable column names ────────────────</span></span>
+<span><span class="va">cols</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">nb</span> <span class="op">&lt;-</span> <span class="fu">sim_pair</span><span class="op">(</span><span class="va">base_enrich</span><span class="op">)</span></span>
+<span>  <span class="va">pb</span> <span class="op">&lt;-</span> <span class="fu">sim_pair</span><span class="op">(</span><span class="va">base_enrich</span> <span class="op">*</span> <span class="va">pb_extra</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/stats/setNames.html" class="external-link">setNames</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="va">nb</span><span class="op">$</span><span class="va">input</span>, <span class="va">nb</span><span class="op">$</span><span class="va">ip</span>, <span class="va">pb</span><span class="op">$</span><span class="va">input</span>, <span class="va">pb</span><span class="op">$</span><span class="va">ip</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"nb"</span>, <span class="va">i</span>, <span class="st">"INPUT"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"nb"</span>, <span class="va">i</span>, <span class="st">"IP"</span><span class="op">)</span>,</span>
+<span>      <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"pb"</span>, <span class="va">i</span>, <span class="st">"INPUT"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"pb"</span>, <span class="va">i</span>, <span class="st">"IP"</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">counts_mat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>Gene <span class="op">=</span> <span class="va">gene_ids</span>, <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">cbind</span>, <span class="va">cols</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Preview — neuronal marker, pair-bonding marker, glial marker</span></span>
+<span><span class="va">counts_mat</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">11</span>, <span class="fl">16</span><span class="op">)</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">7</span><span class="op">]</span></span>
+<span><span class="co">#&gt;      Gene nb1INPUT nb1IP pb1INPUT pb1IP nb2INPUT nb2IP</span></span>
+<span><span class="co">#&gt; 1  Snap25      274  2231      150   910      229  1467</span></span>
+<span><span class="co">#&gt; 11   Oxtr      217   260       83   630      290   333</span></span>
+<span><span class="co">#&gt; 16   Gfap      151   117      143   123      222   307</span></span></code></pre></div>
+<p>The first column holds gene identifiers; the remaining 12 columns are raw counts. <code>Snap25</code> (neuronal) already shows high IP counts in both groups, while <code>Oxtr</code> (pair-bonding marker) shows balanced IP/INPUT — it will only be enriched in <code>pb</code>.</p>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="ptrap_de--differential-expression">
+<code>ptrap_de()</code> — differential expression<a class="anchor" aria-label="anchor" href="#ptrap_de--differential-expression"></a>
+</h2>
+<div class="section level3">
+<h3 id="simplest-call-auto-parse-column-names">Simplest call: auto-parse column names<a class="anchor" aria-label="anchor" href="#simplest-call-auto-parse-column-names"></a>
+</h3>
+<p>When <code>sample_df</code> is omitted, <code><a href="reference/ptrap_de.html">ptrap_de()</a></code> reads treatment, replicate number, and fraction directly from the column names. Providing <code>treatment_name</code> tells the function which group to analyse:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">cars</span><span class="op">)</span></span>
-<span><span class="co">#&gt;      speed           dist       </span></span>
-<span><span class="co">#&gt;  Min.   : 4.0   Min.   :  2.00  </span></span>
-<span><span class="co">#&gt;  1st Qu.:12.0   1st Qu.: 26.00  </span></span>
-<span><span class="co">#&gt;  Median :15.0   Median : 36.00  </span></span>
-<span><span class="co">#&gt;  Mean   :15.4   Mean   : 42.98  </span></span>
-<span><span class="co">#&gt;  3rd Qu.:19.0   3rd Qu.: 56.00  </span></span>
-<span><span class="co">#&gt;  Max.   :25.0   Max.   :120.00</span></span></code></pre></div>
-<p>You’ll still need to render <code>README.Rmd</code> regularly, to keep <code>README.md</code> up-to-date. <code>devtools::build_readme()</code> is handy for this.</p>
-<p>You can also embed plots, for example:</p>
-<p><img src="reference/figures/README-pressure-1.png" alt="" width="100%"></p>
-<p>In that case, don’t forget to commit and push the resulting figure files, so they display on GitHub and CRAN.</p>
+<code class="sourceCode R"><span><span class="va">res_nb</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/ptrap_de.html">ptrap_de</a></span><span class="op">(</span></span>
+<span>  counts_mat     <span class="op">=</span> <span class="va">counts_mat</span>,</span>
+<span>  treatment_name <span class="op">=</span> <span class="st">"nb"</span>,</span>
+<span>  test_method    <span class="op">=</span> <span class="st">"LRT"</span>        <span class="co"># edgeR likelihood ratio test</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; Auto-parsed sample metadata from column names.</span></span>
+<span><span class="co">#&gt;   Treatments : nb, pb</span></span>
+<span><span class="co">#&gt;   Blocks     : 1, 2, 3</span></span>
+<span><span class="co">#&gt;   Fractions  : INPUT, IP</span></span>
+<span></span>
+<span><span class="co"># Top enriched genes in nb</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">res_nb</span><span class="op">[</span><span class="va">res_nb</span><span class="op">$</span><span class="va">diffexpressed</span> <span class="op">!=</span> <span class="st">"NO"</span>,</span>
+<span>            <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Gene"</span>, <span class="st">"logFC"</span>, <span class="st">"LR"</span>, <span class="st">"PValue"</span>, <span class="st">"FDR"</span>, <span class="st">"diffexpressed"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co">#&gt; # A tibble: 6 × 6</span></span>
+<span><span class="co">#&gt;   Gene   logFC    LR    PValue       FDR diffexpressed</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt;  &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt; &lt;chr&gt;        </span></span>
+<span><span class="co">#&gt; 1 Sst     2.95  695. 3.27e-153 6.54e-150 UP           </span></span>
+<span><span class="co">#&gt; 2 Syn1    3.00  693. 1.10e-152 1.10e-149 UP           </span></span>
+<span><span class="co">#&gt; 3 Snap25  2.90  656. 1.40e-144 9.31e-142 UP           </span></span>
+<span><span class="co">#&gt; 4 Vglut1  3.01  631. 3.12e-139 1.56e-136 UP           </span></span>
+<span><span class="co">#&gt; 5 Bdnf    2.92  624. 1.13e-137 4.50e-135 UP           </span></span>
+<span><span class="co">#&gt; 6 Rbfox3  2.79  616. 5.50e-136 1.83e-133 UP</span></span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">res_pb</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/ptrap_de.html">ptrap_de</a></span><span class="op">(</span></span>
+<span>  counts_mat     <span class="op">=</span> <span class="va">counts_mat</span>,</span>
+<span>  treatment_name <span class="op">=</span> <span class="st">"pb"</span>,</span>
+<span>  test_method    <span class="op">=</span> <span class="st">"LRT"</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; Auto-parsed sample metadata from column names.</span></span>
+<span><span class="co">#&gt;   Treatments : nb, pb</span></span>
+<span><span class="co">#&gt;   Blocks     : 1, 2, 3</span></span>
+<span><span class="co">#&gt;   Fractions  : INPUT, IP</span></span>
+<span></span>
+<span><span class="co"># Top enriched genes in pb</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">res_pb</span><span class="op">[</span><span class="va">res_pb</span><span class="op">$</span><span class="va">diffexpressed</span> <span class="op">!=</span> <span class="st">"NO"</span>,</span>
+<span>            <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Gene"</span>, <span class="st">"logFC"</span>, <span class="st">"LR"</span>, <span class="st">"PValue"</span>, <span class="st">"FDR"</span>, <span class="st">"diffexpressed"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co">#&gt; # A tibble: 6 × 6</span></span>
+<span><span class="co">#&gt;   Gene  logFC    LR    PValue       FDR diffexpressed</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt; &lt;chr&gt;        </span></span>
+<span><span class="co">#&gt; 1 Egr1   3.23  629. 6.88e-139 1.38e-135 UP           </span></span>
+<span><span class="co">#&gt; 2 Map2   3.12  600. 1.63e-132 1.63e-129 UP           </span></span>
+<span><span class="co">#&gt; 3 Arc    3.13  591. 1.60e-130 1.07e-127 UP           </span></span>
+<span><span class="co">#&gt; 4 Syn1   2.98  550. 1.36e-121 6.78e-119 UP           </span></span>
+<span><span class="co">#&gt; 5 Sst    2.94  543. 4.18e-120 1.67e-117 UP           </span></span>
+<span><span class="co">#&gt; 6 Nrgn   2.99  542. 5.61e-120 1.87e-117 UP</span></span></code></pre></div>
+<p>The neuronal markers (<code>Snap25</code>, <code>Camk2a</code>, etc.) are enriched in IP in <strong>both</strong> groups. The pair-bonding markers (<code>Oxtr</code>, <code>Avpr1a</code>, <code>Fos</code>, <code>Arc</code>, <code>Egr1</code>) only appear in the <strong>pb</strong> result — exactly as expected for activity-dependent transcripts of pair-bonded neurons.</p>
+<hr>
+</div>
+<div class="section level3">
+<h3 id="choosing-the-right-test_method">Choosing the right <code>test_method</code>
+<a class="anchor" aria-label="anchor" href="#choosing-the-right-test_method"></a>
+</h3>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr class="header">
+<th>Method</th>
+<th>When to use</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code>"LRT"</code></td>
+<td>edgeR likelihood ratio test — recommended with ≥ 4 replicates and raw counts</td>
+</tr>
+<tr class="even">
+<td><code>"QLF"</code></td>
+<td>edgeR quasi-likelihood F-test — more conservative, better FDR control</td>
+</tr>
+<tr class="odd">
+<td><code>"paired.ttest"</code></td>
+<td>Per-gene paired t-test (Tan et al. 2016) — recommended for n = 3 replicates typical of PhosphoTRAP</td>
+</tr>
+</tbody>
+</table>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Quasi-likelihood F-test — more conservative than LRT</span></span>
+<span><span class="va">res_qlf</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/ptrap_de.html">ptrap_de</a></span><span class="op">(</span></span>
+<span>  counts_mat     <span class="op">=</span> <span class="va">counts_mat</span>,</span>
+<span>  treatment_name <span class="op">=</span> <span class="st">"nb"</span>,</span>
+<span>  test_method    <span class="op">=</span> <span class="st">"QLF"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Paired t-test — recommended for real PhosphoTRAP data with n = 3 animals</span></span>
+<span><span class="co"># Follows the approach in Tan et al. 2016 (Cell 167, 47-59)</span></span>
+<span><span class="va">res_pt</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/ptrap_de.html">ptrap_de</a></span><span class="op">(</span></span>
+<span>  counts_mat     <span class="op">=</span> <span class="va">counts_mat</span>,</span>
+<span>  treatment_name <span class="op">=</span> <span class="st">"nb"</span>,</span>
+<span>  test_method    <span class="op">=</span> <span class="st">"paired.ttest"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<blockquote>
+<p><strong>Note on <code>"paired.ttest"</code>:</strong> The GLM-based methods (<code>"LRT"</code> / <code>"QLF"</code>) estimate gene-wise dispersion from the data and work best with ≥ 4 replicates. With only n = 3, dispersion estimates are unreliable. The paired t-test avoids this by using only the within-gene variance across pairs, following Tan et al. (2016).</p>
+</blockquote>
+<hr>
+</div>
+<div class="section level3">
+<h3 id="long-format-paired-data-with-return_long--true">Long-format paired data with <code>return_long = TRUE</code>
+<a class="anchor" aria-label="anchor" href="#long-format-paired-data-with-return_long--true"></a>
+</h3>
+<p><code>return_long = TRUE</code> (only with <code>"paired.ttest"</code>) returns the per-gene, per-animal paired table used internally — useful for plotting individual data points or performing additional quality checks:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">res_long</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/ptrap_de.html">ptrap_de</a></span><span class="op">(</span></span>
+<span>  counts_mat     <span class="op">=</span> <span class="va">counts_mat</span>,</span>
+<span>  treatment_name <span class="op">=</span> <span class="st">"nb"</span>,</span>
+<span>  test_method    <span class="op">=</span> <span class="st">"paired.ttest"</span>,</span>
+<span>  return_long    <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; Auto-parsed sample metadata from column names.</span></span>
+<span><span class="co">#&gt;   Treatments : nb, pb</span></span>
+<span><span class="co">#&gt;   Blocks     : 1, 2, 3</span></span>
+<span><span class="co">#&gt;   Fractions  : INPUT, IP</span></span>
+<span></span>
+<span><span class="co"># DE results tibble</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">res_long</span><span class="op">$</span><span class="va">results</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Gene"</span>, <span class="st">"logFC"</span>, <span class="st">"t_statistic"</span>, <span class="st">"PValue"</span>, <span class="st">"FDR"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co">#&gt; # A tibble: 6 × 5</span></span>
+<span><span class="co">#&gt;   Gene      logFC t_statistic   PValue   FDR</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt;     &lt;dbl&gt;       &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt;</span></span>
+<span><span class="co">#&gt; 1 Gene1833  0.144        65   0.000237 0.473</span></span>
+<span><span class="co">#&gt; 2 Pvalb     2.91         39.4 0.000645 0.645</span></span>
+<span><span class="co">#&gt; 3 Gene1001 -0.197       -27.6 0.00131  0.772</span></span>
+<span><span class="co">#&gt; 4 Gene68    0.134        24.5 0.00166  0.772</span></span>
+<span><span class="co">#&gt; 5 Gene248   0.221        19.7 0.00257  0.772</span></span>
+<span><span class="co">#&gt; 6 Gene1529  0.211        19.0 0.00275  0.772</span></span>
+<span></span>
+<span><span class="co"># Per-gene, per-animal paired counts table (showing Snap25)</span></span>
+<span><span class="va">res_long</span><span class="op">$</span><span class="va">long_data</span><span class="op">[</span><span class="va">res_long</span><span class="op">$</span><span class="va">long_data</span><span class="op">$</span><span class="va">Gene</span> <span class="op">==</span> <span class="st">"Snap25"</span>, <span class="op">]</span></span>
+<span><span class="co">#&gt; # A tibble: 3 × 4</span></span>
+<span><span class="co">#&gt;   Gene   block ip_count input_count</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt;  &lt;chr&gt;    &lt;dbl&gt;       &lt;dbl&gt;</span></span>
+<span><span class="co">#&gt; 1 Snap25 1         2231         274</span></span>
+<span><span class="co">#&gt; 2 Snap25 2         1467         229</span></span>
+<span><span class="co">#&gt; 3 Snap25 3         1398         177</span></span></code></pre></div>
+<hr>
+</div>
+<div class="section level3">
+<h3 id="custom-thresholds">Custom thresholds<a class="anchor" aria-label="anchor" href="#custom-thresholds"></a>
+</h3>
+<p>Adjust <code>lfc_threshold</code> and <code>fdr_threshold</code> to control how strict the DE classification is:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Relaxed: any enrichment above 0.5 log2FC at FDR &lt; 0.10</span></span>
+<span><span class="va">res_relaxed</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/ptrap_de.html">ptrap_de</a></span><span class="op">(</span></span>
+<span>  counts_mat     <span class="op">=</span> <span class="va">counts_mat</span>,</span>
+<span>  treatment_name <span class="op">=</span> <span class="st">"pb"</span>,</span>
+<span>  test_method    <span class="op">=</span> <span class="st">"LRT"</span>,</span>
+<span>  lfc_threshold  <span class="op">=</span> <span class="fl">0.5</span>,</span>
+<span>  fdr_threshold  <span class="op">=</span> <span class="fl">0.10</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; Auto-parsed sample metadata from column names.</span></span>
+<span><span class="co">#&gt;   Treatments : nb, pb</span></span>
+<span><span class="co">#&gt;   Blocks     : 1, 2, 3</span></span>
+<span><span class="co">#&gt;   Fractions  : INPUT, IP</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">res_relaxed</span><span class="op">$</span><span class="va">diffexpressed</span><span class="op">)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;   NO   UP </span></span>
+<span><span class="co">#&gt; 1984   16</span></span></code></pre></div>
+<hr>
+</div>
+<div class="section level3">
+<h3 id="html-table-with-kableout--true">HTML table with <code>kable.out = TRUE</code>
+<a class="anchor" aria-label="anchor" href="#html-table-with-kableout--true"></a>
+</h3>
+<p>Set <code>kable.out = TRUE</code> to get a formatted HTML table of top genes — ideal for Quarto / R Markdown reports:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/ptrap_de.html">ptrap_de</a></span><span class="op">(</span></span>
+<span>  counts_mat     <span class="op">=</span> <span class="va">counts_mat</span>,</span>
+<span>  treatment_name <span class="op">=</span> <span class="st">"pb"</span>,</span>
+<span>  test_method    <span class="op">=</span> <span class="st">"LRT"</span>,</span>
+<span>  kable.out      <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  ngenes.out     <span class="op">=</span> <span class="fl">10</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<hr>
+</div>
+</div>
+<div class="section level2">
+<h2 id="ptrap_volcano--single-volcano-plot">
+<code>ptrap_volcano()</code> — single volcano plot<a class="anchor" aria-label="anchor" href="#ptrap_volcano--single-volcano-plot"></a>
+</h2>
+<p>A classic volcano plot for one treatment condition, with significant genes colour-coded and labelled:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/ptrap_volcano.html">ptrap_volcano</a></span><span class="op">(</span></span>
+<span>  <span class="va">res_nb</span>,</span>
+<span>  title <span class="op">=</span> <span class="st">"Non-bonded (nb) — POA"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p><img src="reference/figures/README-volcano-nb-1.png" alt="Volcano plot for non-bonded mice" width="80%"></p>
+<p>Customise colours and thresholds:</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/ptrap_volcano.html">ptrap_volcano</a></span><span class="op">(</span></span>
+<span>  <span class="va">res_pb</span>,</span>
+<span>  lfc_threshold <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  fdr_threshold <span class="op">=</span> <span class="fl">0.05</span>,</span>
+<span>  colors        <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"UP"</span> <span class="op">=</span> <span class="st">"#E69F00"</span>, <span class="st">"DOWN"</span> <span class="op">=</span> <span class="st">"#56B4E9"</span><span class="op">)</span>,</span>
+<span>  title         <span class="op">=</span> <span class="st">"Pair-bonded (pb) — POA"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p><img src="reference/figures/README-volcano-pb-1.png" alt="Customised volcano plot for pair-bonded mice" width="80%"></p>
+<p><code>Oxtr</code>, <code>Avpr1a</code>, <code>Fos</code>, <code>Arc</code>, and <code>Egr1</code> appear only in the pb plot — consistent with their known roles in pair-bond formation and neuronal immediate-early gene expression.</p>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="ptrap_volcano2--dual-scatter-comparing-two-treatments">
+<code>ptrap_volcano2()</code> — dual scatter comparing two treatments<a class="anchor" aria-label="anchor" href="#ptrap_volcano2--dual-scatter-comparing-two-treatments"></a>
+</h2>
+<p><code><a href="reference/ptrap_volcano2.html">ptrap_volcano2()</a></code> overlays both treatment conditions on a single scatter plot. Each axis shows the log₂ fold-change (IP / INPUT) for one group, and genes are colour-coded by their DE status across conditions:</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/ptrap_volcano2.html">ptrap_volcano2</a></span><span class="op">(</span></span>
+<span>  <span class="va">res_nb</span>, <span class="va">res_pb</span>,</span>
+<span>  treatment_col <span class="op">=</span> <span class="st">"Treatment"</span>,</span>
+<span>  title         <span class="op">=</span> <span class="st">"POA — nb vs pb"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p><img src="reference/figures/README-volcano2-default-1.png" alt="Dual scatter comparing nb and pb treatments" width="80%"></p>
+<blockquote>
+<p><strong>How to read this plot</strong> * <strong>Top-right quadrant</strong>: enriched in IP in <strong>both groups</strong> → constitutive neuronal translation (e.g. <em>Snap25</em>, <em>Camk2a</em>, <em>Rbfox3</em>). * <strong>Bottom-right</strong>: enriched only in <strong>pb</strong> → activity-dependent translation in pair-bonded animals (<em>Oxtr</em>, <em>Fos</em>, <em>Arc</em>, <em>Egr1</em>, <em>Avpr1a</em>). * <strong>Top-left</strong>: enriched only in <strong>nb</strong> → non-bonded-specific. * The dotted diagonal is the identity line — equal enrichment in both groups.</p>
+</blockquote>
+<p>Customise colours and thresholds:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/ptrap_volcano2.html">ptrap_volcano2</a></span><span class="op">(</span></span>
+<span>  <span class="va">res_nb</span>, <span class="va">res_pb</span>,</span>
+<span>  lfc_threshold <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  fdr_threshold <span class="op">=</span> <span class="fl">0.05</span>,</span>
+<span>  treatment_col <span class="op">=</span> <span class="st">"Treatment"</span>,</span>
+<span>  title         <span class="op">=</span> <span class="st">"POA — nb vs pb"</span>,</span>
+<span>  colors        <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>    <span class="st">"DE in both"</span>   <span class="op">=</span> <span class="st">"#D55E00"</span>,</span>
+<span>    <span class="st">"DE only nb"</span>   <span class="op">=</span> <span class="st">"#0072B2"</span>,</span>
+<span>    <span class="st">"DE only pb"</span>   <span class="op">=</span> <span class="st">"#009E73"</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p><img src="reference/figures/README-volcano2-custom-1.png" alt="Customised dual scatter plot" width="80%"></p>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="limma_de--proteomics-and-metabolomics">
+<code>limma_de()</code> — proteomics and metabolomics<a class="anchor" aria-label="anchor" href="#limma_de--proteomics-and-metabolomics"></a>
+</h2>
+<p><code><a href="reference/limma_de.html">limma_de()</a></code> wraps the limma linear modelling framework for <strong>continuous log-scale data</strong> (label-free proteomics, metabolomics, or RNA-seq after <code>voom</code>). Here we simulate a three-group proteomics experiment — <strong>control</strong> (<code>ctrl</code>), <strong>treatment A</strong> (<code>trtA</code>), and <strong>treatment B</strong> (<code>trtB</code>), with n = 6 replicates each.</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">123</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">n_prot</span> <span class="op">&lt;-</span> <span class="fl">1000</span></span>
+<span><span class="va">n_rep</span>  <span class="op">&lt;-</span> <span class="fl">6</span></span>
+<span><span class="va">groups</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ctrl"</span>, <span class="st">"trtA"</span>, <span class="st">"trtB"</span><span class="op">)</span>, each <span class="op">=</span> <span class="va">n_rep</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># log2 protein abundances drawn from a normal background</span></span>
+<span><span class="va">prot_mat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n_prot</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">groups</span><span class="op">)</span>, mean <span class="op">=</span> <span class="fl">10</span>, sd <span class="op">=</span> <span class="fl">0.4</span><span class="op">)</span>,</span>
+<span>  nrow     <span class="op">=</span> <span class="va">n_prot</span>,</span>
+<span>  dimnames <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"Prot"</span>, <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="va">n_prot</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ctrl"</span>, <span class="st">"trtA"</span>, <span class="st">"trtB"</span><span class="op">)</span>, each <span class="op">=</span> <span class="va">n_rep</span><span class="op">)</span>,</span>
+<span>           <span class="st">"_"</span>, <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">groups</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Inject true biological differences</span></span>
+<span><span class="va">prot_mat</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">60</span>,    <span class="va">groups</span> <span class="op">==</span> <span class="st">"trtA"</span><span class="op">]</span>               <span class="op">&lt;-</span> <span class="va">prot_mat</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">60</span>,    <span class="va">groups</span> <span class="op">==</span> <span class="st">"trtA"</span><span class="op">]</span>               <span class="op">+</span> <span class="fl">2</span></span>
+<span><span class="va">prot_mat</span><span class="op">[</span><span class="fl">61</span><span class="op">:</span><span class="fl">120</span>,  <span class="va">groups</span> <span class="op">==</span> <span class="st">"trtB"</span><span class="op">]</span>               <span class="op">&lt;-</span> <span class="va">prot_mat</span><span class="op">[</span><span class="fl">61</span><span class="op">:</span><span class="fl">120</span>,  <span class="va">groups</span> <span class="op">==</span> <span class="st">"trtB"</span><span class="op">]</span>               <span class="op">-</span> <span class="fl">2</span></span>
+<span><span class="va">prot_mat</span><span class="op">[</span><span class="fl">121</span><span class="op">:</span><span class="fl">150</span>, <span class="va">groups</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"trtA"</span>, <span class="st">"trtB"</span><span class="op">)</span><span class="op">]</span>  <span class="op">&lt;-</span> <span class="va">prot_mat</span><span class="op">[</span><span class="fl">121</span><span class="op">:</span><span class="fl">150</span>, <span class="va">groups</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"trtA"</span>, <span class="st">"trtB"</span><span class="op">)</span><span class="op">]</span>  <span class="op">+</span> <span class="fl">2</span></span></code></pre></div>
+<blockquote>
+<p><strong>Tip — contrast string naming convention:</strong> Inside <code><a href="reference/limma_de.html">limma_de()</a></code>, the design matrix is built as <code>model.matrix(~ 0 + group)</code> (pairwise) or <code>model.matrix(~ group)</code> (reference), where the variable is always called <code>group</code>. Coefficient names therefore follow the pattern <code>group&lt;level&gt;</code> (e.g. <code>groupctrl</code>, <code>grouptrtA</code>). Pass contrast strings using these names.</p>
+</blockquote>
+<div class="section level3">
+<h3 id="pairwise-design-with-ebayes-standard-empirical-bayes">Pairwise design with <code>eBayes()</code> (standard empirical Bayes)<a class="anchor" aria-label="anchor" href="#pairwise-design-with-ebayes-standard-empirical-bayes"></a>
+</h3>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bioinf.wehi.edu.au/limma/" class="external-link">limma</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">res_prot</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/limma_de.html">limma_de</a></span><span class="op">(</span></span>
+<span>  expr_mat      <span class="op">=</span> <span class="va">prot_mat</span>,</span>
+<span>  group         <span class="op">=</span> <span class="va">groups</span>,</span>
+<span>  contrast_mat  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>trtA_vs_ctrl <span class="op">=</span> <span class="st">"grouptrtA - groupctrl"</span>,</span>
+<span>                    trtB_vs_ctrl <span class="op">=</span> <span class="st">"grouptrtB - groupctrl"</span><span class="op">)</span>,</span>
+<span>  test_method   <span class="op">=</span> <span class="st">"eBayes"</span>,</span>
+<span>  lfc_threshold <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  fdr_threshold <span class="op">=</span> <span class="fl">0.05</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Number of DE proteins per contrast</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">res_prot</span><span class="op">$</span><span class="va">de_list</span>, <span class="va">nrow</span><span class="op">)</span></span>
+<span><span class="co">#&gt; trtA_vs_ctrl trtB_vs_ctrl </span></span>
+<span><span class="co">#&gt;           90           90</span></span></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Proteins DE in opposite directions across contrasts (worth investigating!)</span></span>
+<span><span class="va">res_prot</span><span class="op">$</span><span class="va">shared</span></span>
+<span><span class="co">#&gt; # A tibble: 0 × 4</span></span>
+<span><span class="co">#&gt; # ℹ 4 variables: feature &lt;chr&gt;, min_fc &lt;dbl&gt;, max_fc &lt;dbl&gt;, n_contrasts &lt;int&gt;</span></span>
+<span></span>
+<span><span class="co"># Consistently DE proteins, counted by direction</span></span>
+<span><span class="va">res_prot</span><span class="op">$</span><span class="va">unique</span></span>
+<span><span class="co">#&gt; # A tibble: 2 × 2</span></span>
+<span><span class="co">#&gt;   direction n_features</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt;          &lt;int&gt;</span></span>
+<span><span class="co">#&gt; 1 DOWN              60</span></span>
+<span><span class="co">#&gt; 2 UP                90</span></span></code></pre></div>
+<p>Each element of <code>$de_list</code> is a tibble for one contrast:</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">res_prot</span><span class="op">$</span><span class="va">de_list</span><span class="op">[[</span><span class="st">"trtA_vs_ctrl"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co">#&gt; # A tibble: 6 × 9</span></span>
+<span><span class="co">#&gt;   feature logFC AveExpr     t  P.Value adj.P.Val     B contrast    diffexpressed</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt;   &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;     &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt;       &lt;chr&gt;        </span></span>
+<span><span class="co">#&gt; 1 Prot25   2.57    10.6  11.2 3.37e-25  3.37e-22  46.5 trtA_vs_ct… UP           </span></span>
+<span><span class="co">#&gt; 2 Prot48   2.51    10.6  11.0 1.22e-24  6.11e-22  45.2 trtA_vs_ct… UP           </span></span>
+<span><span class="co">#&gt; 3 Prot22   2.47    10.6  10.8 9.22e-24  3.07e-21  43.2 trtA_vs_ct… UP           </span></span>
+<span><span class="co">#&gt; 4 Prot38   2.45    10.7  10.6 3.23e-23  8.07e-21  42.0 trtA_vs_ct… UP           </span></span>
+<span><span class="co">#&gt; 5 Prot46   2.39    10.6  10.5 6.09e-23  1.03e-20  41.4 trtA_vs_ct… UP           </span></span>
+<span><span class="co">#&gt; 6 Prot13   2.42    10.7  10.5 6.19e-23  1.03e-20  41.3 trtA_vs_ct… UP</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="pairwise-design-with-treat-minimum-fold-change-test">Pairwise design with <code>treat()</code> (minimum fold-change test)<a class="anchor" aria-label="anchor" href="#pairwise-design-with-treat-minimum-fold-change-test"></a>
+</h3>
+<p><code><a href="https://rdrr.io/pkg/limma/man/ebayes.html" class="external-link">treat()</a></code> tests whether |logFC| <em>exceeds</em> <code>lfc_threshold</code>, providing stronger protection against proteins with statistical but not biological significance. Recommended when biological effect sizes are well-defined (e.g. proteomics):</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">res_prot_tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/limma_de.html">limma_de</a></span><span class="op">(</span></span>
+<span>  expr_mat      <span class="op">=</span> <span class="va">prot_mat</span>,</span>
+<span>  group         <span class="op">=</span> <span class="va">groups</span>,</span>
+<span>  contrast_mat  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>trtA_vs_ctrl <span class="op">=</span> <span class="st">"grouptrtA - groupctrl"</span>,</span>
+<span>                    trtB_vs_ctrl <span class="op">=</span> <span class="st">"grouptrtB - groupctrl"</span><span class="op">)</span>,</span>
+<span>  test_method   <span class="op">=</span> <span class="st">"treat"</span>,</span>
+<span>  lfc_threshold <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  fdr_threshold <span class="op">=</span> <span class="fl">0.05</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">res_prot_tr</span><span class="op">$</span><span class="va">de_list</span>, <span class="va">nrow</span><span class="op">)</span></span>
+<span><span class="co">#&gt; trtA_vs_ctrl trtB_vs_ctrl </span></span>
+<span><span class="co">#&gt;           86           87</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="reference-group-design">Reference-group design<a class="anchor" aria-label="anchor" href="#reference-group-design"></a>
+</h3>
+<p>When all comparisons are against a single baseline, <code>model_type = "reference"</code> is a simpler alternative — the first factor level becomes the reference and other coefficients are differences from it:</p>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">res_prot_ref</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/limma_de.html">limma_de</a></span><span class="op">(</span></span>
+<span>  expr_mat      <span class="op">=</span> <span class="va">prot_mat</span>,</span>
+<span>  group         <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">groups</span><span class="op">)</span>,</span>
+<span>  contrast_mat  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"grouptrtA"</span>, <span class="st">"grouptrtB"</span><span class="op">)</span>,   <span class="co"># coefficient names in ~ group</span></span>
+<span>  model_type    <span class="op">=</span> <span class="st">"reference"</span>,</span>
+<span>  test_method   <span class="op">=</span> <span class="st">"eBayes"</span>,</span>
+<span>  lfc_threshold <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  fdr_threshold <span class="op">=</span> <span class="fl">0.05</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; Renaming (Intercept) to Intercept</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">res_prot_ref</span><span class="op">$</span><span class="va">de_list</span>, <span class="va">nrow</span><span class="op">)</span></span>
+<span><span class="co">#&gt; grouptrtA grouptrtB </span></span>
+<span><span class="co">#&gt;        90        90</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="html-table-with-kable_out--true">HTML table with <code>kable_out = TRUE</code>
+<a class="anchor" aria-label="anchor" href="#html-table-with-kable_out--true"></a>
+</h3>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/limma_de.html">limma_de</a></span><span class="op">(</span></span>
+<span>  expr_mat      <span class="op">=</span> <span class="va">prot_mat</span>,</span>
+<span>  group         <span class="op">=</span> <span class="va">groups</span>,</span>
+<span>  contrast_mat  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>trtA_vs_ctrl <span class="op">=</span> <span class="st">"grouptrtA - groupctrl"</span>,</span>
+<span>                    trtB_vs_ctrl <span class="op">=</span> <span class="st">"grouptrtB - groupctrl"</span><span class="op">)</span>,</span>
+<span>  test_method   <span class="op">=</span> <span class="st">"eBayes"</span>,</span>
+<span>  lfc_threshold <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  kable_out     <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  ngenes_out    <span class="op">=</span> <span class="fl">10</span>,</span>
+<span>  kable_coef    <span class="op">=</span> <span class="fl">1</span>      <span class="co"># display: trtA vs ctrl</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<hr>
+</div>
+</div>
+<div class="section level2">
+<h2 id="providing-sample-metadata-explicitly">Providing sample metadata explicitly<a class="anchor" aria-label="anchor" href="#providing-sample-metadata-explicitly"></a>
+</h2>
+<p>For more complex designs — multiple brain regions, custom blocking variables, or non-standard column naming — supply <code>sample_df</code> directly:</p>
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Example: two brain regions, two treatments</span></span>
+<span><span class="va">sample_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  sample    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"POA_nb1_IP"</span>, <span class="st">"POA_nb1_INPUT"</span>, <span class="st">"POA_pb1_IP"</span>, <span class="st">"POA_pb1_INPUT"</span>,</span>
+<span>                <span class="st">"AMY_nb1_IP"</span>, <span class="st">"AMY_nb1_INPUT"</span>, <span class="st">"AMY_pb1_IP"</span>, <span class="st">"AMY_pb1_INPUT"</span><span class="op">)</span>,</span>
+<span>  region    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"POA"</span>, <span class="st">"AMY"</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">4</span><span class="op">)</span>,</span>
+<span>  treatment <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"nb"</span>, <span class="st">"nb"</span>, <span class="st">"pb"</span>, <span class="st">"pb"</span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span>,</span>
+<span>  block     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="st">"1"</span>, <span class="fl">8</span><span class="op">)</span>,</span>
+<span>  fraction  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"IP"</span>, <span class="st">"INPUT"</span>, <span class="st">"IP"</span>, <span class="st">"INPUT"</span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">res_poa_pb</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/ptrap_de.html">ptrap_de</a></span><span class="op">(</span></span>
+<span>  counts_mat     <span class="op">=</span> <span class="va">my_counts</span>,</span>
+<span>  sample_df      <span class="op">=</span> <span class="va">sample_df</span>,</span>
+<span>  gene_ids       <span class="op">=</span> <span class="va">my_gene_ids</span>,</span>
+<span>  region_name    <span class="op">=</span> <span class="st">"POA"</span>,</span>
+<span>  treatment_name <span class="op">=</span> <span class="st">"pb"</span>,</span>
+<span>  region_col     <span class="op">=</span> <span class="st">"region"</span>,</span>
+<span>  treatment_col  <span class="op">=</span> <span class="st">"treatment"</span>,</span>
+<span>  block_col      <span class="op">=</span> <span class="st">"block"</span>,</span>
+<span>  fraction_col   <span class="op">=</span> <span class="st">"fraction"</span>,</span>
+<span>  test_method    <span class="op">=</span> <span class="st">"paired.ttest"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
+</h2>
+<p>If you use <strong>pTRAPPING</strong> in your research, please cite:</p>
+<blockquote>
+<p>Rodríguez, C. (2024). <em>pTRAPPING: A Suite of Functions for the Analyses of PhosphoTRAP Data in R</em>. <a href="https://github.com/camilo-rl/pTRAPPING" class="external-link uri">https://github.com/camilo-rl/pTRAPPING</a></p>
+</blockquote>
+<p>For the paired t-test method (<code>test_method = "paired.ttest"</code>):</p>
+<blockquote>
+<p>Tan, C.L., Cooke, E.K., Leib, D.E., Lin, Y.C., Daly, G.E., Zimmerman, C.A., and Knight, Z.A. (2016). Warm-Sensitive Neurons that Control Body Temperature. <em>Cell</em> 167, 47–59. <a href="https://doi.org/10.1016/j.cell.2016.08.028" class="external-link uri">https://doi.org/10.1016/j.cell.2016.08.028</a></p>
+</blockquote>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">
