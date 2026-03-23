@@ -31,7 +31,7 @@ publication-ready tables and figures in just a few lines of code.
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("camilo-rl/pTRAPPING")
+devtools::install_github("laurenoconnelllab/pTRAPPING")
 ```
 
 ## Functions at a glance
@@ -583,7 +583,7 @@ If you use **pTRAPPING** in your research, please cite:
 
 > Rodríguez, C. (2024). *pTRAPPING: A Suite of Functions for the
 > Analyses of PhosphoTRAP Data in R*.
-> <https://github.com/camilo-rl/pTRAPPING>
+> <https://github.com/laurenoconnelllab/pTRAPPING>
 
 For the paired t-test method (`test_method = "paired.ttest"`):
 

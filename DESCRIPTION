@@ -23,5 +23,5 @@ Imports:
     dplyr,
     tibble,
     readr
-URL: https://github.com/camilo-rl/pTRAPPING, https://camilo-rl.github.io/pTRAPPING/
-BugReports: https://github.com/camilo-rl/pTRAPPING/issues
+URL: https://github.com/laurenoconnelllab/pTRAPPING, https://laurenoconnelllab.github.io/pTRAPPING/
+BugReports: https://github.com/laurenoconnelllab/pTRAPPING/issues
