@@ -77,7 +77,7 @@ ptrap_de(
   variable — the contrast is always IP vs INPUT. To compare two
   treatments you call `ptrap_de()` once per treatment and then pass both
   results to
-  [`ptrap_volcano2()`](https://camilo-rl.github.io/pTRAPPING/reference/ptrap_volcano2.md).
+  [`ptrap_volcano2()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_volcano2.md).
 
   When `NULL` (default), the value is derived automatically from
   `sample_df` (or from the parsed column names when `sample_df = NULL`):

@@ -1,7 +1,7 @@
 # Dual volcano plot comparing two treatment conditions from TRAP-seq DE results
 
 Takes two tibbles produced by
-[`ptrap_de()`](https://camilo-rl.github.io/pTRAPPING/reference/ptrap_de.md)
+[`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md)
 or similar — one per treatment condition, both from the same brain
 region — joins them by gene, classifies each gene according to its
 differential expression status in each condition, and returns a scatter
@@ -33,20 +33,20 @@ ptrap_volcano2(
 - de_result_1:
 
   A tibble returned by
-  [`ptrap_de()`](https://camilo-rl.github.io/pTRAPPING/reference/ptrap_de.md)
+  [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md)
   for the **first** treatment condition (plotted on the **y-axis**).
 
 - de_result_2:
 
   A tibble returned by
-  [`ptrap_de()`](https://camilo-rl.github.io/pTRAPPING/reference/ptrap_de.md)
+  [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md)
   for the **second** treatment condition (plotted on the **x-axis**).
 
 - lfc_threshold:
 
   Minimum absolute log2 fold change used to define significance. Must
   match (or be stricter than) the threshold used in
-  [`ptrap_de()`](https://camilo-rl.github.io/pTRAPPING/reference/ptrap_de.md).
+  [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md).
   Default is `1`.
 
 - fdr_threshold:

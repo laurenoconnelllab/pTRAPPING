@@ -2,14 +2,14 @@
 
 ## All functions
 
-- [`limma_de()`](https://camilo-rl.github.io/pTRAPPING/reference/limma_de.md)
+- [`limma_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/limma_de.md)
   : Differential expression analysis using limma
-- [`ptrap_de()`](https://camilo-rl.github.io/pTRAPPING/reference/ptrap_de.md)
+- [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md)
   : Perform differential expression analysis for TRAP-seq data using
   edgeR or a paired t-test
-- [`ptrap_volcano()`](https://camilo-rl.github.io/pTRAPPING/reference/ptrap_volcano.md)
+- [`ptrap_volcano()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_volcano.md)
   : Single volcano plot for TRAP-seq or RNA-seq differential expression
   results
-- [`ptrap_volcano2()`](https://camilo-rl.github.io/pTRAPPING/reference/ptrap_volcano2.md)
+- [`ptrap_volcano2()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_volcano2.md)
   : Dual volcano plot comparing two treatment conditions from TRAP-seq
   DE results

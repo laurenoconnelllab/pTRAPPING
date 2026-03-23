@@ -1,8 +1,8 @@
 # Single volcano plot for TRAP-seq or RNA-seq differential expression results
 
 Takes a single tibble produced by
-[`ptrap_de()`](https://camilo-rl.github.io/pTRAPPING/reference/ptrap_de.md),
-[`limma_de()`](https://camilo-rl.github.io/pTRAPPING/reference/limma_de.md)
+[`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md),
+[`limma_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/limma_de.md)
 or similar and returns a classic volcano plot (logFC on the x-axis,
 -log10(FDR) on the y-axis). Non-significant genes are shown in grey;
 genes classified as `"UP"` or `"DOWN"` in the `diffexpressed` column are
@@ -33,7 +33,7 @@ ptrap_volcano(
 - de_result:
 
   A tibble returned by
-  [`ptrap_de()`](https://camilo-rl.github.io/pTRAPPING/reference/ptrap_de.md),
+  [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md),
   containing at minimum columns `Gene` (or `gene_col`), `logFC`, `FDR`,
   and `diffexpressed`.
 
@@ -41,14 +41,14 @@ ptrap_volcano(
 
   Minimum absolute log2 fold change used to draw the vertical threshold
   lines. Should match the value used in
-  [`ptrap_de()`](https://camilo-rl.github.io/pTRAPPING/reference/ptrap_de.md).
+  [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md).
   Default is `1`.
 
 - fdr_threshold:
 
   FDR cutoff used to draw the horizontal threshold line (plotted as
   `-log10(fdr_threshold)`). Should match the value used in
-  [`ptrap_de()`](https://camilo-rl.github.io/pTRAPPING/reference/ptrap_de.md).
+  [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md).
   Default is `0.05`.
 
 - gene_col:

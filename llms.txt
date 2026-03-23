@@ -24,17 +24,17 @@ publication-ready tables and figures in just a few lines of code.
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("camilo-rl/pTRAPPING")
+devtools::install_github("laurenoconnelllab/pTRAPPING")
 ```
 
 ## Functions at a glance
 
-| Function                                                                                | What it does                                                                                                  |
-|-----------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------|
-| [`ptrap_de()`](https://camilo-rl.github.io/pTRAPPING/reference/ptrap_de.md)             | IP vs INPUT DE analysis for TRAP-seq (edgeR LRT/QLF or paired t-test)                                         |
-| [`ptrap_volcano()`](https://camilo-rl.github.io/pTRAPPING/reference/ptrap_volcano.md)   | Volcano plot from a single [`ptrap_de()`](https://camilo-rl.github.io/pTRAPPING/reference/ptrap_de.md) result |
-| [`ptrap_volcano2()`](https://camilo-rl.github.io/pTRAPPING/reference/ptrap_volcano2.md) | Dual scatter comparing two treatment conditions side by side                                                  |
-| [`limma_de()`](https://camilo-rl.github.io/pTRAPPING/reference/limma_de.md)             | Multi-group DE for proteomics / metabolomics (limma `treat` or `eBayes`)                                      |
+| Function                                                                                        | What it does                                                                                                          |
+|-------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------|
+| [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md)             | IP vs INPUT DE analysis for TRAP-seq (edgeR LRT/QLF or paired t-test)                                                 |
+| [`ptrap_volcano()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_volcano.md)   | Volcano plot from a single [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md) result |
+| [`ptrap_volcano2()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_volcano2.md) | Dual scatter comparing two treatment conditions side by side                                                          |
+| [`limma_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/limma_de.md)             | Multi-group DE for proteomics / metabolomics (limma `treat` or `eBayes`)                                              |
 
 ------------------------------------------------------------------------
 
@@ -53,7 +53,7 @@ Each group has **3 animals** (biological replicates). Each animal
 contributes one IP and one INPUT library, giving **12 samples** total.
 The column-naming convention `<treatment><replicate><fraction>`
 (e.g. `nb1INPUT`, `pb2IP`) lets
-[`ptrap_de()`](https://camilo-rl.github.io/pTRAPPING/reference/ptrap_de.md)
+[`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md)
 parse sample metadata automatically — no `sample_df` needed.
 
 ``` r
@@ -126,7 +126,7 @@ will only be enriched in `pb`.
 ### Simplest call: auto-parse column names
 
 When `sample_df` is omitted,
-[`ptrap_de()`](https://camilo-rl.github.io/pTRAPPING/reference/ptrap_de.md)
+[`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md)
 reads treatment, replicate number, and fraction directly from the column
 names. Providing `treatment_name` tells the function which group to
 analyse:
@@ -345,7 +345,7 @@ immediate-early gene expression.
 
 ## `ptrap_volcano2()` — dual scatter comparing two treatments
 
-[`ptrap_volcano2()`](https://camilo-rl.github.io/pTRAPPING/reference/ptrap_volcano2.md)
+[`ptrap_volcano2()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_volcano2.md)
 overlays both treatment conditions on a single scatter plot. Each axis
 shows the log₂ fold-change (IP / INPUT) for one group, and genes are
 colour-coded by their DE status across conditions:
@@ -393,7 +393,7 @@ plot](reference/figures/README-volcano2-custom-1.png)
 
 ## `limma_de()` — proteomics and metabolomics
 
-[`limma_de()`](https://camilo-rl.github.io/pTRAPPING/reference/limma_de.md)
+[`limma_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/limma_de.md)
 wraps the limma linear modelling framework for **continuous log-scale
 data** (label-free proteomics, metabolomics, or RNA-seq after `voom`).
 Here we simulate a three-group proteomics experiment — **control**
@@ -425,7 +425,7 @@ prot_mat[121:150, groups %in% c("trtA", "trtB")]  <- prot_mat[121:150, groups %i
 ```
 
 > **Tip — contrast string naming convention:** Inside
-> [`limma_de()`](https://camilo-rl.github.io/pTRAPPING/reference/limma_de.md),
+> [`limma_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/limma_de.md),
 > the design matrix is built as `model.matrix(~ 0 + group)` (pairwise)
 > or `model.matrix(~ group)` (reference), where the variable is always
 > called `group`. Coefficient names therefore follow the pattern
@@ -587,7 +587,7 @@ If you use **pTRAPPING** in your research, please cite:
 
 > Rodríguez, C. (2024). *pTRAPPING: A Suite of Functions for the
 > Analyses of PhosphoTRAP Data in R*.
-> <https://github.com/camilo-rl/pTRAPPING>
+> <https://github.com/laurenoconnelllab/pTRAPPING>
 
 For the paired t-test method (`test_method = "paired.ttest"`):
 
@@ -600,15 +600,15 @@ For the paired t-test method (`test_method = "paired.ttest"`):
 
 ## All functions
 
-- [`limma_de()`](https://camilo-rl.github.io/pTRAPPING/reference/limma_de.md)
+- [`limma_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/limma_de.md)
   : Differential expression analysis using limma
-- [`ptrap_de()`](https://camilo-rl.github.io/pTRAPPING/reference/ptrap_de.md)
+- [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md)
   : Perform differential expression analysis for TRAP-seq data using
   edgeR or a paired t-test
-- [`ptrap_volcano()`](https://camilo-rl.github.io/pTRAPPING/reference/ptrap_volcano.md)
+- [`ptrap_volcano()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_volcano.md)
   : Single volcano plot for TRAP-seq or RNA-seq differential expression
   results
-- [`ptrap_volcano2()`](https://camilo-rl.github.io/pTRAPPING/reference/ptrap_volcano2.md)
+- [`ptrap_volcano2()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_volcano2.md)
   : Dual volcano plot comparing two treatment conditions from TRAP-seq
   DE results
 

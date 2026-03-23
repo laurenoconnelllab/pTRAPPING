@@ -18,7 +18,7 @@
 <script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="A Suite of Functions for the Analyses of PhosphoTRAP Data in R">
 <meta name="description" content="Provides a toolkit for the analysis of PhosphoTRAP sequencing data, including preprocessing, differential expression analysis, and visualization. Implements streamlined workflows and offers functions for generating publication-ready tables and plots in few lines of code, enabling reproducible and efficient exploration of PhosphoTRAP datasets.">
 <meta property="og:description" content="Provides a toolkit for the analysis of PhosphoTRAP sequencing data, including preprocessing, differential expression analysis, and visualization. Implements streamlined workflows and offers functions for generating publication-ready tables and plots in few lines of code, enabling reproducible and efficient exploration of PhosphoTRAP datasets.">
-<meta property="og:image" content="https://camilo-rl.github.io/pTRAPPING/logo.png">
+<meta property="og:image" content="https://laurenoconnelllab.github.io/pTRAPPING/logo.png">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -43,7 +43,7 @@
 <li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="search.json">
 </form></li>
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/camilo-rl/pTRAPPING/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/laurenoconnelllab/pTRAPPING/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
@@ -68,7 +68,7 @@
 </h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("devtools")</span></span>
-<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"camilo-rl/pTRAPPING"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"laurenoconnelllab/pTRAPPING"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="functions-at-a-glance">Functions at a glance<a class="anchor" aria-label="anchor" href="#functions-at-a-glance"></a>
@@ -116,7 +116,7 @@
 </ul>
 <p>Each group has <strong>3 animals</strong> (biological replicates). Each animal contributes one IP and one INPUT library, giving <strong>12 samples</strong> total. The column-naming convention <code>&lt;treatment&gt;&lt;replicate&gt;&lt;fraction&gt;</code> (e.g. <code>nb1INPUT</code>, <code>pb2IP</code>) lets <code><a href="reference/ptrap_de.html">ptrap_de()</a></code> parse sample metadata automatically — no <code>sample_df</code> needed.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/camilo-rl/pTRAPPING" class="external-link">pTRAPPING</a></span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/laurenoconnelllab/pTRAPPING" class="external-link">pTRAPPING</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span>
@@ -582,7 +582,7 @@
 </h2>
 <p>If you use <strong>pTRAPPING</strong> in your research, please cite:</p>
 <blockquote>
-<p>Rodríguez, C. (2024). <em>pTRAPPING: A Suite of Functions for the Analyses of PhosphoTRAP Data in R</em>. <a href="https://github.com/camilo-rl/pTRAPPING" class="external-link uri">https://github.com/camilo-rl/pTRAPPING</a></p>
+<p>Rodríguez, C. (2024). <em>pTRAPPING: A Suite of Functions for the Analyses of PhosphoTRAP Data in R</em>. <a href="https://github.com/laurenoconnelllab/pTRAPPING" class="external-link uri">https://github.com/laurenoconnelllab/pTRAPPING</a></p>
 </blockquote>
 <p>For the paired t-test method (<code>test_method = "paired.ttest"</code>):</p>
 <blockquote>
@@ -593,8 +593,8 @@
   </main><aside class="col-md-3"><div class="links">
 <h2 data-toc-skip>Links</h2>
 <ul class="list-unstyled">
-<li><a href="https://github.com/camilo-rl/pTRAPPING/" class="external-link">Browse source code</a></li>
-<li><a href="https://github.com/camilo-rl/pTRAPPING/issues" class="external-link">Report a bug</a></li>
+<li><a href="https://github.com/laurenoconnelllab/pTRAPPING/" class="external-link">Browse source code</a></li>
+<li><a href="https://github.com/laurenoconnelllab/pTRAPPING/issues" class="external-link">Report a bug</a></li>
 </ul>
 </div>
 
