@@ -1,14 +1,13 @@
 # Single volcano plot for TRAP-seq or RNA-seq differential expression results
 
 Takes a single tibble produced by
-[`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md),
-[`limma_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/limma_de.md)
-or similar and returns a classic volcano plot (logFC on the x-axis,
--log10(FDR) on the y-axis). Non-significant genes are shown in grey;
-genes classified as `"UP"` or `"DOWN"` in the `diffexpressed` column are
-highlighted with distinct fill colours and labelled with their gene
-identifier. Dashed threshold lines are drawn at ±`lfc_threshold`
-(vertical) and `-log10(fdr_threshold)` (horizontal).
+[`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md)
+and returns a classic volcano plot (logFC on the x-axis, -log10(FDR) on
+the y-axis). Non-significant genes are shown in grey; genes classified
+as `"UP"` or `"DOWN"` in the `diffexpressed` column are highlighted with
+distinct fill colours and labelled with their gene identifier. Dashed
+threshold lines are drawn at ±`lfc_threshold` (vertical) and
+`-log10(fdr_threshold)` (horizontal).
 
 ## Usage
 

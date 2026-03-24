@@ -2,11 +2,8 @@
 
 ## All functions
 
-- [`limma_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/limma_de.md)
-  : Differential expression analysis using limma
 - [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md)
-  : Perform differential expression analysis for TRAP-seq data using
-  edgeR or a paired t-test
+  : Differential expression analysis for PhosphoTRAP data
 - [`ptrap_volcano()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_volcano.md)
   : Single volcano plot for TRAP-seq or RNA-seq differential expression
   results
