@@ -16,4 +16,11 @@ counts <- counts_pairb %>%
   select(-Chr, -Start, -End, -Strand, -Length)
 
 
+colnames(counts)
+
 ptrap_de(counts)
+
+edgeR::normLibSizes()
+edgeR::calcNormFactors()
+edgeR::rpkm()
+edgeR::cpm()

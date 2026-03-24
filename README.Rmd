@@ -51,10 +51,9 @@ devtools::install_github("laurenoconnelllab/pTRAPPING")
 
 | Function | What it does |
 |---|---|
-| `ptrap_de()` | IP vs INPUT DE analysis for TRAP-seq (edgeR LRT/QLF or paired t-test) |
+| `ptrap_de()` | IP vs INPUT DE analysis for TRAP-seq (edgeR LRT/QLF, limma-voom, or t-test) |
 | `ptrap_volcano()` | Volcano plot from a single `ptrap_de()` result |
 | `ptrap_volcano2()` | Dual scatter comparing two treatment conditions side by side |
-| `limma_de()` | Multi-group DE for proteomics / metabolomics (limma `treat` or `eBayes`) |
 
 ---
 
@@ -178,9 +177,11 @@ transcripts of pair-bonded neurons.
 
 | Method | When to use |
 |---|---|
-| `"LRT"` | edgeR likelihood ratio test — recommended with ≥ 4 replicates and raw counts |
+| `"LRT"` | edgeR likelihood ratio test — robust with ≥ 4 replicates |
 | `"QLF"` | edgeR quasi-likelihood F-test — more conservative, better FDR control |
-| `"paired.ttest"` | Per-gene paired t-test (Tan et al. 2016) — recommended for n = 3 replicates typical of PhosphoTRAP |
+| `"voom"` | limma-voom — precision weights on log-CPM; useful when library sizes vary |
+| `"paired.ttest"` | Per-gene paired t-test on IP − INPUT differences (Tan et al. 2016) — a single treatment vs INPUT |
+| `"unpaired.ttest"` | Per-gene Welch t-test comparing log₂(FE) between two treatment groups (Knight et al.) |
 
 ```{r de-methods, eval = FALSE}
 # Quasi-likelihood F-test — more conservative than LRT
@@ -188,6 +189,13 @@ res_qlf <- ptrap_de(
   counts_mat     = counts_mat,
   treatment_name = "nb",
   test_method    = "QLF"
+)
+
+# limma-voom — accounts for mean-variance trend with precision weights
+res_voom <- ptrap_de(
+  counts_mat     = counts_mat,
+  treatment_name = "nb",
+  test_method    = "voom"
 )
 
 # Paired t-test — recommended for real PhosphoTRAP data with n = 3 animals
@@ -202,8 +210,11 @@ res_pt <- ptrap_de(
 > **Note on `"paired.ttest"`:**
 > The GLM-based methods (`"LRT"` / `"QLF"`) estimate gene-wise dispersion from
 > the data and work best with ≥ 4 replicates. With only n = 3, dispersion
-> estimates are unreliable. The paired t-test avoids this by using only the
-> within-gene variance across pairs, following Tan et al. (2016).
+> estimates are unreliable. The paired t-test follows Tan et al. (2016) exactly:
+> *"p value for each gene was calculated as the paired t test between input and
+> immunoprecipitated RPKM values from the three experimental repeats."*
+> Set `norm.method = "RPKM"` (and supply `gene.length`) to reproduce the
+> original analysis. `logFC` is log₂(mean_IP / mean_INPUT).
 
 ---
 
@@ -224,7 +235,8 @@ res_long <- ptrap_de(
 # DE results tibble
 head(res_long$results[, c("Gene", "logFC", "t_statistic", "PValue", "FDR")])
 
-# Per-gene, per-animal paired counts table (showing Snap25)
+# Per-gene, per-animal paired table (showing Snap25):
+# ip_count / input_count are in the norm.method scale; FE = IP/INPUT per animal
 res_long$long_data[res_long$long_data$Gene == "Snap25", ]
 ```
 
@@ -338,131 +350,78 @@ ptrap_volcano2(
 
 ---
 
-## `limma_de()` — proteomics and metabolomics
+## `test_method = "voom"` — limma-voom
 
-`limma_de()` wraps the limma linear modelling framework for **continuous
-log-scale data** (label-free proteomics, metabolomics, or RNA-seq after
-`voom`). Here we simulate a three-group proteomics experiment —
-**control** (`ctrl`), **treatment A** (`trtA`), and **treatment B** (`trtB`),
-with n = 6 replicates each.
+`"voom"` applies the limma-voom pipeline: counts are converted to log-CPM and
+precision weights are estimated from the mean-variance trend before fitting the
+same IP vs INPUT linear model. This is particularly useful when **library sizes
+vary substantially** across samples, as the weights down-weight unreliable
+observations automatically.
 
-```{r simulate-proteomics}
-set.seed(123)
-
-n_prot <- 1000
-n_rep  <- 6
-groups <- factor(rep(c("ctrl", "trtA", "trtB"), each = n_rep))
-
-# log2 protein abundances drawn from a normal background
-prot_mat <- matrix(
-  rnorm(n_prot * length(groups), mean = 10, sd = 0.4),
-  nrow     = n_prot,
-  dimnames = list(
-    paste0("Prot", seq_len(n_prot)),
-    paste0(rep(c("ctrl", "trtA", "trtB"), each = n_rep),
-           "_", seq_len(length(groups)))
-  )
+```{r de-voom}
+res_nb_voom <- ptrap_de(
+  counts_mat     = counts_mat,
+  treatment_name = "nb",
+  test_method    = "voom"
 )
 
-# Inject true biological differences
-prot_mat[1:60,    groups == "trtA"]               <- prot_mat[1:60,    groups == "trtA"]               + 2
-prot_mat[61:120,  groups == "trtB"]               <- prot_mat[61:120,  groups == "trtB"]               - 2
-prot_mat[121:150, groups %in% c("trtA", "trtB")]  <- prot_mat[121:150, groups %in% c("trtA", "trtB")]  + 2
+# Top enriched genes
+head(res_nb_voom[res_nb_voom$diffexpressed != "NO",
+                 c("Gene", "logFC", "t", "PValue", "FDR", "diffexpressed")])
 ```
 
-> **Tip — contrast string naming convention:**
-> Inside `limma_de()`, the design matrix is built as
-> `model.matrix(~ 0 + group)` (pairwise) or `model.matrix(~ group)`
-> (reference), where the variable is always called `group`. Coefficient names
-> therefore follow the pattern `group<level>` (e.g. `groupctrl`, `grouptrtA`).
-> Pass contrast strings using these names.
+The output has the same structure as `"LRT"` / `"QLF"` results (`Gene`,
+`logFC`, `FDR`, `diffexpressed`, …), so it drops straight into `ptrap_volcano()`:
 
-### Pairwise design with `eBayes()` (standard empirical Bayes)
+```{r volcano-voom, fig.alt = "Volcano plot from limma-voom analysis"}
+ptrap_volcano(
+  res_nb_voom,
+  title = "Non-bonded (nb) — POA [voom]"
+)
+```
 
-```{r limma-ebayes}
-library(limma)
+---
 
-res_prot <- limma_de(
-  expr_mat      = prot_mat,
-  group         = groups,
-  contrast_mat  = c(trtA_vs_ctrl = "grouptrtA - groupctrl",
-                    trtB_vs_ctrl = "grouptrtB - groupctrl"),
-  test_method   = "eBayes",
-  lfc_threshold = 1,
-  fdr_threshold = 0.05
+## `test_method = "unpaired.ttest"` — comparing two treatment groups
+
+The **unpaired t-test** method follows the PhosphoTRAP approach of Knight et al.
+(2012): per-gene fold enrichments (FE = IP / INPUT) are computed for every
+animal in each group, and a Welch t-test is used to compare log₂(FE) between
+the two treatment groups. This is the right choice when you want to ask:
+
+> *"Is the IP enrichment itself different between group A and group B?"*
+
+rather than testing IP vs INPUT within a single group. When neither
+`treatment_name` nor `control_name` is supplied and the counts matrix contains
+exactly two groups, they are assigned automatically (alphabetically; first =
+control, second = treatment):
+
+```{r de-unpaired}
+# Auto-assigns: nb = control, pb = treatment
+res_unpaired <- ptrap_de(
+  counts_mat  = counts_mat,
+  test_method = "unpaired.ttest"
 )
 
-# Number of DE proteins per contrast
-sapply(res_prot$de_list, nrow)
+# Results include mean FE per group and their ratio (diff_FE)
+head(res_unpaired[res_unpaired$diffexpressed != "NO",
+                  c("Gene", "logFC", "diff_FE",
+                    "mean_FE_nb", "mean_FE_pb",
+                    "PValue", "FDR", "diffexpressed")])
 ```
 
-```{r limma-summaries}
-# Proteins DE in opposite directions across contrasts (worth investigating!)
-res_prot$shared
+> **Interpretation:** `diff_FE = mean_FE_pb / mean_FE_nb` — the ratio of
+> mean IP/INPUT fold enrichments between treatment and control. `logFC` is
+> `log2(diff_FE)`. Genes with `logFC > 0` are *more enriched* in the
+> pair-bonded group.
 
-# Consistently DE proteins, counted by direction
-res_prot$unique
-```
+Pair-bonding markers (`Oxtr`, `Avpr1a`, `Fos`, `Arc`, `Egr1`) should show
+up here as genes whose neuronal IP enrichment is higher in `pb` than `nb`:
 
-Each element of `$de_list` is a tibble for one contrast:
-
-```{r limma-delist}
-head(res_prot$de_list[["trtA_vs_ctrl"]])
-```
-
-### Pairwise design with `treat()` (minimum fold-change test)
-
-`treat()` tests whether |logFC| *exceeds* `lfc_threshold`, providing stronger
-protection against proteins with statistical but not biological significance.
-Recommended when biological effect sizes are well-defined (e.g. proteomics):
-
-```{r limma-treat}
-res_prot_tr <- limma_de(
-  expr_mat      = prot_mat,
-  group         = groups,
-  contrast_mat  = c(trtA_vs_ctrl = "grouptrtA - groupctrl",
-                    trtB_vs_ctrl = "grouptrtB - groupctrl"),
-  test_method   = "treat",
-  lfc_threshold = 1,
-  fdr_threshold = 0.05
-)
-
-sapply(res_prot_tr$de_list, nrow)
-```
-
-### Reference-group design
-
-When all comparisons are against a single baseline, `model_type = "reference"`
-is a simpler alternative — the first factor level becomes the reference and
-other coefficients are differences from it:
-
-```{r limma-reference}
-res_prot_ref <- limma_de(
-  expr_mat      = prot_mat,
-  group         = as.character(groups),
-  contrast_mat  = c("grouptrtA", "grouptrtB"),   # coefficient names in ~ group
-  model_type    = "reference",
-  test_method   = "eBayes",
-  lfc_threshold = 1,
-  fdr_threshold = 0.05
-)
-
-sapply(res_prot_ref$de_list, nrow)
-```
-
-### HTML table with `kable_out = TRUE`
-
-```{r limma-kable, eval = FALSE}
-limma_de(
-  expr_mat      = prot_mat,
-  group         = groups,
-  contrast_mat  = c(trtA_vs_ctrl = "grouptrtA - groupctrl",
-                    trtB_vs_ctrl = "grouptrtB - groupctrl"),
-  test_method   = "eBayes",
-  lfc_threshold = 1,
-  kable_out     = TRUE,
-  ngenes_out    = 10,
-  kable_coef    = 1      # display: trtA vs ctrl
+```{r volcano-unpaired, fig.alt = "Volcano plot from unpaired t-test comparing pb vs nb"}
+ptrap_volcano(
+  res_unpaired,
+  title = "pb vs nb — POA [unpaired t-test]"
 )
 ```
 
@@ -512,3 +471,10 @@ For the paired t-test method (`test_method = "paired.ttest"`):
 > Tan, C.L., Cooke, E.K., Leib, D.E., Lin, Y.C., Daly, G.E., Zimmerman, C.A.,
 > and Knight, Z.A. (2016). Warm-Sensitive Neurons that Control Body Temperature.
 > *Cell* 167, 47–59. <https://doi.org/10.1016/j.cell.2016.08.028>
+
+For the unpaired t-test method (`test_method = "unpaired.ttest"`):
+
+> Knight, Z.A., Tan, K., Birsoy, K., Schmidt, S., Garrison, J.L., Wysocki, R.W.,
+> Emiliano, A., Ekstrand, M.I., and Bhatt, D.L. (2012). Molecular profiling of
+> activated neurons by phosphorylated ribosome capture. *Cell* 151, 1126–1137.
+> <https://doi.org/10.1016/j.cell.2012.10.039>

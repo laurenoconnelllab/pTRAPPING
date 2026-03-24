@@ -17,11 +17,11 @@ Imports:
     rlang,
     edgeR,
     limma,
+    DESeq2,
     kableExtra,
     knitr,
     ggplot2,
     dplyr,
-    tibble,
-    readr
+    tibble
 URL: https://github.com/laurenoconnelllab/pTRAPPING, https://laurenoconnelllab.github.io/pTRAPPING/
 BugReports: https://github.com/laurenoconnelllab/pTRAPPING/issues

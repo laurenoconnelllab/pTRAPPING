@@ -59,8 +59,8 @@ the brain region and treatment labels found in \code{de_result}.}
 A \code{\link[ggplot2:ggplot]{ggplot2::ggplot()}} object.
 }
 \description{
-Takes a single tibble produced by \code{\link[=ptrap_de]{ptrap_de()}}, \code{\link[=limma_de]{limma_de()}}
-or similar and returns a classic volcano plot (logFC on the x-axis, -log10(FDR) on the y-axis).
+Takes a single tibble produced by \code{\link[=ptrap_de]{ptrap_de()}}
+and returns a classic volcano plot (logFC on the x-axis, -log10(FDR) on the y-axis).
 Non-significant genes are shown in grey; genes classified as \code{"UP"} or
 \code{"DOWN"} in the \code{diffexpressed} column are highlighted with distinct fill
 colours and labelled with their gene identifier. Dashed threshold lines are

@@ -1,7 +1,7 @@
 #' Single volcano plot for TRAP-seq or RNA-seq differential expression results
 #'
-#' Takes a single tibble produced by [pTRAPPING::ptrap_de()], [pTRAPPING::limma_de()]
-#' or similar and returns a classic volcano plot (logFC on the x-axis, -log10(FDR) on the y-axis).
+#' Takes a single tibble produced by [pTRAPPING::ptrap_de()]
+#' and returns a classic volcano plot (logFC on the x-axis, -log10(FDR) on the y-axis).
 #' Non-significant genes are shown in grey; genes classified as `"UP"` or
 #' `"DOWN"` in the `diffexpressed` column are highlighted with distinct fill
 #' colours and labelled with their gene identifier. Dashed threshold lines are

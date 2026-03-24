@@ -2,8 +2,7 @@
 % Please edit documentation in R/ptrap_de.R
 \name{ptrap_de}
 \alias{ptrap_de}
-\title{Perform differential expression analysis for TRAP-seq data using edgeR
-or a paired t-test}
+\title{Differential expression analysis for PhosphoTRAP data}
 \usage{
 ptrap_de(
   counts_mat,
@@ -11,6 +10,7 @@ ptrap_de(
   gene_ids = NULL,
   region_name = NULL,
   treatment_name = NULL,
+  control_name = NULL,
   sample_col = "sample",
   fraction_col = "fraction",
   block_col = "tube",
@@ -20,8 +20,10 @@ ptrap_de(
   input_level = "INPUT",
   lfc_threshold = 1,
   fdr_threshold = 0.05,
-  test_method = c("LRT", "QLF", "paired.ttest"),
-  pseudocount = 1,
+  test_method = c("LRT", "QLF", "paired.ttest", "unpaired.ttest", "voom", "deseq"),
+  norm.method = c("none", "CPM", "RPKM", "mratios"),
+  gene.length = NULL,
+  prior.count = 1,
   return_long = FALSE,
   ngenes.out = 20,
   kable.out = FALSE
@@ -30,7 +32,7 @@ ptrap_de(
 \arguments{
 \item{counts_mat}{A counts matrix in one of two formats:
 \itemize{
-\item \strong{Matrix} — numeric, genes × samples; column names are sample IDs;
+\item \strong{Matrix} — numeric, genes x samples; column names are sample IDs;
 gene IDs are in \code{rownames} or supplied via \code{gene_ids}.
 \item \strong{Data frame / tibble} — first column is a character vector of gene
 IDs; remaining columns are numeric counts with sample names as column
@@ -55,16 +57,23 @@ Only used when \code{region_col} is not \code{NULL}. Can be \code{NULL} when
 
 \item{treatment_name}{The treatment condition whose samples will be
 \strong{subsetted} for the IP vs INPUT comparison (e.g., \code{"pb"} to analyse
-only the pair-bonded samples). Note that \code{treatment_name} is \strong{not} the
-DE contrast variable — the contrast is always IP vs INPUT. To compare two
-treatments you call \code{ptrap_de()} once per treatment and then pass both
-results to \code{\link[=ptrap_volcano2]{ptrap_volcano2()}}.
+only the pair-bonded samples). For \code{"unpaired.ttest"}, this is the
+numerator condition in the differential fold enrichment
+(DFE = mean_FE_treatment / mean_FE_control).
 
 When \code{NULL} (default), the value is derived automatically from
 \code{sample_df} (or from the parsed column names when \code{sample_df = NULL}):
 if a single treatment is found the function proceeds silently; if
 multiple treatments are found an error asks the user to specify which
-one to analyse.}
+one to analyse. For \code{"unpaired.ttest"} with exactly two treatments and
+both \code{treatment_name} and \code{control_name} as \code{NULL}, assignments are made
+alphabetically (first = control, second = treatment) with a message.}
+
+\item{control_name}{The \strong{reference / control} treatment used only by
+\code{"unpaired.ttest"}. Serves as the denominator when computing differential
+fold enrichment (DFE = mean_FE_treatment / mean_FE_control). When \code{NULL}
+(default), the function auto-detects the control as the non-\code{treatment_name}
+group when exactly two treatments are present.}
 
 \item{sample_col}{Name of the column in \code{sample_df} whose values match the
 column names of \code{counts_mat}. Ignored when \code{sample_df = NULL} (auto-set
@@ -74,9 +83,10 @@ internally). Default is \code{"sample"}.}
 from INPUT fractions. Default is \code{"fraction"}.}
 
 \item{block_col}{Name of the column in \code{sample_df} used as the blocking /
-pairing variable (e.g., individual animal or tube). For \code{"LRT"} / \code{"QLF"}
-it enters the design matrix; for \code{"paired.ttest"} it aligns each
-animal's IP with its own INPUT. Default is \code{"tube"}.}
+pairing variable (e.g., individual animal or tube). For \code{"LRT"} / \code{"QLF"},
+\code{"deseq"}, and \code{"voom"} it enters the design matrix; for \code{"paired.ttest"}
+and \code{"unpaired.ttest"} it aligns each animal's IP with its own INPUT.
+Default is \code{"tube"}.}
 
 \item{region_col}{Name of the column in \code{sample_df} containing brain region
 labels. Set to \code{NULL} (default) to skip region filtering — recommended
@@ -96,34 +106,74 @@ fraction (reference level). Default is \code{"INPUT"}.}
 \item{lfc_threshold}{Minimum absolute log2 fold change required to classify
 a gene as differentially expressed. Default is \code{1}.}
 
-\item{fdr_threshold}{Maximum FDR (or adjusted p-value for
-\code{"paired.ttest"}) allowed to classify a gene as differentially expressed.
-Default is \code{0.05}.}
+\item{fdr_threshold}{Maximum FDR (or adjusted p-value) allowed to classify
+a gene as differentially expressed. Default is \code{0.05}.}
 
 \item{test_method}{Statistical method to use. One of:
 \itemize{
-\item \code{"LRT"} — likelihood ratio test via \code{glmFit} + \code{glmLRT} (default).
-Suitable for ≥ 4 replicates and raw count data.
-\item \code{"QLF"} — quasi-likelihood F-test via \code{glmQLFit} + \code{glmQLFTest}.
-More conservative than LRT; recommended for small sample sizes with
-raw count data.
-\item \code{"paired.ttest"} — per-gene paired t-test between IP and INPUT across
-replicates, following Tan et al. (2016)
-\doi{10.1016/j.cell.2016.08.028}. Best suited for n = 3 replicates
-typical of PhosphoTRAP experiments. P-values are adjusted with
-Benjamini-Hochberg. The enrichment ratio per paired sample (IP/INPUT)
-is expressed on a log2 scale.
+\item \code{"LRT"} — edgeR likelihood ratio test via \code{glmFit} + \code{glmLRT}
+(default). TMM normalization applied automatically; \code{norm.method} is
+forced to \code{"none"}. Suitable for >= 4 replicates and raw count data.
+\item \code{"QLF"} — edgeR quasi-likelihood F-test via \code{glmQLFit} + \code{glmQLFTest}.
+TMM normalization applied automatically; \code{norm.method} is forced to
+\code{"none"}. More conservative than LRT.
+\item \code{"deseq"} — DESeq2 pipeline with a multi-factor design
+(\code{~ block + fraction}). Median of ratios normalization is applied
+automatically by \code{DESeq()}; \code{norm.method} is forced to \code{"none"}.
+Results are obtained via \code{results(dds, name = "fraction_IP_vs_INPUT")}.
+\item \code{"voom"} — limma-voom pipeline with a paired design
+(\code{~ fraction + block}) and empirical Bayes moderation via
+\code{lmFit} + \code{eBayes} + \code{topTable}. Log2-CPM + voom precision weights
+applied automatically; \code{norm.method} is forced to \code{"none"}.
+\item \code{"paired.ttest"} — per-gene paired t-test between IP and INPUT values
+across replicates, following Tan et al. (2016). The count scale is set
+by \code{norm.method} (Tan et al. used \code{"RPKM"}; all four options are
+valid). Best suited for n = 3 replicates. P-values adjusted with BH.
+\item \code{"unpaired.ttest"} — per-gene Welch unpaired t-test comparing log2(FE)
+values between two treatment groups. The count scale is set by
+\code{norm.method} (all four options are valid). Requires exactly two
+treatments; use \code{treatment_name} and \code{control_name} to specify groups.
 }}
 
-\item{pseudocount}{A small value added to counts before computing
-log2(IP/INPUT) in \code{"paired.ttest"}, to avoid log(0). Default is \code{1}.
-Set to \code{0} if \code{counts_mat} already contains normalised values (e.g.,
-RPKM/TPM) that are guaranteed to be > 0.}
+\item{norm.method}{Normalization method applied to counts before the t-test
+(\code{"paired.ttest"} / \code{"unpaired.ttest"} only). \strong{Ignored and automatically
+set to \code{"none"} for \code{"LRT"}, \code{"QLF"}, \code{"deseq"}, and \code{"voom"}}, which
+each apply their own normalization internally (a message is shown if you
+supply a non-\code{"none"} value). One of:
+\itemize{
+\item \code{"none"} (default) — uses the TMM-adjusted raw counts stored in the
+DGEList (i.e., the count matrix is not rescaled, but effective library
+sizes reflect TMM factors). \strong{Note:} TMM normalises \emph{effective library
+sizes}, not the counts themselves; CPM and RPKM values are derived from
+these TMM-adjusted sizes.
+\item \code{"CPM"} — counts per million, computed from TMM-adjusted effective
+library sizes via \code{edgeR::cpm()}. Recommended for comparisons between
+replicates of the same sample group.
+\item \code{"RPKM"} — reads per kilobase per million (CPM further divided by gene
+length in kilobases), via \code{edgeR::rpkm()}. Requires \code{gene.length}.
+Recommended for within-sample gene-to-gene comparisons (as used in Tan
+et al. 2016). \strong{Not} suitable for between-sample comparisons.
+\item \code{"mratios"} — DESeq2 \strong{median of ratios} normalization via
+\code{estimateSizeFactors()} followed by \code{counts(dds, normalized = TRUE)}.
+Produces normalized count values that are suitable for between-sample
+comparisons. Recommended when you want DESeq2-style normalization for
+the t-test without running the full DESeq2 pipeline.
+}}
 
-\item{return_long}{Logical. Only used when \code{test_method = "paired.ttest"}.
-If \code{TRUE}, returns a named list with \verb{$results} (the DE tibble) and
-\verb{$long_data} (the per-gene, per-animal paired table used for the test).
-Default is \code{FALSE}.}
+\item{gene.length}{Named numeric vector of gene lengths in base pairs
+(names must match gene IDs). Required when \code{norm.method = "RPKM"};
+ignored otherwise. Default is \code{NULL}.}
+
+\item{prior.count}{A small count added to IP and INPUT values before
+computing log2 ratios (FE = (IP + prior.count) / (INPUT + prior.count)),
+to avoid log(0). Default is \code{1}. Set to \code{0} if values are already
+normalised and guaranteed positive. Used only by \code{"paired.ttest"} and
+\code{"unpaired.ttest"}.}
+
+\item{return_long}{Logical. Only used when \code{test_method} is
+\code{"paired.ttest"} or \code{"unpaired.ttest"}. If \code{TRUE}, returns a named list
+with \verb{$results} (the DE tibble) and \verb{$long_data} (the per-gene,
+per-animal table used for the test). Default is \code{FALSE}.}
 
 \item{ngenes.out}{Number of top genes (sorted by p-value) to include in the
 output when \code{kable.out = TRUE}. Default is \code{20}.}
@@ -134,36 +184,89 @@ the top \code{ngenes.out} genes instead of the full tibble. Default is
 }
 \value{
 When \code{kable.out = FALSE} (default), a tibble with one row per gene
-sorted by p-value, containing \code{Gene}, \code{logFC}, test-statistic column(s),
-\code{PValue}, \code{FDR}, treatment label, optionally a region label (when
-\code{region_col} is set), and \code{diffexpressed} (\code{"UP"}, \code{"DOWN"}, \code{"NO"}).
+sorted by p-value. Columns depend on \code{test_method}:
+\itemize{
+\item \strong{\code{"LRT"} / \code{"QLF"}}: \code{Gene}, \code{logFC}, \code{logCPM}, \code{LR} or \code{F},
+\code{PValue}, \code{FDR}, treatment label, optional region label,
+\code{diffexpressed} (\code{"UP"}, \code{"DOWN"}, \code{"NO"}).
+\item \strong{\code{"deseq"}}: \code{Gene}, \code{baseMean}, \code{logFC} (log2FoldChange from
+DESeq2), \code{lfcSE}, \code{stat}, \code{PValue}, \code{FDR} (Benjamini-Hochberg adjusted
+p-value from \code{results()}), treatment label, optional region label,
+\code{diffexpressed}. Genes with \code{NA} p-values (outliers or low counts
+flagged by DESeq2) are retained and sorted to the bottom.
+\item \strong{\code{"paired.ttest"}}: \code{Gene},
+\code{logFC} (\eqn{\log_2(\bar{\mathrm{IP}} / \bar{\mathrm{INPUT}})}),
+\code{t_statistic} (paired t-test on IP \eqn{-} INPUT differences),
+\code{PValue}, \verb{FE_<block>} columns (one per animal giving the linear
+IP/INPUT fold enrichment for that animal), \code{FDR}, treatment label,
+optional region label, \code{diffexpressed}. With \code{return_long = TRUE},
+returns a named list: \verb{$results} (the tibble above) and \verb{$long_data}
+(a per-gene, per-animal tibble with columns \code{Gene}, block column,
+\code{ip_count}, \code{input_count}, \code{FE}).
+\item \strong{\code{"unpaired.ttest"}}: \code{Gene}, \code{logFC} (log2(mean_FE_treatment /
+mean_FE_control)), \code{diff_FE}, \verb{mean_FE_<treatment>},
+\verb{mean_FE_<control>}, \code{t_statistic}, \code{df} (Welch degrees of freedom),
+\code{PValue}, \code{FDR}, treatment label, optional region label,
+\code{diffexpressed}. With \code{return_long = TRUE}, returns a named list:
+\verb{$results} and \verb{$long_data} (per-gene, per-animal, per-treatment
+tibble with columns \code{Gene}, block column, treatment column, \code{FE},
+\code{log2_FE}).
+\item \strong{\code{"voom"}}: \code{Gene}, \code{logFC}, \code{AveExpr}, \code{t}, \code{B}, \code{PValue}, \code{FDR},
+treatment label, optional region label, \code{diffexpressed}.
+}
+
 When \code{kable.out = TRUE}, an HTML \code{kableExtra} table of the top
-\code{ngenes.out} genes. For \code{"paired.ttest"} with \code{return_long = TRUE}, a
-named list with \verb{$results} and \verb{$long_data}.
+\code{ngenes.out} genes.
 }
 \description{
 Compares IP vs INPUT fractions for a specified treatment condition using
-one of three statistical approaches (see \code{test_method}). Both \code{sample_df}
+one of six statistical approaches (see \code{test_method}). Both \code{sample_df}
 and \code{gene_ids} are optional: the function can derive sample metadata
 automatically from the column names of \code{counts_mat}, and gene identifiers
 from its first column.
+\itemize{
+\item \code{"LRT"} and \code{"QLF"} use edgeR's GLM framework with a multi-factor
+design (\code{~ fraction + block}), accounting for the paired animal structure
+via the blocking variable. Both methods automatically apply \strong{edgeR's TMM
+(trimmed mean of M values) normalization} via \code{normLibSizes()}, which
+normalises effective library sizes (not the counts directly) for use in
+the GLM. \code{norm.method} is automatically forced to \code{"none"} for these
+methods — CPM and RPKM values, when needed, are computed from the
+TMM-adjusted effective library sizes. Recommended with \strong{4 or more
+replicates} and raw count data.
+\item \code{"deseq"} uses the \strong{DESeq2} pipeline with a multi-factor design
+(\code{~ block + fraction}; fraction is last so \code{results()} auto-tests it).
+DESeq2 applies its own \strong{median of ratios normalization} internally via
+\code{DESeq()}, so \code{norm.method} is automatically forced to \code{"none"}.
+Recommended when you prefer the negative-binomial shrinkage estimators of
+DESeq2 over edgeR.
+\item \code{"voom"} uses the \strong{limma-voom} pipeline with a paired design
+(\code{~ fraction + block}) and empirical Bayes moderation. Voom internally
+transforms counts to \strong{log2-CPM} (using TMM-adjusted library sizes) and
+computes \strong{precision weights} from the mean-variance trend. Because this
+transformation is integral to voom, \code{norm.method} is automatically forced
+to \code{"none"}.
+\item \code{"paired.ttest"} runs a per-gene \strong{paired t-test between IP and INPUT}
+values across the experimental repeats, following Tan et al. (2016)
+\emph{Cell} 167, 47-59 \doi{10.1016/j.cell.2016.08.028}: \emph{"p value for each
+gene was calculated as the paired t-test between input and
+immunoprecipitated RPKM values from the three experimental repeats."}
+The count scale for the test is set by \code{norm.method} (Tan et al. used
+\code{"RPKM"}; all four \code{norm.method} options are valid). \code{logFC} is reported
+as \eqn{\log_2(\bar{\mathrm{IP}} / \bar{\mathrm{INPUT}})}. Recommended
+for PhosphoTRAP experiments with \strong{3 replicates}, where GLM-based
+dispersion estimates are unreliable.
+\item \code{"unpaired.ttest"} compares \strong{fold enrichments (IP/INPUT) between two
+treatment groups} using a Welch (unpaired) t-test on per-animal log2(FE)
+values. Use this to test whether ribosomal association differs between
+conditions. Requires exactly two treatments; use \code{treatment_name} and
+\code{control_name} to specify which is which. All four \code{norm.method} options
+are valid.
+}
 }
 \details{
-\itemize{
-\item \code{"LRT"} and \code{"QLF"} use edgeR's GLM framework, account for the paired
-animal structure via a block variable, and are recommended when you have
-\strong{4 or more replicates} and raw count data.
-\item \code{"paired.ttest"} runs a per-gene \strong{paired t-test} between IP and INPUT
-counts across experimental repeats, following the method described in
-Tan et al. (2016) \emph{Cell} 167, 47–59
-\doi{10.1016/j.cell.2016.08.028}. This approach is recommended when you
-have \strong{only 3 replicates} (as is the typical minimum in PhosphoTRAP
-experiments), where GLM-based dispersion estimates are unreliable. The
-enrichment ratio (IP / INPUT) is computed per paired sample and expressed
-on the log2 scale, as described in the same paper. \strong{Note:} if you pass
-normalised values (e.g., RPKM/TPM) instead of raw counts, set
-\code{pseudocount = 0}.
-}
+Perform differential expression analysis for PhosphoTRAP data using edgeR,
+a paired t-test, an unpaired t-test, or voom/limma
 }
 \section{Automatic column-name parsing}{
 
@@ -237,12 +340,46 @@ res_pt <- ptrap_de(
 )
 res_pt$results    # DE tibble
 res_pt$long_data  # per-gene, per-animal pairs
+
+# unpaired t-test — compare fold enrichment between two treatments
+res_upt <- ptrap_de(
+  counts_mat     = counts_mat,
+  sample_df      = sample_df,
+  gene_ids       = gene_ids,
+  treatment_name = "pb",
+  control_name   = "nb",
+  test_method    = "unpaired.ttest"
+)
+
+# voom/limma pipeline
+res_voom <- ptrap_de(
+  counts_mat     = counts_mat,
+  sample_df      = sample_df,
+  gene_ids       = gene_ids,
+  region_name    = "POA",
+  treatment_name = "pb",
+  test_method    = "voom"
+)
+
+# paired t-test with CPM normalization
+res_cpm <- ptrap_de(
+  counts_mat     = counts_mat,
+  sample_df      = sample_df,
+  gene_ids       = gene_ids,
+  treatment_name = "pb",
+  test_method    = "paired.ttest",
+  norm.method    = "CPM"
+)
 }
 
 }
 \references{
 Tan, C.L., Cooke, E.K., Leib, D.E., Lin, Y.C., Daly, G.E., Zimmerman,
 C.A., and Knight, Z.A. (2016). Warm-Sensitive Neurons that Control Body
-Temperature. \emph{Cell} 167, 47–59.
+Temperature. \emph{Cell} 167, 47-59.
 \doi{10.1016/j.cell.2016.08.028}
+
+Love, M.I., Huber, W., and Anders, S. (2014). Moderated estimation of fold
+change and dispersion for RNA-seq data with DESeq2. \emph{Genome Biology} 15,
+550. \doi{10.1186/s13059-014-0550-8}
 }

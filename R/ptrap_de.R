@@ -83,28 +83,55 @@
 
 # --- main function ------------------------------------------------------------
 
-#' Perform differential expression analysis for TRAP-seq data using edgeR
-#' or a paired t-test
+#' Perform differential expression analysis for PhosphoTRAP data using edgeR,
+#' a paired t-test, an unpaired t-test, or voom/limma
 #'
+#' @title Differential expression analysis for PhosphoTRAP data
+#'
+#' @description
 #' Compares IP vs INPUT fractions for a specified treatment condition using
-#' one of three statistical approaches (see `test_method`). Both `sample_df`
+#' one of six statistical approaches (see `test_method`). Both `sample_df`
 #' and `gene_ids` are optional: the function can derive sample metadata
 #' automatically from the column names of `counts_mat`, and gene identifiers
 #' from its first column.
 #'
-#' * `"LRT"` and `"QLF"` use edgeR's GLM framework, account for the paired
-#'   animal structure via a block variable, and are recommended when you have
-#'   **4 or more replicates** and raw count data.
-#' * `"paired.ttest"` runs a per-gene **paired t-test** between IP and INPUT
-#'   counts across experimental repeats, following the method described in
-#'   Tan et al. (2016) *Cell* 167, 47–59
-#'   \doi{10.1016/j.cell.2016.08.028}. This approach is recommended when you
-#'   have **only 3 replicates** (as is the typical minimum in PhosphoTRAP
-#'   experiments), where GLM-based dispersion estimates are unreliable. The
-#'   enrichment ratio (IP / INPUT) is computed per paired sample and expressed
-#'   on the log2 scale, as described in the same paper. **Note:** if you pass
-#'   normalised values (e.g., RPKM/TPM) instead of raw counts, set
-#'   `pseudocount = 0`.
+#' * `"LRT"` and `"QLF"` use edgeR's GLM framework with a multi-factor
+#'   design (`~ fraction + block`), accounting for the paired animal structure
+#'   via the blocking variable. Both methods automatically apply **edgeR's TMM
+#'   (trimmed mean of M values) normalization** via `normLibSizes()`, which
+#'   normalises effective library sizes (not the counts directly) for use in
+#'   the GLM. `norm.method` is automatically forced to `"none"` for these
+#'   methods — CPM and RPKM values, when needed, are computed from the
+#'   TMM-adjusted effective library sizes. Recommended with **4 or more
+#'   replicates** and raw count data.
+#' * `"deseq"` uses the **DESeq2** pipeline with a multi-factor design
+#'   (`~ block + fraction`; fraction is last so `results()` auto-tests it).
+#'   DESeq2 applies its own **median of ratios normalization** internally via
+#'   `DESeq()`, so `norm.method` is automatically forced to `"none"`.
+#'   Recommended when you prefer the negative-binomial shrinkage estimators of
+#'   DESeq2 over edgeR.
+#' * `"voom"` uses the **limma-voom** pipeline with a paired design
+#'   (`~ fraction + block`) and empirical Bayes moderation. Voom internally
+#'   transforms counts to **log2-CPM** (using TMM-adjusted library sizes) and
+#'   computes **precision weights** from the mean-variance trend. Because this
+#'   transformation is integral to voom, `norm.method` is automatically forced
+#'   to `"none"`.
+#' * `"paired.ttest"` runs a per-gene **paired t-test between IP and INPUT**
+#'   values across the experimental repeats, following Tan et al. (2016)
+#'   *Cell* 167, 47-59 \doi{10.1016/j.cell.2016.08.028}: *"p value for each
+#'   gene was calculated as the paired t-test between input and
+#'   immunoprecipitated RPKM values from the three experimental repeats."*
+#'   The count scale for the test is set by `norm.method` (Tan et al. used
+#'   `"RPKM"`; all four `norm.method` options are valid). `logFC` is reported
+#'   as \eqn{\log_2(\bar{\mathrm{IP}} / \bar{\mathrm{INPUT}})}. Recommended
+#'   for PhosphoTRAP experiments with **3 replicates**, where GLM-based
+#'   dispersion estimates are unreliable.
+#' * `"unpaired.ttest"` compares **fold enrichments (IP/INPUT) between two
+#'   treatment groups** using a Welch (unpaired) t-test on per-animal log2(FE)
+#'   values. Use this to test whether ribosomal association differs between
+#'   conditions. Requires exactly two treatments; use `treatment_name` and
+#'   `control_name` to specify which is which. All four `norm.method` options
+#'   are valid.
 #'
 #' @section Automatic column-name parsing:
 #' When `sample_df = NULL`, the column names of `counts_mat` (excluding the
@@ -132,7 +159,7 @@
 #' }
 #'
 #' @param counts_mat A counts matrix in one of two formats:
-#'   * **Matrix** — numeric, genes × samples; column names are sample IDs;
+#'   * **Matrix** — numeric, genes x samples; column names are sample IDs;
 #'     gene IDs are in `rownames` or supplied via `gene_ids`.
 #'   * **Data frame / tibble** — first column is a character vector of gene
 #'     IDs; remaining columns are numeric counts with sample names as column
@@ -152,25 +179,32 @@
 #'   `region_col = NULL` (default) or when the data contain a single region.
 #' @param treatment_name The treatment condition whose samples will be
 #'   **subsetted** for the IP vs INPUT comparison (e.g., `"pb"` to analyse
-#'   only the pair-bonded samples). Note that `treatment_name` is **not** the
-#'   DE contrast variable — the contrast is always IP vs INPUT. To compare two
-#'   treatments you call `ptrap_de()` once per treatment and then pass both
-#'   results to [pTRAPPING::ptrap_volcano2()].
+#'   only the pair-bonded samples). For `"unpaired.ttest"`, this is the
+#'   numerator condition in the differential fold enrichment
+#'   (DFE = mean_FE_treatment / mean_FE_control).
 #'
 #'   When `NULL` (default), the value is derived automatically from
 #'   `sample_df` (or from the parsed column names when `sample_df = NULL`):
 #'   if a single treatment is found the function proceeds silently; if
 #'   multiple treatments are found an error asks the user to specify which
-#'   one to analyse.
+#'   one to analyse. For `"unpaired.ttest"` with exactly two treatments and
+#'   both `treatment_name` and `control_name` as `NULL`, assignments are made
+#'   alphabetically (first = control, second = treatment) with a message.
+#' @param control_name The **reference / control** treatment used only by
+#'   `"unpaired.ttest"`. Serves as the denominator when computing differential
+#'   fold enrichment (DFE = mean_FE_treatment / mean_FE_control). When `NULL`
+#'   (default), the function auto-detects the control as the non-`treatment_name`
+#'   group when exactly two treatments are present.
 #' @param sample_col Name of the column in `sample_df` whose values match the
 #'   column names of `counts_mat`. Ignored when `sample_df = NULL` (auto-set
 #'   internally). Default is `"sample"`.
 #' @param fraction_col Name of the column in `sample_df` that distinguishes IP
 #'   from INPUT fractions. Default is `"fraction"`.
 #' @param block_col Name of the column in `sample_df` used as the blocking /
-#'   pairing variable (e.g., individual animal or tube). For `"LRT"` / `"QLF"`
-#'   it enters the design matrix; for `"paired.ttest"` it aligns each
-#'   animal's IP with its own INPUT. Default is `"tube"`.
+#'   pairing variable (e.g., individual animal or tube). For `"LRT"` / `"QLF"`,
+#'   `"deseq"`, and `"voom"` it enters the design matrix; for `"paired.ttest"`
+#'   and `"unpaired.ttest"` it aligns each animal's IP with its own INPUT.
+#'   Default is `"tube"`.
 #' @param region_col Name of the column in `sample_df` containing brain region
 #'   labels. Set to `NULL` (default) to skip region filtering — recommended
 #'   when the data already contain only one brain region. Only set this when
@@ -184,29 +218,65 @@
 #'   fraction (reference level). Default is `"INPUT"`.
 #' @param lfc_threshold Minimum absolute log2 fold change required to classify
 #'   a gene as differentially expressed. Default is `1`.
-#' @param fdr_threshold Maximum FDR (or adjusted p-value for
-#'   `"paired.ttest"`) allowed to classify a gene as differentially expressed.
-#'   Default is `0.05`.
+#' @param fdr_threshold Maximum FDR (or adjusted p-value) allowed to classify
+#'   a gene as differentially expressed. Default is `0.05`.
 #' @param test_method Statistical method to use. One of:
-#'   * `"LRT"` — likelihood ratio test via `glmFit` + `glmLRT` (default).
-#'     Suitable for ≥ 4 replicates and raw count data.
-#'   * `"QLF"` — quasi-likelihood F-test via `glmQLFit` + `glmQLFTest`.
-#'     More conservative than LRT; recommended for small sample sizes with
-#'     raw count data.
-#'   * `"paired.ttest"` — per-gene paired t-test between IP and INPUT across
-#'     replicates, following Tan et al. (2016)
-#'     \doi{10.1016/j.cell.2016.08.028}. Best suited for n = 3 replicates
-#'     typical of PhosphoTRAP experiments. P-values are adjusted with
-#'     Benjamini-Hochberg. The enrichment ratio per paired sample (IP/INPUT)
-#'     is expressed on a log2 scale.
-#' @param pseudocount A small value added to counts before computing
-#'   log2(IP/INPUT) in `"paired.ttest"`, to avoid log(0). Default is `1`.
-#'   Set to `0` if `counts_mat` already contains normalised values (e.g.,
-#'   RPKM/TPM) that are guaranteed to be > 0.
-#' @param return_long Logical. Only used when `test_method = "paired.ttest"`.
-#'   If `TRUE`, returns a named list with `$results` (the DE tibble) and
-#'   `$long_data` (the per-gene, per-animal paired table used for the test).
-#'   Default is `FALSE`.
+#'   * `"LRT"` — edgeR likelihood ratio test via `glmFit` + `glmLRT`
+#'     (default). TMM normalization applied automatically; `norm.method` is
+#'     forced to `"none"`. Suitable for >= 4 replicates and raw count data.
+#'   * `"QLF"` — edgeR quasi-likelihood F-test via `glmQLFit` + `glmQLFTest`.
+#'     TMM normalization applied automatically; `norm.method` is forced to
+#'     `"none"`. More conservative than LRT.
+#'   * `"deseq"` — DESeq2 pipeline with a multi-factor design
+#'     (`~ block + fraction`). Median of ratios normalization is applied
+#'     automatically by `DESeq()`; `norm.method` is forced to `"none"`.
+#'     Results are obtained via `results(dds, name = "fraction_IP_vs_INPUT")`.
+#'   * `"voom"` — limma-voom pipeline with a paired design
+#'     (`~ fraction + block`) and empirical Bayes moderation via
+#'     `lmFit` + `eBayes` + `topTable`. Log2-CPM + voom precision weights
+#'     applied automatically; `norm.method` is forced to `"none"`.
+#'   * `"paired.ttest"` — per-gene paired t-test between IP and INPUT values
+#'     across replicates, following Tan et al. (2016). The count scale is set
+#'     by `norm.method` (Tan et al. used `"RPKM"`; all four options are
+#'     valid). Best suited for n = 3 replicates. P-values adjusted with BH.
+#'   * `"unpaired.ttest"` — per-gene Welch unpaired t-test comparing log2(FE)
+#'     values between two treatment groups. The count scale is set by
+#'     `norm.method` (all four options are valid). Requires exactly two
+#'     treatments; use `treatment_name` and `control_name` to specify groups.
+#' @param norm.method Normalization method applied to counts before the t-test
+#'   (`"paired.ttest"` / `"unpaired.ttest"` only). **Ignored and automatically
+#'   set to `"none"` for `"LRT"`, `"QLF"`, `"deseq"`, and `"voom"`**, which
+#'   each apply their own normalization internally (a message is shown if you
+#'   supply a non-`"none"` value). One of:
+#'   * `"none"` (default) — uses the TMM-adjusted raw counts stored in the
+#'     DGEList (i.e., the count matrix is not rescaled, but effective library
+#'     sizes reflect TMM factors). **Note:** TMM normalises *effective library
+#'     sizes*, not the counts themselves; CPM and RPKM values are derived from
+#'     these TMM-adjusted sizes.
+#'   * `"CPM"` — counts per million, computed from TMM-adjusted effective
+#'     library sizes via `edgeR::cpm()`. Recommended for comparisons between
+#'     replicates of the same sample group.
+#'   * `"RPKM"` — reads per kilobase per million (CPM further divided by gene
+#'     length in kilobases), via `edgeR::rpkm()`. Requires `gene.length`.
+#'     Recommended for within-sample gene-to-gene comparisons (as used in Tan
+#'     et al. 2016). **Not** suitable for between-sample comparisons.
+#'   * `"mratios"` — DESeq2 **median of ratios** normalization via
+#'     `estimateSizeFactors()` followed by `counts(dds, normalized = TRUE)`.
+#'     Produces normalized count values that are suitable for between-sample
+#'     comparisons. Recommended when you want DESeq2-style normalization for
+#'     the t-test without running the full DESeq2 pipeline.
+#' @param gene.length Named numeric vector of gene lengths in base pairs
+#'   (names must match gene IDs). Required when `norm.method = "RPKM"`;
+#'   ignored otherwise. Default is `NULL`.
+#' @param prior.count A small count added to IP and INPUT values before
+#'   computing log2 ratios (FE = (IP + prior.count) / (INPUT + prior.count)),
+#'   to avoid log(0). Default is `1`. Set to `0` if values are already
+#'   normalised and guaranteed positive. Used only by `"paired.ttest"` and
+#'   `"unpaired.ttest"`.
+#' @param return_long Logical. Only used when `test_method` is
+#'   `"paired.ttest"` or `"unpaired.ttest"`. If `TRUE`, returns a named list
+#'   with `$results` (the DE tibble) and `$long_data` (the per-gene,
+#'   per-animal table used for the test). Default is `FALSE`.
 #' @param ngenes.out Number of top genes (sorted by p-value) to include in the
 #'   output when `kable.out = TRUE`. Default is `20`.
 #' @param kable.out Logical. If `TRUE`, returns a `kableExtra` HTML table of
@@ -214,18 +284,48 @@
 #'   `FALSE`.
 #'
 #' @return When `kable.out = FALSE` (default), a tibble with one row per gene
-#'   sorted by p-value, containing `Gene`, `logFC`, test-statistic column(s),
-#'   `PValue`, `FDR`, treatment label, optionally a region label (when
-#'   `region_col` is set), and `diffexpressed` (`"UP"`, `"DOWN"`, `"NO"`).
+#'   sorted by p-value. Columns depend on `test_method`:
+#'
+#'   * **`"LRT"` / `"QLF"`**: `Gene`, `logFC`, `logCPM`, `LR` or `F`,
+#'     `PValue`, `FDR`, treatment label, optional region label,
+#'     `diffexpressed` (`"UP"`, `"DOWN"`, `"NO"`).
+#'   * **`"deseq"`**: `Gene`, `baseMean`, `logFC` (log2FoldChange from
+#'     DESeq2), `lfcSE`, `stat`, `PValue`, `FDR` (Benjamini-Hochberg adjusted
+#'     p-value from `results()`), treatment label, optional region label,
+#'     `diffexpressed`. Genes with `NA` p-values (outliers or low counts
+#'     flagged by DESeq2) are retained and sorted to the bottom.
+#'   * **`"paired.ttest"`**: `Gene`,
+#'     `logFC` (\eqn{\log_2(\bar{\mathrm{IP}} / \bar{\mathrm{INPUT}})}),
+#'     `t_statistic` (paired t-test on IP \eqn{-} INPUT differences),
+#'     `PValue`, `FE_<block>` columns (one per animal giving the linear
+#'     IP/INPUT fold enrichment for that animal), `FDR`, treatment label,
+#'     optional region label, `diffexpressed`. With `return_long = TRUE`,
+#'     returns a named list: `$results` (the tibble above) and `$long_data`
+#'     (a per-gene, per-animal tibble with columns `Gene`, block column,
+#'     `ip_count`, `input_count`, `FE`).
+#'   * **`"unpaired.ttest"`**: `Gene`, `logFC` (log2(mean_FE_treatment /
+#'     mean_FE_control)), `diff_FE`, `mean_FE_<treatment>`,
+#'     `mean_FE_<control>`, `t_statistic`, `df` (Welch degrees of freedom),
+#'     `PValue`, `FDR`, treatment label, optional region label,
+#'     `diffexpressed`. With `return_long = TRUE`, returns a named list:
+#'     `$results` and `$long_data` (per-gene, per-animal, per-treatment
+#'     tibble with columns `Gene`, block column, treatment column, `FE`,
+#'     `log2_FE`).
+#'   * **`"voom"`**: `Gene`, `logFC`, `AveExpr`, `t`, `B`, `PValue`, `FDR`,
+#'     treatment label, optional region label, `diffexpressed`.
+#'
 #'   When `kable.out = TRUE`, an HTML `kableExtra` table of the top
-#'   `ngenes.out` genes. For `"paired.ttest"` with `return_long = TRUE`, a
-#'   named list with `$results` and `$long_data`.
+#'   `ngenes.out` genes.
 #'
 #' @references
 #' Tan, C.L., Cooke, E.K., Leib, D.E., Lin, Y.C., Daly, G.E., Zimmerman,
 #' C.A., and Knight, Z.A. (2016). Warm-Sensitive Neurons that Control Body
-#' Temperature. *Cell* 167, 47–59.
+#' Temperature. *Cell* 167, 47-59.
 #' \doi{10.1016/j.cell.2016.08.028}
+#'
+#' Love, M.I., Huber, W., and Anders, S. (2014). Moderated estimation of fold
+#' change and dispersion for RNA-seq data with DESeq2. *Genome Biology* 15,
+#' 550. \doi{10.1186/s13059-014-0550-8}
 #'
 #' @export
 #'
@@ -274,15 +374,48 @@
 #' )
 #' res_pt$results    # DE tibble
 #' res_pt$long_data  # per-gene, per-animal pairs
+#'
+#' # unpaired t-test — compare fold enrichment between two treatments
+#' res_upt <- ptrap_de(
+#'   counts_mat     = counts_mat,
+#'   sample_df      = sample_df,
+#'   gene_ids       = gene_ids,
+#'   treatment_name = "pb",
+#'   control_name   = "nb",
+#'   test_method    = "unpaired.ttest"
+#' )
+#'
+#' # voom/limma pipeline
+#' res_voom <- ptrap_de(
+#'   counts_mat     = counts_mat,
+#'   sample_df      = sample_df,
+#'   gene_ids       = gene_ids,
+#'   region_name    = "POA",
+#'   treatment_name = "pb",
+#'   test_method    = "voom"
+#' )
+#'
+#' # paired t-test with CPM normalization
+#' res_cpm <- ptrap_de(
+#'   counts_mat     = counts_mat,
+#'   sample_df      = sample_df,
+#'   gene_ids       = gene_ids,
+#'   treatment_name = "pb",
+#'   test_method    = "paired.ttest",
+#'   norm.method    = "CPM"
+#' )
 #' }
 #'
-#' @importFrom edgeR DGEList filterByExpr calcNormFactors estimateDisp
-#'   glmFit glmLRT glmQLFit glmQLFTest topTags
+#' @importFrom edgeR DGEList filterByExpr normLibSizes estimateDisp
+#'   glmFit glmLRT glmQLFit glmQLFTest topTags cpm rpkm
+#' @importFrom limma voom lmFit eBayes topTable
+#' @importFrom DESeq2 DESeqDataSetFromMatrix DESeq results estimateSizeFactors
+#'   counts
 #' @importFrom dplyr filter mutate case_when relocate slice_head arrange
-#'   bind_rows
+#'   bind_rows bind_cols rename
 #' @importFrom rlang .data :=
-#' @importFrom tibble as_tibble tibble
-#' @importFrom stats as.formula model.matrix p.adjust pt sd
+#' @importFrom tibble as_tibble tibble rownames_to_column
+#' @importFrom stats as.formula model.matrix p.adjust pt sd var
 #' @importFrom knitr kable
 #' @importFrom kableExtra kable_classic row_spec column_spec
 
@@ -292,6 +425,7 @@ ptrap_de <- function(
   gene_ids = NULL,
   region_name = NULL,
   treatment_name = NULL,
+  control_name = NULL,
   sample_col = "sample",
   fraction_col = "fraction",
   block_col = "tube",
@@ -301,15 +435,49 @@ ptrap_de <- function(
   input_level = "INPUT",
   lfc_threshold = 1,
   fdr_threshold = 0.05,
-  test_method = c("LRT", "QLF", "paired.ttest"),
-  pseudocount = 1,
+  test_method = c("LRT", "QLF", "paired.ttest", "unpaired.ttest", "voom", "deseq"),
+  norm.method = c("none", "CPM", "RPKM", "mratios"),
+  gene.length = NULL,
+  prior.count = 1,
   return_long = FALSE,
   ngenes.out = 20,
   kable.out = FALSE
 ) {
+  # ---- Step 1: match arguments -----------------------------------------------
   test_method <- match.arg(test_method)
+  norm.method <- match.arg(norm.method)
 
-  # ---- 1. resolve gene IDs and ensure counts_mat is a numeric matrix ---------
+  # ---- Step 1b: auto-override norm.method for methods with internal normalization
+  if (test_method %in% c("LRT", "QLF") && norm.method != "none") {
+    message(
+      "norm.method has been set to 'none'. edgeR's ", test_method, " ",
+      "automatically applies TMM (trimmed mean of M values) normalization via ",
+      "normLibSizes(), which adjusts effective library sizes for use in the GLM. ",
+      "Note: TMM normalizes effective library sizes, not the counts directly. ",
+      "CPM and RPKM values are computed from these TMM-adjusted library sizes ",
+      "when needed."
+    )
+    norm.method <- "none"
+  }
+  if (test_method == "deseq" && norm.method != "none") {
+    message(
+      "norm.method has been set to 'none'. DESeq2 ('deseq') automatically ",
+      "applies the median of ratios normalization method internally via DESeq(); ",
+      "no separate normalization is applied."
+    )
+    norm.method <- "none"
+  }
+  if (test_method == "voom" && norm.method != "none") {
+    message(
+      "norm.method has been set to 'none'. limma-voom internally transforms ",
+      "counts to log2-CPM (using TMM-adjusted library sizes) and computes ",
+      "precision weights from the mean-variance trend (voom weights); ",
+      "no separate normalization step is needed or applied."
+    )
+    norm.method <- "none"
+  }
+
+  # ---- Step 2: resolve gene IDs and ensure counts_mat is a numeric matrix ----
   if (is.data.frame(counts_mat)) {
     first_col <- counts_mat[[1L]]
     if (is.character(first_col) || is.factor(first_col)) {
@@ -337,7 +505,7 @@ ptrap_de <- function(
     }
   }
 
-  # ---- 2. build sample metadata if not supplied ------------------------------
+  # ---- Step 3: build sample metadata if not supplied -------------------------
   if (is.null(sample_df)) {
     sample_df <- .build_sample_df_from_cols(
       colnames(counts_mat),
@@ -363,22 +531,93 @@ ptrap_de <- function(
     )
   }
 
-  # ---- 3. resolve treatment_name ---------------------------------------------
-  if (is.null(treatment_name)) {
+  # ---- Step 4: resolve treatment_name (and control_name for unpaired.ttest) --
+  if (test_method == "unpaired.ttest") {
     unique_tx <- unique(sample_df[[treatment_col]])
-    if (length(unique_tx) == 1L) {
-      treatment_name <- unique_tx
-      message("Using the only treatment found: '", treatment_name, "'")
-    } else {
+
+    if (is.null(treatment_name) && is.null(control_name)) {
+      if (length(unique_tx) == 2L) {
+        sorted_tx <- sort(unique_tx)
+        control_name <- sorted_tx[1L]
+        treatment_name <- sorted_tx[2L]
+        message(
+          "Auto-assigned treatments alphabetically: ",
+          "control = '",
+          control_name,
+          "', treatment = '",
+          treatment_name,
+          "'."
+        )
+      } else {
+        stop(
+          "For 'unpaired.ttest', exactly two treatments are required. ",
+          "Found: ",
+          paste(unique_tx, collapse = ", "),
+          ". ",
+          "Please specify both `treatment_name` and `control_name`."
+        )
+      }
+    } else if (is.null(treatment_name) && !is.null(control_name)) {
+      remaining <- setdiff(unique_tx, control_name)
+      if (length(remaining) == 1L) {
+        treatment_name <- remaining
+        message("Auto-assigned treatment_name = '", treatment_name, "'.")
+      } else {
+        stop(
+          "Cannot auto-resolve `treatment_name`. ",
+          "After excluding control_name = '",
+          control_name,
+          "', ",
+          "found treatments: ",
+          paste(remaining, collapse = ", "),
+          ". ",
+          "Please specify `treatment_name` explicitly."
+        )
+      }
+    } else if (!is.null(treatment_name) && is.null(control_name)) {
+      remaining <- setdiff(unique_tx, treatment_name)
+      if (length(remaining) == 1L) {
+        control_name <- remaining
+        message("Auto-assigned control_name = '", control_name, "'.")
+      } else {
+        stop(
+          "Cannot auto-resolve `control_name`. ",
+          "After excluding treatment_name = '",
+          treatment_name,
+          "', ",
+          "found treatments: ",
+          paste(remaining, collapse = ", "),
+          ". ",
+          "Please specify `control_name` explicitly."
+        )
+      }
+    }
+    # Both are now set; validate they differ
+    if (identical(treatment_name, control_name)) {
       stop(
-        "Multiple treatments found (",
-        paste(unique_tx, collapse = ", "),
-        "). Please specify `treatment_name`."
+        "`treatment_name` and `control_name` must be different; both are '",
+        treatment_name,
+        "'."
       )
+    }
+  } else {
+    # All methods other than unpaired.ttest: resolve single treatment_name
+    if (is.null(treatment_name)) {
+      unique_tx <- unique(sample_df[[treatment_col]])
+      if (length(unique_tx) == 1L) {
+        treatment_name <- unique_tx
+        message("Using the only treatment found: '", treatment_name, "'")
+      } else {
+        stop(
+          "Multiple treatments found (",
+          paste(unique_tx, collapse = ", "),
+          "). Please specify `treatment_name`."
+        )
+      }
     }
   }
 
-  # ---- 4. resolve region_name (only when region_col is set) ------------------
+  # ---- Step 5: resolve region_name (only when region_col is set) -------------
   if (!is.null(region_col) && is.null(region_name)) {
     unique_reg <- unique(sample_df[[region_col]])
     if (length(unique_reg) == 1L) {
@@ -393,16 +632,29 @@ ptrap_de <- function(
     }
   }
 
-  # ---- 5. subset samples for the specified treatment (and optionally region) -
-  if (!is.null(region_col)) {
-    region_samples <- sample_df |>
-      filter(
-        .data[[region_col]] == region_name,
-        .data[[treatment_col]] == treatment_name
-      )
+  # ---- Step 6: subset region_samples -----------------------------------------
+  if (test_method == "unpaired.ttest") {
+    if (!is.null(region_col)) {
+      region_samples <- sample_df |>
+        filter(
+          .data[[region_col]] == region_name,
+          .data[[treatment_col]] %in% c(treatment_name, control_name)
+        )
+    } else {
+      region_samples <- sample_df |>
+        filter(.data[[treatment_col]] %in% c(treatment_name, control_name))
+    }
   } else {
-    region_samples <- sample_df |>
-      filter(.data[[treatment_col]] == treatment_name)
+    if (!is.null(region_col)) {
+      region_samples <- sample_df |>
+        filter(
+          .data[[region_col]] == region_name,
+          .data[[treatment_col]] == treatment_name
+        )
+    } else {
+      region_samples <- sample_df |>
+        filter(.data[[treatment_col]] == treatment_name)
+    }
   }
 
   region_samples <- region_samples |>
@@ -427,7 +679,7 @@ ptrap_de <- function(
     )
   }
 
-  # ---- 6. validate sample–column matching ------------------------------------
+  # ---- Step 7: validate sample–column matching --------------------------------
   missing_samples <- setdiff(region_samples[[sample_col]], colnames(counts_mat))
   if (length(missing_samples) > 0L) {
     stop(
@@ -436,8 +688,59 @@ ptrap_de <- function(
     )
   }
 
-  # subset counts matrix to selected samples
+  # ---- Step 8: subset counts and set row names --------------------------------
   counts_region <- counts_mat[, region_samples[[sample_col]], drop = FALSE]
+  rownames(counts_region) <- gene_ids
+
+  # ---- Step 9: common DGEList preprocessing (ALL methods) --------------------
+  dge <- DGEList(counts = counts_region)
+  dge$genes <- data.frame(Gene = gene_ids)
+
+  keep <- filterByExpr(dge, group = region_samples[[fraction_col]])
+  dge <- dge[keep, , keep.lib.sizes = FALSE]
+
+  # TMM normalization — skipped for "deseq" (DESeq2 handles its own normalization)
+  if (test_method != "deseq") {
+    dge <- normLibSizes(dge)
+  }
+
+  # ---- Step 10: compute working counts for t-test branches -------------------
+  if (test_method %in% c("paired.ttest", "unpaired.ttest")) {
+    if (norm.method == "CPM") {
+      # CPM computed from TMM-adjusted effective library sizes
+      wc <- cpm(dge, log = FALSE)
+    } else if (norm.method == "RPKM") {
+      # RPKM = CPM / (gene length in kb); uses TMM-adjusted library sizes
+      if (is.null(gene.length)) {
+        stop(
+          "'gene.length' must be a named numeric vector when ",
+          "norm.method = \"RPKM\"."
+        )
+      }
+      gl <- gene.length[rownames(dge)]
+      if (anyNA(gl)) {
+        stop(
+          "Some gene IDs in the filtered data are missing from ",
+          "names(gene.length)."
+        )
+      }
+      wc <- rpkm(dge, gene.length = gl, log = FALSE)
+    } else if (norm.method == "mratios") {
+      # DESeq2 median of ratios normalization — size factors only, no full pipeline
+      coldata_mr <- as.data.frame(region_samples)
+      rownames(coldata_mr) <- region_samples[[sample_col]]
+      dds_mr <- DESeqDataSetFromMatrix(
+        countData = round(dge$counts),
+        colData   = coldata_mr,
+        design    = ~ 1  # design not needed for normalization only
+      )
+      dds_mr <- estimateSizeFactors(dds_mr)
+      wc <- counts(dds_mr, normalized = TRUE)
+    } else {
+      # "none": raw TMM-adjusted counts (effective library sizes in the model)
+      wc <- dge$counts
+    }
+  }
 
   # ---- paired t-test branch (Tan et al. 2016) --------------------------------
   if (test_method == "paired.ttest") {
@@ -464,45 +767,38 @@ ptrap_de <- function(
       )
     }
 
-    # assign gene IDs as rownames, then drop all-zero genes
-    rownames(counts_region) <- gene_ids
-    counts_region <- counts_region[rowSums(counts_region) > 0, , drop = FALSE]
-
-    ip_mat <- counts_region[, ip_samples[[sample_col]], drop = FALSE]
-    input_mat <- counts_region[, input_samples[[sample_col]], drop = FALSE]
+    ip_mat <- wc[, ip_samples[[sample_col]], drop = FALSE]
+    input_mat <- wc[, input_samples[[sample_col]], drop = FALSE]
     n_reps <- ncol(ip_mat)
+    block_ids <- as.character(ip_samples[[block_col]])
 
-    # ---- long-format paired table --------------------------------------------
-    long_data <- bind_rows(
-      lapply(seq_len(n_reps), function(j) {
-        tibble(
-          Gene = rownames(ip_mat),
-          !!block_col := ip_samples[[block_col]][j],
-          ip_count = as.numeric(ip_mat[, j]),
-          input_count = as.numeric(input_mat[, j])
-        )
-      })
-    ) |>
-      arrange(.data$Gene)
-
-    # ---- vectorised paired t-test --------------------------------------------
-    diff_mat <- ip_mat - input_mat
-    mean_diff <- rowMeans(diff_mat)
-    sd_diff <- apply(diff_mat, 1L, sd)
-    t_stat <- mean_diff / (sd_diff / sqrt(n_reps))
+    # Paired t-test between IP and INPUT values across n experimental repeats,
+    # following Tan et al. 2016 (Cell 167, 47-59):
+    # "p value for each gene was calculated as the paired t test between input
+    #  and immunoprecipitated RPKM values from the three experimental repeats."
+    # norm.method controls the count scale (Tan et al. used "RPKM").
+    paired_d <- ip_mat - input_mat # internal: pairing by column (animal)
+    t_stat <- rowMeans(paired_d) / (apply(paired_d, 1L, sd) / sqrt(n_reps))
     p_val <- 2 * pt(-abs(t_stat), df = n_reps - 1L)
 
-    # ---- log2 enrichment ratio (IP/INPUT) with pseudocount -------------------
-    log2_ratios <- log2((ip_mat + pseudocount) / (input_mat + pseudocount))
-    mean_log2fc <- rowMeans(log2_ratios)
+    # logFC for reporting: log2(mean_IP / mean_INPUT), pseudocount-protected
+    mean_ip <- rowMeans(ip_mat)
+    mean_input <- rowMeans(input_mat)
+    logFC_vec <- log2((mean_ip + prior.count) / (mean_input + prior.count))
 
-    # ---- assemble results tibble ---------------------------------------------
+    # per-animal FE columns named FE_<block_id> (for inspection / plotting)
+    FE_mat <- (ip_mat + prior.count) / (input_mat + prior.count)
+    FE_cols <- as.data.frame(FE_mat)
+    colnames(FE_cols) <- paste0("FE_", block_ids)
+
+    # assemble results tibble
     results <- tibble(
       Gene = rownames(ip_mat),
-      logFC = as.numeric(mean_log2fc),
+      logFC = as.numeric(logFC_vec),
       t_statistic = as.numeric(t_stat),
       PValue = as.numeric(p_val)
     ) |>
+      bind_cols(as_tibble(FE_cols)) |>
       mutate(
         FDR = p.adjust(.data$PValue, method = "BH"),
         !!treatment_col := treatment_name,
@@ -514,11 +810,24 @@ ptrap_de <- function(
       ) |>
       arrange(.data$PValue)
 
+    # long-format paired table
+    long_data <- bind_rows(
+      lapply(seq_len(n_reps), function(j) {
+        tibble(
+          Gene = rownames(ip_mat),
+          !!block_col := block_ids[j],
+          ip_count = as.numeric(ip_mat[, j]),
+          input_count = as.numeric(input_mat[, j]),
+          FE = as.numeric(FE_mat[, j])
+        )
+      })
+    ) |>
+      arrange(.data$Gene)
+
     if (!is.null(region_col)) {
       results <- results |> mutate(!!region_col := region_name)
     }
 
-    # ---- return --------------------------------------------------------------
     if (kable.out) {
       return(
         results |>
@@ -540,15 +849,299 @@ ptrap_de <- function(
     return(results)
   }
 
+  # ---- unpaired t-test branch ------------------------------------------------
+  if (test_method == "unpaired.ttest") {
+    # Separate samples by treatment group
+    trt_samples <- region_samples |>
+      filter(.data[[treatment_col]] == treatment_name)
+    ctrl_samples <- region_samples |>
+      filter(.data[[treatment_col]] == control_name)
+
+    # Within each group, split into IP and INPUT, sort by block_col
+    trt_ip <- trt_samples |>
+      filter(.data[[fraction_col]] == ip_level) |>
+      arrange(.data[[block_col]])
+    trt_input <- trt_samples |>
+      filter(.data[[fraction_col]] == input_level) |>
+      arrange(.data[[block_col]])
+
+    ctrl_ip <- ctrl_samples |>
+      filter(.data[[fraction_col]] == ip_level) |>
+      arrange(.data[[block_col]])
+    ctrl_input <- ctrl_samples |>
+      filter(.data[[fraction_col]] == input_level) |>
+      arrange(.data[[block_col]])
+
+    # Validate block IDs match within each group
+    if (
+      !identical(
+        sort(as.character(trt_ip[[block_col]])),
+        sort(as.character(trt_input[[block_col]]))
+      )
+    ) {
+      stop(
+        "For treatment '",
+        treatment_name,
+        "', IP and INPUT samples do not ",
+        "share the same '",
+        block_col,
+        "' values. ",
+        "Each animal/tube must have exactly one IP and one INPUT sample."
+      )
+    }
+    if (
+      !identical(
+        sort(as.character(ctrl_ip[[block_col]])),
+        sort(as.character(ctrl_input[[block_col]]))
+      )
+    ) {
+      stop(
+        "For control '",
+        control_name,
+        "', IP and INPUT samples do not ",
+        "share the same '",
+        block_col,
+        "' values. ",
+        "Each animal/tube must have exactly one IP and one INPUT sample."
+      )
+    }
+
+    # Extract matrices from working counts
+    trt_ip_mat <- wc[, trt_ip[[sample_col]], drop = FALSE]
+    trt_input_mat <- wc[, trt_input[[sample_col]], drop = FALSE]
+    ctrl_ip_mat <- wc[, ctrl_ip[[sample_col]], drop = FALSE]
+    ctrl_input_mat <- wc[, ctrl_input[[sample_col]], drop = FALSE]
+
+    # Compute FE (linear) and log2_FE per animal per group
+    FE_trt <- (trt_ip_mat + prior.count) / (trt_input_mat + prior.count)
+    FE_ctrl <- (ctrl_ip_mat + prior.count) / (ctrl_input_mat + prior.count)
+    log2_FE_trt <- log2(FE_trt)
+    log2_FE_ctrl <- log2(FE_ctrl)
+
+    # Vectorised Welch unpaired t-test on log2_FE per gene
+    n_t <- ncol(log2_FE_trt)
+    n_c <- ncol(log2_FE_ctrl)
+    mean_t <- rowMeans(log2_FE_trt)
+    mean_c <- rowMeans(log2_FE_ctrl)
+    var_t <- apply(log2_FE_trt, 1L, var)
+    var_c <- apply(log2_FE_ctrl, 1L, var)
+    se <- sqrt(var_t / n_t + var_c / n_c)
+    t_stat <- (mean_t - mean_c) / se
+    df_w <- (var_t / n_t + var_c / n_c)^2 /
+      ((var_t / n_t)^2 / (n_t - 1L) + (var_c / n_c)^2 / (n_c - 1L))
+    p_val <- 2 * pt(-abs(t_stat), df = df_w)
+
+    # Mean linear FE per condition and differential FE
+    mean_FE_trt <- rowMeans(FE_trt)
+    mean_FE_ctrl <- rowMeans(FE_ctrl)
+    diff_FE <- mean_FE_trt / mean_FE_ctrl
+    logFC <- log2(diff_FE)
+
+    # Build results tibble
+    results <- tibble(
+      Gene = rownames(trt_ip_mat),
+      logFC = as.numeric(logFC),
+      diff_FE = as.numeric(diff_FE),
+      !!paste0("mean_FE_", treatment_name) := as.numeric(mean_FE_trt),
+      !!paste0("mean_FE_", control_name) := as.numeric(mean_FE_ctrl),
+      t_statistic = as.numeric(t_stat),
+      df = as.numeric(df_w),
+      PValue = as.numeric(p_val)
+    ) |>
+      mutate(
+        FDR = p.adjust(.data$PValue, method = "BH"),
+        !!treatment_col := treatment_name,
+        diffexpressed = case_when(
+          .data$logFC > lfc_threshold & .data$FDR < fdr_threshold ~ "UP",
+          .data$logFC < -lfc_threshold & .data$FDR < fdr_threshold ~ "DOWN",
+          TRUE ~ "NO"
+        )
+      ) |>
+      arrange(.data$PValue)
+
+    # Build long_data (per-animal log2_FE values for both groups)
+    long_data <- bind_rows(
+      lapply(seq_len(n_t), function(j) {
+        tibble(
+          Gene = rownames(FE_trt),
+          !!block_col := as.character(trt_ip[[block_col]][j]),
+          !!treatment_col := treatment_name,
+          FE = as.numeric(FE_trt[, j]),
+          log2_FE = as.numeric(log2_FE_trt[, j])
+        )
+      }),
+      lapply(seq_len(n_c), function(j) {
+        tibble(
+          Gene = rownames(FE_ctrl),
+          !!block_col := as.character(ctrl_ip[[block_col]][j]),
+          !!treatment_col := control_name,
+          FE = as.numeric(FE_ctrl[, j]),
+          log2_FE = as.numeric(log2_FE_ctrl[, j])
+        )
+      })
+    ) |>
+      arrange(.data$Gene)
+
+    if (!is.null(region_col)) {
+      results <- results |> mutate(!!region_col := region_name)
+    }
+
+    if (kable.out) {
+      return(
+        results |>
+          slice_head(n = ngenes.out) |>
+          kable(
+            digits = 3L,
+            table.attr = 'data-quarto-disable-processing="true"',
+            "html"
+          ) |>
+          kable_classic(full_width = FALSE, html_font = "Cambria") |>
+          row_spec(0L, italic = TRUE, bold = TRUE) |>
+          column_spec(1L, italic = FALSE, bold = TRUE)
+      )
+    }
+
+    if (return_long) {
+      return(list(results = results, long_data = long_data))
+    }
+    return(results)
+  }
+
+  # ---- DESeq2 branch ---------------------------------------------------------
+  if (test_method == "deseq") {
+    # Build colData from region_samples; rownames must match countData columns
+    coldata_ds <- as.data.frame(region_samples)
+    rownames(coldata_ds) <- region_samples[[sample_col]]
+
+    # Ensure block is a factor so DESeq2 treats it as categorical
+    coldata_ds[[block_col]] <- factor(coldata_ds[[block_col]])
+
+    # fraction already factored in Step 6: levels = c(input_level, ip_level)
+    # Block first, fraction last -> results() auto-tests the last variable
+    design_ds <- as.formula(paste("~", block_col, "+", fraction_col))
+
+    dds <- DESeqDataSetFromMatrix(
+      countData = round(dge$counts),   # DESeq2 requires integer counts
+      colData   = coldata_ds,
+      design    = design_ds
+    )
+    dds <- DESeq(dds, quiet = TRUE)
+
+    # Coefficient name follows DESeq2 convention: <var>_<level>_vs_<ref>
+    res_name <- paste0(fraction_col, "_", ip_level, "_vs_", input_level)
+    res_deseq <- results(dds, name = res_name)
+
+    results <- as.data.frame(res_deseq) |>
+      rownames_to_column("Gene") |>
+      as_tibble() |>
+      rename(logFC = "log2FoldChange", PValue = "pvalue", FDR = "padj") |>
+      mutate(
+        !!treatment_col := treatment_name,
+        diffexpressed = case_when(
+          !is.na(.data$logFC) & .data$logFC > lfc_threshold &
+            !is.na(.data$FDR) & .data$FDR < fdr_threshold  ~ "UP",
+          !is.na(.data$logFC) & .data$logFC < -lfc_threshold &
+            !is.na(.data$FDR) & .data$FDR < fdr_threshold  ~ "DOWN",
+          TRUE ~ "NO"
+        )
+      ) |>
+      arrange(.data$PValue) |>
+      relocate("Gene")
+
+    if (!is.null(region_col)) {
+      results <- results |> mutate(!!region_col := region_name)
+    }
+
+    if (kable.out) {
+      return(
+        results |>
+          slice_head(n = ngenes.out) |>
+          kable(
+            digits = 2L,
+            table.attr = 'data-quarto-disable-processing="true"',
+            "html"
+          ) |>
+          kable_classic(full_width = FALSE, html_font = "Cambria") |>
+          row_spec(0L, italic = TRUE, bold = TRUE) |>
+          column_spec(1L, italic = FALSE, bold = TRUE)
+      )
+    }
+
+    return(results)
+  }
+
+  # ---- voom branch -----------------------------------------------------------
+  if (test_method == "voom") {
+    design_formula <- as.formula(paste("~", fraction_col, "+", block_col))
+    design <- model.matrix(design_formula, data = region_samples)
+
+    # For RPKM: apply rpkm() and pass matrix; for CPM/none: pass dge directly
+    if (norm.method == "RPKM") {
+      if (is.null(gene.length)) {
+        stop(
+          "'gene.length' must be a named numeric vector when ",
+          "norm.method = \"RPKM\"."
+        )
+      }
+      gl <- gene.length[rownames(dge)]
+      if (anyNA(gl)) {
+        stop("Some gene IDs missing from names(gene.length).")
+      }
+      warning(
+        "norm.method = 'RPKM' with voom is non-standard; ",
+        "voom is designed for count-scale data."
+      )
+      v <- voom(rpkm(dge, gene.length = gl, log = FALSE), design, plot = FALSE)
+    } else {
+      v <- voom(dge, design, plot = FALSE)
+    }
+
+    fit <- lmFit(v, design)
+    fit <- eBayes(fit)
+    lrt_coef <- paste0(fraction_col, ip_level)
+
+    results <- topTable(
+      fit,
+      coef = lrt_coef,
+      number = Inf,
+      adjust.method = "BH"
+    ) |>
+      as_tibble() |>
+      rename(PValue = "P.Value", FDR = "adj.P.Val") |>
+      mutate(
+        !!treatment_col := treatment_name,
+        diffexpressed = case_when(
+          .data$logFC > lfc_threshold & .data$FDR < fdr_threshold ~ "UP",
+          .data$logFC < -lfc_threshold & .data$FDR < fdr_threshold ~ "DOWN",
+          TRUE ~ "NO"
+        )
+      )
+
+    if (!is.null(region_col)) {
+      results <- results |> mutate(!!region_col := region_name)
+    }
+
+    results <- results |> relocate("Gene")
+
+    if (kable.out) {
+      return(
+        results |>
+          slice_head(n = ngenes.out) |>
+          kable(
+            digits = 2L,
+            table.attr = 'data-quarto-disable-processing="true"',
+            "html"
+          ) |>
+          kable_classic(full_width = FALSE, html_font = "Cambria") |>
+          row_spec(0L, italic = TRUE, bold = TRUE) |>
+          column_spec(1L, italic = FALSE, bold = TRUE)
+      )
+    }
+
+    return(results)
+  }
+
   # ---- edgeR branch (LRT / QLF) ----------------------------------------------
-
-  dge <- DGEList(counts = counts_region)
-  dge$genes <- data.frame(Gene = gene_ids)
-
-  keep <- filterByExpr(dge, group = region_samples[[fraction_col]])
-  dge <- dge[keep, , keep.lib.sizes = FALSE]
-  dge <- calcNormFactors(dge)
-
   design_formula <- as.formula(paste("~", fraction_col, "+", block_col))
   design <- model.matrix(design_formula, data = region_samples)
 
