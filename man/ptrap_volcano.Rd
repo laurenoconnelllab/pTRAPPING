@@ -6,6 +6,7 @@
 \usage{
 ptrap_volcano(
   de_result,
+  fdr = TRUE,
   lfc_threshold = 1,
   fdr_threshold = 0.05,
   gene_col = "Gene",
@@ -14,22 +15,30 @@ ptrap_volcano(
   colors = NULL,
   point_size = 3.5,
   point_alpha = 0.7,
+  genes.annot = NULL,
   max_overlaps = 20,
   title = NULL
 )
 }
 \arguments{
 \item{de_result}{A tibble returned by \code{\link[=ptrap_de]{ptrap_de()}}, containing at
-minimum columns \code{Gene} (or \code{gene_col}), \code{logFC}, \code{FDR}, and
-\code{diffexpressed}.}
+minimum the columns \code{Gene} (or \code{gene_col}), \code{logFC}, \code{FDR}, and \code{PValue}.
+For \code{test_method = "paired.ttest"}, pass the \verb{$results} component of the
+returned list.}
 
-\item{lfc_threshold}{Minimum absolute log2 fold change used to draw the
-vertical threshold lines. Should match the value used in
-\code{\link[=ptrap_de]{ptrap_de()}}. Default is \code{1}.}
+\item{fdr}{Logical. If \code{TRUE} (default), the y-axis shows
+\eqn{-\log_{10}(\text{FDR})} and significance is assessed against the
+BH-adjusted p-value (\code{FDR} column). If \code{FALSE}, the y-axis shows
+\eqn{-\log_{10}(p\text{-value})} and significance is assessed against the
+raw p-value (\code{PValue} column).}
 
-\item{fdr_threshold}{FDR cutoff used to draw the horizontal threshold line
-(plotted as \code{-log10(fdr_threshold)}). Should match the value used in
-\code{\link[=ptrap_de]{ptrap_de()}}. Default is \code{0.05}.}
+\item{lfc_threshold}{Minimum absolute log2 fold change required to classify
+a gene as differentially expressed (also sets the vertical threshold lines).
+Default is \code{1}.}
+
+\item{fdr_threshold}{P-value cutoff used to draw the horizontal threshold
+line and to classify genes as DE. Applied to \code{FDR} when \code{fdr = TRUE} and
+to \code{PValue} when \code{fdr = FALSE}. Default is \code{0.05}.}
 
 \item{gene_col}{Name of the column containing gene identifiers. Default is
 \code{"Gene"}.}
@@ -49,6 +58,11 @@ colours. If \code{NULL} (default), a colourblind-friendly palette is used
 \item{point_alpha}{Opacity of the highlighted (significant) points.
 Default is \code{0.7}.}
 
+\item{genes.annot}{Character vector of gene names to label on the plot via
+\code{\link[ggrepel:geom_text_repel]{ggrepel::geom_text_repel()}}. Names must match values in the column
+specified by \code{gene_col}; an error is raised if any names are not found.
+Default is \code{NULL} (no labels).}
+
 \item{max_overlaps}{Passed to \code{\link[ggrepel:geom_text_repel]{ggrepel::geom_text_repel()}}. Controls how
 many overlapping labels are suppressed. Default is \code{20}.}
 
@@ -60,12 +74,20 @@ A \code{\link[ggplot2:ggplot]{ggplot2::ggplot()}} object.
 }
 \description{
 Takes a single tibble produced by \code{\link[=ptrap_de]{ptrap_de()}}
-and returns a classic volcano plot (logFC on the x-axis, -log10(FDR) on the y-axis).
-Non-significant genes are shown in grey; genes classified as \code{"UP"} or
-\code{"DOWN"} in the \code{diffexpressed} column are highlighted with distinct fill
-colours and labelled with their gene identifier. Dashed threshold lines are
-drawn at ±\code{lfc_threshold} (vertical) and \code{-log10(fdr_threshold)}
-(horizontal).
+and returns a classic volcano plot (logFC on the x-axis,
+\eqn{-\log_{10}(\text{FDR})} or \eqn{-\log_{10}(p\text{-value})} on the
+y-axis). Non-significant genes are shown in grey; genes classified as
+\code{"UP"} or \code{"DOWN"} are highlighted with distinct fill colours. Gene labels
+are added via \code{\link[ggrepel:geom_text_repel]{ggrepel::geom_text_repel()}} \strong{only for genes supplied in
+\code{genes.annot}}; by default (\code{genes.annot = NULL}) no labels are drawn,
+keeping the plot uncluttered. Dashed threshold lines are drawn at
+±\code{lfc_threshold} (vertical) and at the chosen p-value cutoff (horizontal).
+}
+\details{
+The DE classification used for point colouring is computed \strong{inside this
+function} from \code{logFC}, the chosen p-value column (\code{FDR} or \code{PValue}), and
+the supplied thresholds — so the plot always reflects the thresholds you
+pass here, regardless of what was used in \code{\link[=ptrap_de]{ptrap_de()}}.
 }
 \examples{
 \dontrun{
@@ -77,8 +99,11 @@ res <- ptrap_de(
   treatment_name = "pb"
 )
 
-# Default plot
+# Default plot — y-axis uses FDR-adjusted p-values
 ptrap_volcano(res)
+
+# Use raw (unadjusted) p-values on the y-axis
+ptrap_volcano(res, fdr = FALSE)
 
 # Custom thresholds and colours
 ptrap_volcano(res,

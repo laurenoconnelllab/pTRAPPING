@@ -25,3 +25,5 @@ Imports:
     tibble
 URL: https://github.com/laurenoconnelllab/pTRAPPING, https://laurenoconnelllab.github.io/pTRAPPING/
 BugReports: https://github.com/laurenoconnelllab/pTRAPPING/issues
+Suggests:
+    apeglm

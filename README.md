@@ -1,37 +1,33 @@
----
-output: github_document
----
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
-
-
 
 # pTRAPPING <img src="man/figures/logo.png" align="right" height="139" alt="" />
 
 <!-- badges: start -->
+
 <!-- badges: end -->
 
-**pTRAPPING** is an R package that provides a streamlined, reproducible workflow
-for analysing **TRAP-seq** and **PhosphoTRAP** RNA-sequencing data. It wraps the
-statistical power of [edgeR](https://bioconductor.org/packages/edgeR/) and
-[limma](https://bioconductor.org/packages/limma/) behind a compact set of
-purpose-built functions that take you from a raw counts matrix to
+**pTRAPPING** is an R package that provides a streamlined, reproducible
+workflow for analysing **TRAP-seq** and **PhosphoTRAP** RNA-sequencing
+data. It wraps the statistical power of
+[edgeR](https://bioconductor.org/packages/edgeR/) and
+[limma](https://bioconductor.org/packages/limma/) behind a compact set
+of purpose-built functions that take you from a raw counts matrix to
 publication-ready tables and figures in just a few lines of code.
 
-> **What is TRAP-seq?**
-> Translating Ribosome Affinity Purification followed by sequencing (TRAP-seq)
-> captures mRNAs that are actively translated in a specific cell type, tagged by
-> a transgenic ribosomal subunit. The key comparison is between the **IP
-> fraction** (immunoprecipitated, actively translated transcripts) and the
-> **INPUT fraction** (total RNA — all transcripts). Genes significantly enriched
+> **What is TRAP-seq?** Translating Ribosome Affinity Purification
+> followed by sequencing (TRAP-seq) captures mRNAs that are actively
+> translated in a specific cell type, tagged by a transgenic ribosomal
+> subunit. The key comparison is between the **IP fraction**
+> (immunoprecipitated, actively translated transcripts) and the **INPUT
+> fraction** (total RNA — all transcripts). Genes significantly enriched
 > in IP relative to INPUT are translated in the tagged cell type.
 >
 > **PhosphoTRAP** adds an activity-marking phosphorylation step, so only
-> *recently activated* neurons are captured — combining cell-type specificity
-> with behavioural state information in a single experiment.
+> *recently activated* neurons are captured — combining cell-type
+> specificity with behavioural state information in a single experiment.
 
 ## Installation
-
 
 ``` r
 # install.packages("devtools")
@@ -41,29 +37,29 @@ devtools::install_github("laurenoconnelllab/pTRAPPING")
 ## Functions at a glance
 
 | Function | What it does |
-|---|---|
+|----|----|
 | `ptrap_de()` | IP vs INPUT DE analysis for TRAP-seq (edgeR LRT/QLF, limma-voom, or t-test) |
 | `ptrap_volcano()` | Volcano plot from a single `ptrap_de()` result |
 | `ptrap_volcano2()` | Dual scatter comparing two treatment conditions side by side |
 
----
+------------------------------------------------------------------------
 
 ## Simulated dataset
 
 Throughout this README we simulate a mouse TRAP-seq experiment studying
-**pair-bonding** in the **preoptic area (POA)** of the hypothalamus — a brain
-region well-known for its role in social behaviour.
+**pair-bonding** in the **preoptic area (POA)** of the hypothalamus — a
+brain region well-known for its role in social behaviour.
 
 Mice are divided into two groups:
 
 - **`nb`** – non-bonded control mice
 - **`pb`** – pair-bonded mice (48 h co-housing with a partner)
 
-Each group has **3 animals** (biological replicates). Each animal contributes
-one IP and one INPUT library, giving **12 samples** total. The column-naming
-convention `<treatment><replicate><fraction>` (e.g. `nb1INPUT`, `pb2IP`) lets
-`ptrap_de()` parse sample metadata automatically — no `sample_df` needed.
-
+Each group has **3 animals** (biological replicates). Each animal
+contributes one IP and one INPUT library, giving **12 samples** total.
+The column-naming convention `<treatment><replicate><fraction>`
+(e.g. `nb1INPUT`, `pb2IP`) lets `ptrap_de()` parse sample metadata
+automatically — no `sample_df` needed.
 
 ``` r
 library(pTRAPPING)
@@ -123,21 +119,20 @@ counts_mat[c(1, 11, 16), 1:7]
 #> 16   Gfap      151   117      143   123      222   307
 ```
 
-The first column holds gene identifiers; the remaining 12 columns are raw
-counts. `Snap25` (neuronal) already shows high IP counts in both groups, while
-`Oxtr` (pair-bonding marker) shows balanced IP/INPUT — it will only be enriched
-in `pb`.
+The first column holds gene identifiers; the remaining 12 columns are
+raw counts. `Snap25` (neuronal) already shows high IP counts in both
+groups, while `Oxtr` (pair-bonding marker) shows balanced IP/INPUT — it
+will only be enriched in `pb`.
 
----
+------------------------------------------------------------------------
 
 ## `ptrap_de()` — differential expression
 
 ### Simplest call: auto-parse column names
 
-When `sample_df` is omitted, `ptrap_de()` reads treatment, replicate number,
-and fraction directly from the column names. Providing `treatment_name` tells
-the function which group to analyse:
-
+When `sample_df` is omitted, `ptrap_de()` reads treatment, replicate
+number, and fraction directly from the column names. Providing
+`treatment_name` tells the function which group to analyse: 1
 
 ``` r
 res_nb <- ptrap_de(
@@ -153,7 +148,7 @@ res_nb <- ptrap_de(
 # Top enriched genes in nb
 head(res_nb[res_nb$diffexpressed != "NO",
             c("Gene", "logFC", "LR", "PValue", "FDR", "diffexpressed")])
-#> # A tibble: 6 x 6
+#> # A tibble: 6 × 6
 #>   Gene   logFC    LR    PValue       FDR diffexpressed
 #>   <chr>  <dbl> <dbl>     <dbl>     <dbl> <chr>        
 #> 1 Sst     2.95  695. 3.27e-153 6.54e-150 UP           
@@ -163,7 +158,6 @@ head(res_nb[res_nb$diffexpressed != "NO",
 #> 5 Bdnf    2.92  624. 1.13e-137 4.50e-135 UP           
 #> 6 Rbfox3  2.79  616. 5.50e-136 1.83e-133 UP
 ```
-
 
 ``` r
 res_pb <- ptrap_de(
@@ -179,7 +173,7 @@ res_pb <- ptrap_de(
 # Top enriched genes in pb
 head(res_pb[res_pb$diffexpressed != "NO",
             c("Gene", "logFC", "LR", "PValue", "FDR", "diffexpressed")])
-#> # A tibble: 6 x 6
+#> # A tibble: 6 × 6
 #>   Gene  logFC    LR    PValue       FDR diffexpressed
 #>   <chr> <dbl> <dbl>     <dbl>     <dbl> <chr>        
 #> 1 Egr1   3.23  629. 6.88e-139 1.38e-135 UP           
@@ -190,23 +184,22 @@ head(res_pb[res_pb$diffexpressed != "NO",
 #> 6 Nrgn   2.99  542. 5.61e-120 1.87e-117 UP
 ```
 
-The neuronal markers (`Snap25`, `Camk2a`, etc.) are enriched in IP in **both**
-groups. The pair-bonding markers (`Oxtr`, `Avpr1a`, `Fos`, `Arc`, `Egr1`) only
-appear in the **pb** result — exactly as expected for activity-dependent
-transcripts of pair-bonded neurons.
+The neuronal markers (`Snap25`, `Camk2a`, etc.) are enriched in IP in
+**both** groups. The pair-bonding markers (`Oxtr`, `Avpr1a`, `Fos`,
+`Arc`, `Egr1`) only appear in the **pb** result — exactly as expected
+for activity-dependent transcripts of pair-bonded neurons.
 
----
+------------------------------------------------------------------------
 
 ### Choosing the right `test_method`
 
 | Method | When to use |
-|---|---|
+|----|----|
 | `"LRT"` | edgeR likelihood ratio test — robust with ≥ 4 replicates |
 | `"QLF"` | edgeR quasi-likelihood F-test — more conservative, better FDR control |
 | `"voom"` | limma-voom — precision weights on log-CPM; useful when library sizes vary |
-| `"paired.ttest"` | Per-gene paired t-test on IP − INPUT differences (Tan et al. 2016) — a single treatment vs INPUT |
+| `"paired.ttest"` | Per-gene paired t-test on IP − INPUT differences (Tan et al. 2016) — a single treatment vs INPUT |
 | `"unpaired.ttest"` | Per-gene Welch t-test comparing log₂(FE) between two treatment groups (Knight et al.) |
-
 
 ``` r
 # Quasi-likelihood F-test — more conservative than LRT
@@ -232,23 +225,23 @@ res_pt <- ptrap_de(
 )
 ```
 
-> **Note on `"paired.ttest"`:**
-> The GLM-based methods (`"LRT"` / `"QLF"`) estimate gene-wise dispersion from
-> the data and work best with ≥ 4 replicates. With only n = 3, dispersion
-> estimates are unreliable. The paired t-test follows Tan et al. (2016) exactly:
-> *"p value for each gene was calculated as the paired t test between input and
-> immunoprecipitated RPKM values from the three experimental repeats."*
-> Set `norm.method = "RPKM"` (and supply `gene.length`) to reproduce the
-> original analysis. `logFC` is log₂(mean_IP / mean_INPUT).
+> **Note on `"paired.ttest"`:** The GLM-based methods (`"LRT"` /
+> `"QLF"`) estimate gene-wise dispersion from the data and work best
+> with ≥ 4 replicates. With only n = 3, dispersion estimates are
+> unreliable. The paired t-test follows Tan et al. (2016) exactly: *“p
+> value for each gene was calculated as the paired t test between input
+> and immunoprecipitated RPKM values from the three experimental
+> repeats.”* Set `norm.method = "RPKM"` (and supply `gene.length`) to
+> reproduce the original analysis. `logFC` is log₂(mean_IP /
+> mean_INPUT).
 
----
+------------------------------------------------------------------------
 
 ### Long-format paired data with `return_long = TRUE`
 
 `return_long = TRUE` (only with `"paired.ttest"`) returns the per-gene,
 per-animal paired table used internally — useful for plotting individual
 data points or performing additional quality checks:
-
 
 ``` r
 res_long <- ptrap_de(
@@ -264,34 +257,33 @@ res_long <- ptrap_de(
 
 # DE results tibble
 head(res_long$results[, c("Gene", "logFC", "t_statistic", "PValue", "FDR")])
-#> # A tibble: 6 x 5
-#>   Gene      logFC t_statistic   PValue   FDR
-#>   <chr>     <dbl>       <dbl>    <dbl> <dbl>
-#> 1 Gene1833  0.140        65   0.000237 0.473
-#> 2 Pvalb     2.90         39.4 0.000645 0.645
-#> 3 Gene1001 -0.180       -27.6 0.00131  0.772
-#> 4 Gene68    0.125        24.5 0.00166  0.772
-#> 5 Gene248   0.208        19.7 0.00257  0.772
-#> 6 Gene1529  0.194        19.0 0.00275  0.772
+#> # A tibble: 6 × 5
+#>   Gene      logFC t_statistic    PValue    FDR
+#>   <chr>     <dbl>       <dbl>     <dbl>  <dbl>
+#> 1 Gene1833  0.142       251.  0.0000159 0.0317
+#> 2 Pvalb     2.91         38.6 0.000670  0.504 
+#> 3 Gene68    0.125        36.4 0.000755  0.504 
+#> 4 Gene51    0.132        25.1 0.00158   0.653 
+#> 5 Gene1017 -0.118       -23.4 0.00182   0.653 
+#> 6 Gene1529  0.196        22.6 0.00196   0.653
 
 # Per-gene, per-animal paired table (showing Snap25):
 # ip_count / input_count are in the norm.method scale; FE = IP/INPUT per animal
 res_long$long_data[res_long$long_data$Gene == "Snap25", ]
-#> # A tibble: 3 x 5
+#> # A tibble: 3 × 5
 #>   Gene   block ip_count input_count    FE
 #>   <chr>  <chr>    <dbl>       <dbl> <dbl>
-#> 1 Snap25 1         2231         274  8.12
-#> 2 Snap25 2         1467         229  6.38
-#> 3 Snap25 3         1398         177  7.86
+#> 1 Snap25 1        5522.        679.  8.12
+#> 2 Snap25 2        3580.        556.  6.43
+#> 3 Snap25 3        3462.        440.  7.86
 ```
 
----
+------------------------------------------------------------------------
 
 ### Custom thresholds
 
 Adjust `lfc_threshold` and `fdr_threshold` to control how strict the DE
 classification is:
-
 
 ``` r
 # Relaxed: any enrichment above 0.5 log2FC at FDR < 0.10
@@ -313,13 +305,12 @@ table(res_relaxed$diffexpressed)
 #> 1984   16
 ```
 
----
+------------------------------------------------------------------------
 
 ### HTML table with `kable.out = TRUE`
 
-Set `kable.out = TRUE` to get a formatted HTML table of top genes — ideal for
-Quarto / R Markdown reports:
-
+Set `kable.out = TRUE` to get a formatted HTML table of top genes —
+ideal for Quarto / R Markdown reports:
 
 ``` r
 ptrap_de(
@@ -331,13 +322,12 @@ ptrap_de(
 )
 ```
 
----
+------------------------------------------------------------------------
 
 ## `ptrap_volcano()` — single volcano plot
 
-A classic volcano plot for one treatment condition, with significant genes
-colour-coded and labelled:
-
+A classic volcano plot for one treatment condition, with significant
+genes colour-coded and labelled:
 
 ``` r
 ptrap_volcano(
@@ -346,13 +336,9 @@ ptrap_volcano(
 )
 ```
 
-<div class="figure">
 <img src="man/figures/README-volcano-nb-1.png" alt="Volcano plot for non-bonded mice" width="80%" />
-<p class="caption">plot of chunk volcano-nb</p>
-</div>
 
 Customise colours and thresholds:
-
 
 ``` r
 ptrap_volcano(
@@ -364,23 +350,19 @@ ptrap_volcano(
 )
 ```
 
-<div class="figure">
 <img src="man/figures/README-volcano-pb-1.png" alt="Customised volcano plot for pair-bonded mice" width="80%" />
-<p class="caption">plot of chunk volcano-pb</p>
-</div>
 
 `Oxtr`, `Avpr1a`, `Fos`, `Arc`, and `Egr1` appear only in the pb plot —
 consistent with their known roles in pair-bond formation and neuronal
 immediate-early gene expression.
 
----
+------------------------------------------------------------------------
 
 ## `ptrap_volcano2()` — dual scatter comparing two treatments
 
-`ptrap_volcano2()` overlays both treatment conditions on a single scatter
-plot. Each axis shows the log₂ fold-change (IP / INPUT) for one group, and
-genes are colour-coded by their DE status across conditions:
-
+`ptrap_volcano2()` overlays both treatment conditions on a single
+scatter plot. Each axis shows the log₂ fold-change (IP / INPUT) for one
+group, and genes are colour-coded by their DE status across conditions:
 
 ``` r
 ptrap_volcano2(
@@ -390,21 +372,17 @@ ptrap_volcano2(
 )
 ```
 
-<div class="figure">
 <img src="man/figures/README-volcano2-default-1.png" alt="Dual scatter comparing nb and pb treatments" width="80%" />
-<p class="caption">plot of chunk volcano2-default</p>
-</div>
 
-> **How to read this plot**
-> * **Top-right quadrant**: enriched in IP in **both groups** → constitutive
->   neuronal translation (e.g. *Snap25*, *Camk2a*, *Rbfox3*).
-> * **Bottom-right**: enriched only in **pb** → activity-dependent translation
->   in pair-bonded animals (*Oxtr*, *Fos*, *Arc*, *Egr1*, *Avpr1a*).
-> * **Top-left**: enriched only in **nb** → non-bonded-specific.
-> * The dotted diagonal is the identity line — equal enrichment in both groups.
+> **How to read this plot** \* **Top-right quadrant**: enriched in IP in
+> **both groups** → constitutive neuronal translation (e.g. *Snap25*,
+> *Camk2a*, *Rbfox3*). \* **Bottom-right**: enriched only in **pb** →
+> activity-dependent translation in pair-bonded animals (*Oxtr*, *Fos*,
+> *Arc*, *Egr1*, *Avpr1a*). \* **Top-left**: enriched only in **nb** →
+> non-bonded-specific. \* The dotted diagonal is the identity line —
+> equal enrichment in both groups.
 
 Customise colours and thresholds:
-
 
 ``` r
 ptrap_volcano2(
@@ -421,21 +399,17 @@ ptrap_volcano2(
 )
 ```
 
-<div class="figure">
 <img src="man/figures/README-volcano2-custom-1.png" alt="Customised dual scatter plot" width="80%" />
-<p class="caption">plot of chunk volcano2-custom</p>
-</div>
 
----
+------------------------------------------------------------------------
 
 ## `test_method = "voom"` — limma-voom
 
-`"voom"` applies the limma-voom pipeline: counts are converted to log-CPM and
-precision weights are estimated from the mean-variance trend before fitting the
-same IP vs INPUT linear model. This is particularly useful when **library sizes
-vary substantially** across samples, as the weights down-weight unreliable
-observations automatically.
-
+`"voom"` applies the limma-voom pipeline: counts are converted to
+log-CPM and precision weights are estimated from the mean-variance trend
+before fitting the same IP vs INPUT linear model. This is particularly
+useful when **library sizes vary substantially** across samples, as the
+weights down-weight unreliable observations automatically.
 
 ``` r
 res_nb_voom <- ptrap_de(
@@ -451,7 +425,7 @@ res_nb_voom <- ptrap_de(
 # Top enriched genes
 head(res_nb_voom[res_nb_voom$diffexpressed != "NO",
                  c("Gene", "logFC", "t", "PValue", "FDR", "diffexpressed")])
-#> # A tibble: 6 x 6
+#> # A tibble: 6 × 6
 #>   Gene   logFC     t   PValue      FDR diffexpressed
 #>   <chr>  <dbl> <dbl>    <dbl>    <dbl> <chr>        
 #> 1 Sst     2.95  28.9 1.31e-55 1.85e-52 UP           
@@ -463,8 +437,8 @@ head(res_nb_voom[res_nb_voom$diffexpressed != "NO",
 ```
 
 The output has the same structure as `"LRT"` / `"QLF"` results (`Gene`,
-`logFC`, `FDR`, `diffexpressed`, …), so it drops straight into `ptrap_volcano()`:
-
+`logFC`, `FDR`, `diffexpressed`, …), so it drops straight into
+`ptrap_volcano()`:
 
 ``` r
 ptrap_volcano(
@@ -473,27 +447,24 @@ ptrap_volcano(
 )
 ```
 
-<div class="figure">
 <img src="man/figures/README-volcano-voom-1.png" alt="Volcano plot from limma-voom analysis" width="80%" />
-<p class="caption">plot of chunk volcano-voom</p>
-</div>
 
----
+------------------------------------------------------------------------
 
 ## `test_method = "unpaired.ttest"` — comparing two treatment groups
 
-The **unpaired t-test** method follows the PhosphoTRAP approach of Knight et al.
-(2012): per-gene fold enrichments (FE = IP / INPUT) are computed for every
-animal in each group, and a Welch t-test is used to compare log₂(FE) between
-the two treatment groups. This is the right choice when you want to ask:
+The **unpaired t-test** method follows the PhosphoTRAP approach of
+Knight et al. (2012): per-gene fold enrichments (FE = IP / INPUT) are
+computed for every animal in each group, and a Welch t-test is used to
+compare log₂(FE) between the two treatment groups. This is the right
+choice when you want to ask:
 
-> *"Is the IP enrichment itself different between group A and group B?"*
+> *“Is the IP enrichment itself different between group A and group B?”*
 
 rather than testing IP vs INPUT within a single group. When neither
-`treatment_name` nor `control_name` is supplied and the counts matrix contains
-exactly two groups, they are assigned automatically (alphabetically; first =
-control, second = treatment):
-
+`treatment_name` nor `control_name` is supplied and the counts matrix
+contains exactly two groups, they are assigned automatically
+(alphabetically; first = control, second = treatment):
 
 ``` r
 # Auto-assigns: nb = control, pb = treatment
@@ -506,29 +477,37 @@ res_unpaired <- ptrap_de(
 #>   Blocks     : 1, 2, 3
 #>   Fractions  : INPUT, IP
 #> Auto-assigned treatments alphabetically: control = 'nb', treatment = 'pb'.
+#> Low-power warning ('unpaired.ttest'): 'pb' has n = 3 and 'nb' has n = 3 replicates.
+#>   A Welch t-test with 3 replicates per group yields only 2 degree(s) of freedom per group,
+#>   making BH correction over 2000 genes highly conservative -- few or no genes may reach
+#>   significance at the default thresholds. Consider:
+#>     * relaxing fdr_threshold (e.g. 0.10 or 0.20) or lfc_threshold;
+#>     * increasing biological replicates (n >= 4 recommended);
+#>     * using test_method = 'LRT', 'QLF', 'voom', or 'deseq', which
+#>       borrow information across genes to improve power at small n.
 
 # Results include mean FE per group and their ratio (diff_FE)
 head(res_unpaired[res_unpaired$diffexpressed != "NO",
                   c("Gene", "logFC", "diff_FE",
                     "mean_FE_nb", "mean_FE_pb",
                     "PValue", "FDR", "diffexpressed")])
-#> # A tibble: 4 x 8
+#> # A tibble: 4 × 8
 #>   Gene  logFC diff_FE mean_FE_nb mean_FE_pb    PValue    FDR diffexpressed
 #>   <chr> <dbl>   <dbl>      <dbl>      <dbl>     <dbl>  <dbl> <chr>        
-#> 1 Oxtr   2.89    7.40      1.12        8.28 0.0000182 0.0230 UP           
-#> 2 Egr1   3.24    9.46      1.00        9.50 0.0000376 0.0230 UP           
-#> 3 Arc    3.14    8.79      1.000       8.79 0.0000392 0.0230 UP           
-#> 4 Fos    2.98    7.90      1.03        8.13 0.0000460 0.0230 UP
+#> 1 Egr1   3.24    9.47      1.00        9.48 0.0000166 0.0210 UP           
+#> 2 Oxtr   2.89    7.42      1.12        8.28 0.0000287 0.0210 UP           
+#> 3 Arc    3.14    8.80      0.997       8.78 0.0000408 0.0210 UP           
+#> 4 Fos    2.99    7.92      1.03        8.13 0.0000420 0.0210 UP
 ```
 
 > **Interpretation:** `diff_FE = mean_FE_pb / mean_FE_nb` — the ratio of
-> mean IP/INPUT fold enrichments between treatment and control. `logFC` is
-> `log2(diff_FE)`. Genes with `logFC > 0` are *more enriched* in the
+> mean IP/INPUT fold enrichments between treatment and control. `logFC`
+> is `log2(diff_FE)`. Genes with `logFC > 0` are *more enriched* in the
 > pair-bonded group.
 
-Pair-bonding markers (`Oxtr`, `Avpr1a`, `Fos`, `Arc`, `Egr1`) should show
-up here as genes whose neuronal IP enrichment is higher in `pb` than `nb`:
-
+Pair-bonding markers (`Oxtr`, `Avpr1a`, `Fos`, `Arc`, `Egr1`) should
+show up here as genes whose neuronal IP enrichment is higher in `pb`
+than `nb`:
 
 ``` r
 ptrap_volcano(
@@ -537,18 +516,14 @@ ptrap_volcano(
 )
 ```
 
-<div class="figure">
 <img src="man/figures/README-volcano-unpaired-1.png" alt="Volcano plot from unpaired t-test comparing pb vs nb" width="80%" />
-<p class="caption">plot of chunk volcano-unpaired</p>
-</div>
 
----
+------------------------------------------------------------------------
 
 ## Providing sample metadata explicitly
 
-For more complex designs — multiple brain regions, custom blocking variables, or
-non-standard column naming — supply `sample_df` directly:
-
+For more complex designs — multiple brain regions, custom blocking
+variables, or non-standard column naming — supply `sample_df` directly:
 
 ``` r
 # Example: two brain regions, two treatments
@@ -575,24 +550,27 @@ res_poa_pb <- ptrap_de(
 )
 ```
 
----
+------------------------------------------------------------------------
 
 ## Citation
 
 If you use **pTRAPPING** in your research, please cite:
 
-> Rodríguez, C. (2024). *pTRAPPING: A Suite of Functions for the Analyses of
-> PhosphoTRAP Data in R*. <https://github.com/laurenoconnelllab/pTRAPPING>
+> Rodríguez, C. (2024). *pTRAPPING: A Suite of Functions for the
+> Analyses of PhosphoTRAP Data in R*.
+> <https://github.com/laurenoconnelllab/pTRAPPING>
 
 For the paired t-test method (`test_method = "paired.ttest"`):
 
-> Tan, C.L., Cooke, E.K., Leib, D.E., Lin, Y.C., Daly, G.E., Zimmerman, C.A.,
-> and Knight, Z.A. (2016). Warm-Sensitive Neurons that Control Body Temperature.
-> *Cell* 167, 47–59. <https://doi.org/10.1016/j.cell.2016.08.028>
+> Tan, C.L., Cooke, E.K., Leib, D.E., Lin, Y.C., Daly, G.E., Zimmerman,
+> C.A., and Knight, Z.A. (2016). Warm-Sensitive Neurons that Control
+> Body Temperature. *Cell* 167, 47–59.
+> <https://doi.org/10.1016/j.cell.2016.08.028>
 
 For the unpaired t-test method (`test_method = "unpaired.ttest"`):
 
-> Knight, Z.A., Tan, K., Birsoy, K., Schmidt, S., Garrison, J.L., Wysocki, R.W.,
-> Emiliano, A., Ekstrand, M.I., and Bhatt, D.L. (2012). Molecular profiling of
-> activated neurons by phosphorylated ribosome capture. *Cell* 151, 1126–1137.
+> Knight, Z.A., Tan, K., Birsoy, K., Schmidt, S., Garrison, J.L.,
+> Wysocki, R.W., Emiliano, A., Ekstrand, M.I., and Bhatt, D.L. (2012).
+> Molecular profiling of activated neurons by phosphorylated ribosome
+> capture. *Cell* 151, 1126–1137.
 > <https://doi.org/10.1016/j.cell.2012.10.039>

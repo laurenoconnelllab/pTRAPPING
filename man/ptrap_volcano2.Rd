@@ -7,6 +7,7 @@
 ptrap_volcano2(
   de_result_1,
   de_result_2,
+  fdr = TRUE,
   lfc_threshold = 1,
   fdr_threshold = 0.05,
   gene_col = "Gene",
@@ -15,22 +16,28 @@ ptrap_volcano2(
   colors = NULL,
   point_size = 3.5,
   point_alpha = 0.7,
+  genes.annot = NULL,
   max_overlaps = 20,
   title = NULL
 )
 }
 \arguments{
-\item{de_result_1}{A tibble returned by \code{\link[=ptrap_de]{ptrap_de()}} for the \strong{first}
-treatment condition (plotted on the \strong{y-axis}).}
+\item{de_result_1}{A tibble returned by \code{\link[=ptrap_de]{ptrap_de()}} for the
+\strong{first} treatment condition (plotted on the \strong{y-axis}).}
 
-\item{de_result_2}{A tibble returned by \code{\link[=ptrap_de]{ptrap_de()}} for the \strong{second}
-treatment condition (plotted on the \strong{x-axis}).}
+\item{de_result_2}{A tibble returned by \code{\link[=ptrap_de]{ptrap_de()}} for the
+\strong{second} treatment condition (plotted on the \strong{x-axis}).}
 
-\item{lfc_threshold}{Minimum absolute log2 fold change used to define
-significance. Must match (or be stricter than) the threshold used in
-\code{\link[=ptrap_de]{ptrap_de()}}. Default is \code{1}.}
+\item{fdr}{Logical. If \code{TRUE} (default), significance is assessed using the
+\code{FDR} column (BH-adjusted p-values). If \code{FALSE}, the raw \code{PValue} column
+is used instead.}
 
-\item{fdr_threshold}{Maximum FDR used to define significance. Default
+\item{lfc_threshold}{Minimum absolute log2 fold change required to classify
+a gene as differentially expressed in a given condition (also sets the
+vertical and horizontal threshold lines). Default is \code{1}.}
+
+\item{fdr_threshold}{P-value cutoff used to classify genes as DE. Applied
+to \code{FDR} when \code{fdr = TRUE} and to \code{PValue} when \code{fdr = FALSE}. Default
 is \code{0.05}.}
 
 \item{gene_col}{Name of the column containing gene identifiers in both
@@ -53,6 +60,11 @@ If \code{NULL} (default), a colourblind-friendly palette is used.}
 \item{point_alpha}{Opacity of the coloured (significant) points.
 Default is \code{0.7}.}
 
+\item{genes.annot}{Character vector of gene names to label on the plot via
+\code{\link[ggrepel:geom_text_repel]{ggrepel::geom_text_repel()}}. Names must match values in the column
+specified by \code{gene_col}; an error is raised if any names are not found.
+Default is \code{NULL} (no labels).}
+
 \item{max_overlaps}{Passed to \code{\link[ggrepel:geom_text_repel]{ggrepel::geom_text_repel()}}. Controls how
 many overlapping labels are allowed before they are hidden. Default
 is \code{20}.}
@@ -64,12 +76,18 @@ extracted from \code{de_result_1} is used.}
 A \code{\link[ggplot2:ggplot]{ggplot2::ggplot()}} object.
 }
 \description{
-Takes two tibbles produced by \code{\link[=ptrap_de]{ptrap_de()}} or similar — one per treatment condition,
-both from the same brain region — joins them by gene, classifies each gene
-according to its differential expression status in each condition, and
-returns a scatter plot of logFC\eqn{_{\text{treatment 1}}} vs
-logFC\eqn{_{\text{treatment 2}}}. Significant genes are highlighted and
-labelled; threshold lines are drawn at ±\code{lfc_threshold} on both axes.
+Takes two tibbles produced by \code{\link[=ptrap_de]{ptrap_de()}} — one per treatment
+condition, both from the same brain region — joins them by gene, classifies
+each gene according to its differential expression status in each condition,
+and returns a scatter plot of
+logFC\eqn{_{\text{treatment 1}}} vs logFC\eqn{_{\text{treatment 2}}}.
+Significant genes are highlighted and labelled; threshold lines are drawn at
+±\code{lfc_threshold} on both axes.
+}
+\details{
+Significance can be assessed using either FDR-adjusted p-values (\code{fdr = TRUE}, default) or raw p-values (\code{fdr = FALSE}). In both cases the cutoff
+is \code{fdr_threshold} and the classification is computed inside this function
+from the supplied thresholds.
 }
 \examples{
 \dontrun{
@@ -78,8 +96,11 @@ res_pb  <- ptrap_de(counts_mat, sample_df, gene_ids,
 res_sol <- ptrap_de(counts_mat, sample_df, gene_ids,
                     region_name = "POA", treatment_name = "sol")
 
-# Default plot — treatment 1 on y-axis, treatment 2 on x-axis
+# Default plot — FDR on both axes
 ptrap_volcano2(res_pb, res_sol)
+
+# Use raw p-values for the DE classification
+ptrap_volcano2(res_pb, res_sol, fdr = FALSE)
 
 # Custom thresholds, title and colours
 ptrap_volcano2(res_pb, res_sol,

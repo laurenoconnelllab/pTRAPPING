@@ -26,7 +26,7 @@ for analysing **TRAP-seq** and **PhosphoTRAP** RNA-sequencing data. It wraps the
 statistical power of [edgeR](https://bioconductor.org/packages/edgeR/) and
 [limma](https://bioconductor.org/packages/limma/) behind a compact set of
 purpose-built functions that take you from a raw counts matrix to
-publication-ready tables and figures in just a few lines of code.
+publication-ready tables and figures in just a few lines of code. 
 
 > **What is TRAP-seq?**
 > Translating Ribosome Affinity Purification followed by sequencing (TRAP-seq)
@@ -140,7 +140,7 @@ in `pb`.
 
 When `sample_df` is omitted, `ptrap_de()` reads treatment, replicate number,
 and fraction directly from the column names. Providing `treatment_name` tells
-the function which group to analyse:
+the function which group to analyse: 1
 
 ```{r de-nb}
 res_nb <- ptrap_de(
