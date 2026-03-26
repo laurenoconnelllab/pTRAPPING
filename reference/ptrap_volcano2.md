@@ -2,12 +2,12 @@
 
 Takes two tibbles produced by
 [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md)
-or similar — one per treatment condition, both from the same brain
-region — joins them by gene, classifies each gene according to its
-differential expression status in each condition, and returns a scatter
-plot of logFC\\\_{\text{treatment 1}}\\ vs logFC\\\_{\text{treatment
-2}}\\. Significant genes are highlighted and labelled; threshold lines
-are drawn at ±`lfc_threshold` on both axes.
+— one per treatment condition, both from the same brain region — joins
+them by gene, classifies each gene according to its differential
+expression status in each condition, and returns a scatter plot of
+logFC\\\_{\text{treatment 1}}\\ vs logFC\\\_{\text{treatment 2}}\\.
+Significant genes are highlighted and labelled; threshold lines are
+drawn at ±`lfc_threshold` on both axes.
 
 ## Usage
 
@@ -15,6 +15,7 @@ are drawn at ±`lfc_threshold` on both axes.
 ptrap_volcano2(
   de_result_1,
   de_result_2,
+  fdr = TRUE,
   lfc_threshold = 1,
   fdr_threshold = 0.05,
   gene_col = "Gene",
@@ -23,6 +24,7 @@ ptrap_volcano2(
   colors = NULL,
   point_size = 3.5,
   point_alpha = 0.7,
+  genes.annot = NULL,
   max_overlaps = 20,
   title = NULL
 )
@@ -42,16 +44,22 @@ ptrap_volcano2(
   [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md)
   for the **second** treatment condition (plotted on the **x-axis**).
 
+- fdr:
+
+  Logical. If `TRUE` (default), significance is assessed using the `FDR`
+  column (BH-adjusted p-values). If `FALSE`, the raw `PValue` column is
+  used instead.
+
 - lfc_threshold:
 
-  Minimum absolute log2 fold change used to define significance. Must
-  match (or be stricter than) the threshold used in
-  [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md).
-  Default is `1`.
+  Minimum absolute log2 fold change required to classify a gene as
+  differentially expressed in a given condition (also sets the vertical
+  and horizontal threshold lines). Default is `1`.
 
 - fdr_threshold:
 
-  Maximum FDR used to define significance. Default is `0.05`.
+  P-value cutoff used to classify genes as DE. Applied to `FDR` when
+  `fdr = TRUE` and to `PValue` when `fdr = FALSE`. Default is `0.05`.
 
 - gene_col:
 
@@ -84,6 +92,14 @@ ptrap_volcano2(
 
   Opacity of the coloured (significant) points. Default is `0.7`.
 
+- genes.annot:
+
+  Character vector of gene names to label on the plot via
+  [`ggrepel::geom_text_repel()`](https://ggrepel.slowkow.com/reference/geom_text_repel.html).
+  Names must match values in the column specified by `gene_col`; an
+  error is raised if any names are not found. Default is `NULL` (no
+  labels).
+
 - max_overlaps:
 
   Passed to
@@ -102,6 +118,13 @@ A
 [`ggplot2::ggplot()`](https://ggplot2.tidyverse.org/reference/ggplot.html)
 object.
 
+## Details
+
+Significance can be assessed using either FDR-adjusted p-values
+(`fdr = TRUE`, default) or raw p-values (`fdr = FALSE`). In both cases
+the cutoff is `fdr_threshold` and the classification is computed inside
+this function from the supplied thresholds.
+
 ## Examples
 
 ``` r
@@ -111,8 +134,11 @@ res_pb  <- ptrap_de(counts_mat, sample_df, gene_ids,
 res_sol <- ptrap_de(counts_mat, sample_df, gene_ids,
                     region_name = "POA", treatment_name = "sol")
 
-# Default plot — treatment 1 on y-axis, treatment 2 on x-axis
+# Default plot — FDR on both axes
 ptrap_volcano2(res_pb, res_sol)
+
+# Use raw p-values for the DE classification
+ptrap_volcano2(res_pb, res_sol, fdr = FALSE)
 
 # Custom thresholds, title and colours
 ptrap_volcano2(res_pb, res_sol,

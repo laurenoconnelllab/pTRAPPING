@@ -177,7 +177,7 @@
 <div class="section level3">
 <h3 id="simplest-call-auto-parse-column-names">Simplest call: auto-parse column names<a class="anchor" aria-label="anchor" href="#simplest-call-auto-parse-column-names"></a>
 </h3>
-<p>When <code>sample_df</code> is omitted, <code><a href="reference/ptrap_de.html">ptrap_de()</a></code> reads treatment, replicate number, and fraction directly from the column names. Providing <code>treatment_name</code> tells the function which group to analyse:</p>
+<p>When <code>sample_df</code> is omitted, <code><a href="reference/ptrap_de.html">ptrap_de()</a></code> reads treatment, replicate number, and fraction directly from the column names. Providing <code>treatment_name</code> tells the function which group to analyse: 1</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">res_nb</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/ptrap_de.html">ptrap_de</a></span><span class="op">(</span></span>
 <span>  counts_mat     <span class="op">=</span> <span class="va">counts_mat</span>,</span>
@@ -192,7 +192,7 @@
 <span><span class="co"># Top enriched genes in nb</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">res_nb</span><span class="op">[</span><span class="va">res_nb</span><span class="op">$</span><span class="va">diffexpressed</span> <span class="op">!=</span> <span class="st">"NO"</span>,</span>
 <span>            <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Gene"</span>, <span class="st">"logFC"</span>, <span class="st">"LR"</span>, <span class="st">"PValue"</span>, <span class="st">"FDR"</span>, <span class="st">"diffexpressed"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt; # A tibble: 6 x 6</span></span>
+<span><span class="co">#&gt; # A tibble: 6 × 6</span></span>
 <span><span class="co">#&gt;   Gene   logFC    LR    PValue       FDR diffexpressed</span></span>
 <span><span class="co">#&gt;   &lt;chr&gt;  &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt; &lt;chr&gt;        </span></span>
 <span><span class="co">#&gt; 1 Sst     2.95  695. 3.27e-153 6.54e-150 UP           </span></span>
@@ -215,7 +215,7 @@
 <span><span class="co"># Top enriched genes in pb</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">res_pb</span><span class="op">[</span><span class="va">res_pb</span><span class="op">$</span><span class="va">diffexpressed</span> <span class="op">!=</span> <span class="st">"NO"</span>,</span>
 <span>            <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Gene"</span>, <span class="st">"logFC"</span>, <span class="st">"LR"</span>, <span class="st">"PValue"</span>, <span class="st">"FDR"</span>, <span class="st">"diffexpressed"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt; # A tibble: 6 x 6</span></span>
+<span><span class="co">#&gt; # A tibble: 6 × 6</span></span>
 <span><span class="co">#&gt;   Gene  logFC    LR    PValue       FDR diffexpressed</span></span>
 <span><span class="co">#&gt;   &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt; &lt;chr&gt;        </span></span>
 <span><span class="co">#&gt; 1 Egr1   3.23  629. 6.88e-139 1.38e-135 UP           </span></span>
@@ -309,25 +309,25 @@
 <span></span>
 <span><span class="co"># DE results tibble</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">res_long</span><span class="op">$</span><span class="va">results</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Gene"</span>, <span class="st">"logFC"</span>, <span class="st">"t_statistic"</span>, <span class="st">"PValue"</span>, <span class="st">"FDR"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt; # A tibble: 6 x 5</span></span>
-<span><span class="co">#&gt;   Gene      logFC t_statistic   PValue   FDR</span></span>
-<span><span class="co">#&gt;   &lt;chr&gt;     &lt;dbl&gt;       &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt;</span></span>
-<span><span class="co">#&gt; 1 Gene1833  0.140        65   0.000237 0.473</span></span>
-<span><span class="co">#&gt; 2 Pvalb     2.90         39.4 0.000645 0.645</span></span>
-<span><span class="co">#&gt; 3 Gene1001 -0.180       -27.6 0.00131  0.772</span></span>
-<span><span class="co">#&gt; 4 Gene68    0.125        24.5 0.00166  0.772</span></span>
-<span><span class="co">#&gt; 5 Gene248   0.208        19.7 0.00257  0.772</span></span>
-<span><span class="co">#&gt; 6 Gene1529  0.194        19.0 0.00275  0.772</span></span>
+<span><span class="co">#&gt; # A tibble: 6 × 5</span></span>
+<span><span class="co">#&gt;   Gene      logFC t_statistic    PValue    FDR</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt;     &lt;dbl&gt;       &lt;dbl&gt;     &lt;dbl&gt;  &lt;dbl&gt;</span></span>
+<span><span class="co">#&gt; 1 Gene1833  0.142       251.  0.0000159 0.0317</span></span>
+<span><span class="co">#&gt; 2 Pvalb     2.91         38.6 0.000670  0.504 </span></span>
+<span><span class="co">#&gt; 3 Gene68    0.125        36.4 0.000755  0.504 </span></span>
+<span><span class="co">#&gt; 4 Gene51    0.132        25.1 0.00158   0.653 </span></span>
+<span><span class="co">#&gt; 5 Gene1017 -0.118       -23.4 0.00182   0.653 </span></span>
+<span><span class="co">#&gt; 6 Gene1529  0.196        22.6 0.00196   0.653</span></span>
 <span></span>
 <span><span class="co"># Per-gene, per-animal paired table (showing Snap25):</span></span>
 <span><span class="co"># ip_count / input_count are in the norm.method scale; FE = IP/INPUT per animal</span></span>
 <span><span class="va">res_long</span><span class="op">$</span><span class="va">long_data</span><span class="op">[</span><span class="va">res_long</span><span class="op">$</span><span class="va">long_data</span><span class="op">$</span><span class="va">Gene</span> <span class="op">==</span> <span class="st">"Snap25"</span>, <span class="op">]</span></span>
-<span><span class="co">#&gt; # A tibble: 3 x 5</span></span>
+<span><span class="co">#&gt; # A tibble: 3 × 5</span></span>
 <span><span class="co">#&gt;   Gene   block ip_count input_count    FE</span></span>
 <span><span class="co">#&gt;   &lt;chr&gt;  &lt;chr&gt;    &lt;dbl&gt;       &lt;dbl&gt; &lt;dbl&gt;</span></span>
-<span><span class="co">#&gt; 1 Snap25 1         2231         274  8.12</span></span>
-<span><span class="co">#&gt; 2 Snap25 2         1467         229  6.38</span></span>
-<span><span class="co">#&gt; 3 Snap25 3         1398         177  7.86</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 Snap25 1        5522.        679.  8.12</span></span>
+<span><span class="co">#&gt; 2 Snap25 2        3580.        556.  6.43</span></span>
+<span><span class="co">#&gt; 3 Snap25 3        3462.        440.  7.86</span></span></code></pre></div>
 <hr>
 </div>
 <div class="section level3">
@@ -380,11 +380,7 @@
 <span>  <span class="va">res_nb</span>,</span>
 <span>  title <span class="op">=</span> <span class="st">"Non-bonded (nb) — POA"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<div class="figure">
-<img src="reference/figures/README-volcano-nb-1.png" alt="Volcano plot for non-bonded mice" width="80%"><p class="caption">
-plot of chunk volcano-nb
-</p>
-</div>
+<p><img src="reference/figures/README-volcano-nb-1.png" alt="Volcano plot for non-bonded mice" width="80%"></p>
 <p>Customise colours and thresholds:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/ptrap_volcano.html">ptrap_volcano</a></span><span class="op">(</span></span>
@@ -394,11 +390,7 @@ plot of chunk volcano-nb
 <span>  colors        <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"UP"</span> <span class="op">=</span> <span class="st">"#E69F00"</span>, <span class="st">"DOWN"</span> <span class="op">=</span> <span class="st">"#56B4E9"</span><span class="op">)</span>,</span>
 <span>  title         <span class="op">=</span> <span class="st">"Pair-bonded (pb) — POA"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<div class="figure">
-<img src="reference/figures/README-volcano-pb-1.png" alt="Customised volcano plot for pair-bonded mice" width="80%"><p class="caption">
-plot of chunk volcano-pb
-</p>
-</div>
+<p><img src="reference/figures/README-volcano-pb-1.png" alt="Customised volcano plot for pair-bonded mice" width="80%"></p>
 <p><code>Oxtr</code>, <code>Avpr1a</code>, <code>Fos</code>, <code>Arc</code>, and <code>Egr1</code> appear only in the pb plot — consistent with their known roles in pair-bond formation and neuronal immediate-early gene expression.</p>
 <hr>
 </div>
@@ -413,11 +405,7 @@ plot of chunk volcano-pb
 <span>  treatment_col <span class="op">=</span> <span class="st">"Treatment"</span>,</span>
 <span>  title         <span class="op">=</span> <span class="st">"POA — nb vs pb"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<div class="figure">
-<img src="reference/figures/README-volcano2-default-1.png" alt="Dual scatter comparing nb and pb treatments" width="80%"><p class="caption">
-plot of chunk volcano2-default
-</p>
-</div>
+<p><img src="reference/figures/README-volcano2-default-1.png" alt="Dual scatter comparing nb and pb treatments" width="80%"></p>
 <blockquote>
 <p><strong>How to read this plot</strong> * <strong>Top-right quadrant</strong>: enriched in IP in <strong>both groups</strong> → constitutive neuronal translation (e.g. <em>Snap25</em>, <em>Camk2a</em>, <em>Rbfox3</em>). * <strong>Bottom-right</strong>: enriched only in <strong>pb</strong> → activity-dependent translation in pair-bonded animals (<em>Oxtr</em>, <em>Fos</em>, <em>Arc</em>, <em>Egr1</em>, <em>Avpr1a</em>). * <strong>Top-left</strong>: enriched only in <strong>nb</strong> → non-bonded-specific. * The dotted diagonal is the identity line — equal enrichment in both groups.</p>
 </blockquote>
@@ -435,11 +423,7 @@ plot of chunk volcano2-default
 <span>    <span class="st">"DE only pb"</span>   <span class="op">=</span> <span class="st">"#009E73"</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<div class="figure">
-<img src="reference/figures/README-volcano2-custom-1.png" alt="Customised dual scatter plot" width="80%"><p class="caption">
-plot of chunk volcano2-custom
-</p>
-</div>
+<p><img src="reference/figures/README-volcano2-custom-1.png" alt="Customised dual scatter plot" width="80%"></p>
 <hr>
 </div>
 <div class="section level2">
@@ -461,7 +445,7 @@ plot of chunk volcano2-custom
 <span><span class="co"># Top enriched genes</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">res_nb_voom</span><span class="op">[</span><span class="va">res_nb_voom</span><span class="op">$</span><span class="va">diffexpressed</span> <span class="op">!=</span> <span class="st">"NO"</span>,</span>
 <span>                 <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Gene"</span>, <span class="st">"logFC"</span>, <span class="st">"t"</span>, <span class="st">"PValue"</span>, <span class="st">"FDR"</span>, <span class="st">"diffexpressed"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt; # A tibble: 6 x 6</span></span>
+<span><span class="co">#&gt; # A tibble: 6 × 6</span></span>
 <span><span class="co">#&gt;   Gene   logFC     t   PValue      FDR diffexpressed</span></span>
 <span><span class="co">#&gt;   &lt;chr&gt;  &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt; &lt;chr&gt;        </span></span>
 <span><span class="co">#&gt; 1 Sst     2.95  28.9 1.31e-55 1.85e-52 UP           </span></span>
@@ -476,18 +460,14 @@ plot of chunk volcano2-custom
 <span>  <span class="va">res_nb_voom</span>,</span>
 <span>  title <span class="op">=</span> <span class="st">"Non-bonded (nb) — POA [voom]"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<div class="figure">
-<img src="reference/figures/README-volcano-voom-1.png" alt="Volcano plot from limma-voom analysis" width="80%"><p class="caption">
-plot of chunk volcano-voom
-</p>
-</div>
+<p><img src="reference/figures/README-volcano-voom-1.png" alt="Volcano plot from limma-voom analysis" width="80%"></p>
 <hr>
 </div>
 <div class="section level2">
 <h2 id="test_method--unpairedttest--comparing-two-treatment-groups">
 <code>test_method = "unpaired.ttest"</code> — comparing two treatment groups<a class="anchor" aria-label="anchor" href="#test_method--unpairedttest--comparing-two-treatment-groups"></a>
 </h2>
-<p>The <strong>unpaired t-test</strong> method follows the PhosphoTRAP approach of Knight et al. (2012): per-gene fold enrichments (FE = IP / INPUT) are computed for every animal in each group, and a Welch t-test is used to compare log₂(FE) between the two treatment groups. This is the right choice when you want to ask:</p>
+<p>The <strong>unpaired t-test</strong> method follows the PhosphoTRAP approach of Knight et al. (2012): per-gene fold enrichments (FE = IP / INPUT) are computed for every animal in each group, and a Welch t-test is used to compare log₂(FE) between the two treatment groups. This is the right choice when you want to ask:</p>
 <blockquote>
 <p><em>“Is the IP enrichment itself different between group A and group B?”</em></p>
 </blockquote>
@@ -503,19 +483,27 @@ plot of chunk volcano-voom
 <span><span class="co">#&gt;   Blocks     : 1, 2, 3</span></span>
 <span><span class="co">#&gt;   Fractions  : INPUT, IP</span></span>
 <span><span class="co">#&gt; Auto-assigned treatments alphabetically: control = 'nb', treatment = 'pb'.</span></span>
+<span><span class="co">#&gt; Low-power warning ('unpaired.ttest'): 'pb' has n = 3 and 'nb' has n = 3 replicates.</span></span>
+<span><span class="co">#&gt;   A Welch t-test with 3 replicates per group yields only 2 degree(s) of freedom per group,</span></span>
+<span><span class="co">#&gt;   making BH correction over 2000 genes highly conservative -- few or no genes may reach</span></span>
+<span><span class="co">#&gt;   significance at the default thresholds. Consider:</span></span>
+<span><span class="co">#&gt;     * relaxing fdr_threshold (e.g. 0.10 or 0.20) or lfc_threshold;</span></span>
+<span><span class="co">#&gt;     * increasing biological replicates (n &gt;= 4 recommended);</span></span>
+<span><span class="co">#&gt;     * using test_method = 'LRT', 'QLF', 'voom', or 'deseq', which</span></span>
+<span><span class="co">#&gt;       borrow information across genes to improve power at small n.</span></span>
 <span></span>
 <span><span class="co"># Results include mean FE per group and their ratio (diff_FE)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">res_unpaired</span><span class="op">[</span><span class="va">res_unpaired</span><span class="op">$</span><span class="va">diffexpressed</span> <span class="op">!=</span> <span class="st">"NO"</span>,</span>
 <span>                  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Gene"</span>, <span class="st">"logFC"</span>, <span class="st">"diff_FE"</span>,</span>
 <span>                    <span class="st">"mean_FE_nb"</span>, <span class="st">"mean_FE_pb"</span>,</span>
 <span>                    <span class="st">"PValue"</span>, <span class="st">"FDR"</span>, <span class="st">"diffexpressed"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt; # A tibble: 4 x 8</span></span>
+<span><span class="co">#&gt; # A tibble: 4 × 8</span></span>
 <span><span class="co">#&gt;   Gene  logFC diff_FE mean_FE_nb mean_FE_pb    PValue    FDR diffexpressed</span></span>
 <span><span class="co">#&gt;   &lt;chr&gt; &lt;dbl&gt;   &lt;dbl&gt;      &lt;dbl&gt;      &lt;dbl&gt;     &lt;dbl&gt;  &lt;dbl&gt; &lt;chr&gt;        </span></span>
-<span><span class="co">#&gt; 1 Oxtr   2.89    7.40      1.12        8.28 0.0000182 0.0230 UP           </span></span>
-<span><span class="co">#&gt; 2 Egr1   3.24    9.46      1.00        9.50 0.0000376 0.0230 UP           </span></span>
-<span><span class="co">#&gt; 3 Arc    3.14    8.79      1.000       8.79 0.0000392 0.0230 UP           </span></span>
-<span><span class="co">#&gt; 4 Fos    2.98    7.90      1.03        8.13 0.0000460 0.0230 UP</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 Egr1   3.24    9.47      1.00        9.48 0.0000166 0.0210 UP           </span></span>
+<span><span class="co">#&gt; 2 Oxtr   2.89    7.42      1.12        8.28 0.0000287 0.0210 UP           </span></span>
+<span><span class="co">#&gt; 3 Arc    3.14    8.80      0.997       8.78 0.0000408 0.0210 UP           </span></span>
+<span><span class="co">#&gt; 4 Fos    2.99    7.92      1.03        8.13 0.0000420 0.0210 UP</span></span></code></pre></div>
 <blockquote>
 <p><strong>Interpretation:</strong> <code>diff_FE = mean_FE_pb / mean_FE_nb</code> — the ratio of mean IP/INPUT fold enrichments between treatment and control. <code>logFC</code> is <code>log2(diff_FE)</code>. Genes with <code>logFC &gt; 0</code> are <em>more enriched</em> in the pair-bonded group.</p>
 </blockquote>
@@ -525,11 +513,7 @@ plot of chunk volcano-voom
 <span>  <span class="va">res_unpaired</span>,</span>
 <span>  title <span class="op">=</span> <span class="st">"pb vs nb — POA [unpaired t-test]"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<div class="figure">
-<img src="reference/figures/README-volcano-unpaired-1.png" alt="Volcano plot from unpaired t-test comparing pb vs nb" width="80%"><p class="caption">
-plot of chunk volcano-unpaired
-</p>
-</div>
+<p><img src="reference/figures/README-volcano-unpaired-1.png" alt="Volcano plot from unpaired t-test comparing pb vs nb" width="80%"></p>
 <hr>
 </div>
 <div class="section level2">

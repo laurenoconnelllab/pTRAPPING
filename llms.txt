@@ -128,7 +128,7 @@ When `sample_df` is omitted,
 [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md)
 reads treatment, replicate number, and fraction directly from the column
 names. Providing `treatment_name` tells the function which group to
-analyse:
+analyse: 1
 
 ``` r
 res_nb <- ptrap_de(
@@ -144,7 +144,7 @@ res_nb <- ptrap_de(
 # Top enriched genes in nb
 head(res_nb[res_nb$diffexpressed != "NO",
             c("Gene", "logFC", "LR", "PValue", "FDR", "diffexpressed")])
-#> # A tibble: 6 x 6
+#> # A tibble: 6 × 6
 #>   Gene   logFC    LR    PValue       FDR diffexpressed
 #>   <chr>  <dbl> <dbl>     <dbl>     <dbl> <chr>        
 #> 1 Sst     2.95  695. 3.27e-153 6.54e-150 UP           
@@ -169,7 +169,7 @@ res_pb <- ptrap_de(
 # Top enriched genes in pb
 head(res_pb[res_pb$diffexpressed != "NO",
             c("Gene", "logFC", "LR", "PValue", "FDR", "diffexpressed")])
-#> # A tibble: 6 x 6
+#> # A tibble: 6 × 6
 #>   Gene  logFC    LR    PValue       FDR diffexpressed
 #>   <chr> <dbl> <dbl>     <dbl>     <dbl> <chr>        
 #> 1 Egr1   3.23  629. 6.88e-139 1.38e-135 UP           
@@ -253,25 +253,25 @@ res_long <- ptrap_de(
 
 # DE results tibble
 head(res_long$results[, c("Gene", "logFC", "t_statistic", "PValue", "FDR")])
-#> # A tibble: 6 x 5
-#>   Gene      logFC t_statistic   PValue   FDR
-#>   <chr>     <dbl>       <dbl>    <dbl> <dbl>
-#> 1 Gene1833  0.140        65   0.000237 0.473
-#> 2 Pvalb     2.90         39.4 0.000645 0.645
-#> 3 Gene1001 -0.180       -27.6 0.00131  0.772
-#> 4 Gene68    0.125        24.5 0.00166  0.772
-#> 5 Gene248   0.208        19.7 0.00257  0.772
-#> 6 Gene1529  0.194        19.0 0.00275  0.772
+#> # A tibble: 6 × 5
+#>   Gene      logFC t_statistic    PValue    FDR
+#>   <chr>     <dbl>       <dbl>     <dbl>  <dbl>
+#> 1 Gene1833  0.142       251.  0.0000159 0.0317
+#> 2 Pvalb     2.91         38.6 0.000670  0.504 
+#> 3 Gene68    0.125        36.4 0.000755  0.504 
+#> 4 Gene51    0.132        25.1 0.00158   0.653 
+#> 5 Gene1017 -0.118       -23.4 0.00182   0.653 
+#> 6 Gene1529  0.196        22.6 0.00196   0.653
 
 # Per-gene, per-animal paired table (showing Snap25):
 # ip_count / input_count are in the norm.method scale; FE = IP/INPUT per animal
 res_long$long_data[res_long$long_data$Gene == "Snap25", ]
-#> # A tibble: 3 x 5
+#> # A tibble: 3 × 5
 #>   Gene   block ip_count input_count    FE
 #>   <chr>  <chr>    <dbl>       <dbl> <dbl>
-#> 1 Snap25 1         2231         274  8.12
-#> 2 Snap25 2         1467         229  6.38
-#> 3 Snap25 3         1398         177  7.86
+#> 1 Snap25 1        5522.        679.  8.12
+#> 2 Snap25 2        3580.        556.  6.43
+#> 3 Snap25 3        3462.        440.  7.86
 ```
 
 ------------------------------------------------------------------------
@@ -335,8 +335,6 @@ ptrap_volcano(
 ![Volcano plot for non-bonded
 mice](reference/figures/README-volcano-nb-1.png)
 
-plot of chunk volcano-nb
-
 Customise colours and thresholds:
 
 ``` r
@@ -351,8 +349,6 @@ ptrap_volcano(
 
 ![Customised volcano plot for pair-bonded
 mice](reference/figures/README-volcano-pb-1.png)
-
-plot of chunk volcano-pb
 
 `Oxtr`, `Avpr1a`, `Fos`, `Arc`, and `Egr1` appear only in the pb plot —
 consistent with their known roles in pair-bond formation and neuronal
@@ -377,8 +373,6 @@ ptrap_volcano2(
 
 ![Dual scatter comparing nb and pb
 treatments](reference/figures/README-volcano2-default-1.png)
-
-plot of chunk volcano2-default
 
 > **How to read this plot** \* **Top-right quadrant**: enriched in IP in
 > **both groups** → constitutive neuronal translation (e.g. *Snap25*,
@@ -408,8 +402,6 @@ ptrap_volcano2(
 ![Customised dual scatter
 plot](reference/figures/README-volcano2-custom-1.png)
 
-plot of chunk volcano2-custom
-
 ------------------------------------------------------------------------
 
 ## `test_method = "voom"` — limma-voom
@@ -434,7 +426,7 @@ res_nb_voom <- ptrap_de(
 # Top enriched genes
 head(res_nb_voom[res_nb_voom$diffexpressed != "NO",
                  c("Gene", "logFC", "t", "PValue", "FDR", "diffexpressed")])
-#> # A tibble: 6 x 6
+#> # A tibble: 6 × 6
 #>   Gene   logFC     t   PValue      FDR diffexpressed
 #>   <chr>  <dbl> <dbl>    <dbl>    <dbl> <chr>        
 #> 1 Sst     2.95  28.9 1.31e-55 1.85e-52 UP           
@@ -459,14 +451,12 @@ ptrap_volcano(
 ![Volcano plot from limma-voom
 analysis](reference/figures/README-volcano-voom-1.png)
 
-plot of chunk volcano-voom
-
 ------------------------------------------------------------------------
 
 ## `test_method = "unpaired.ttest"` — comparing two treatment groups
 
 The **unpaired t-test** method follows the PhosphoTRAP approach of
-Knight et al. (2012): per-gene fold enrichments (FE = IP / INPUT) are
+Knight et al. (2012): per-gene fold enrichments (FE = IP / INPUT) are
 computed for every animal in each group, and a Welch t-test is used to
 compare log₂(FE) between the two treatment groups. This is the right
 choice when you want to ask:
@@ -489,19 +479,27 @@ res_unpaired <- ptrap_de(
 #>   Blocks     : 1, 2, 3
 #>   Fractions  : INPUT, IP
 #> Auto-assigned treatments alphabetically: control = 'nb', treatment = 'pb'.
+#> Low-power warning ('unpaired.ttest'): 'pb' has n = 3 and 'nb' has n = 3 replicates.
+#>   A Welch t-test with 3 replicates per group yields only 2 degree(s) of freedom per group,
+#>   making BH correction over 2000 genes highly conservative -- few or no genes may reach
+#>   significance at the default thresholds. Consider:
+#>     * relaxing fdr_threshold (e.g. 0.10 or 0.20) or lfc_threshold;
+#>     * increasing biological replicates (n >= 4 recommended);
+#>     * using test_method = 'LRT', 'QLF', 'voom', or 'deseq', which
+#>       borrow information across genes to improve power at small n.
 
 # Results include mean FE per group and their ratio (diff_FE)
 head(res_unpaired[res_unpaired$diffexpressed != "NO",
                   c("Gene", "logFC", "diff_FE",
                     "mean_FE_nb", "mean_FE_pb",
                     "PValue", "FDR", "diffexpressed")])
-#> # A tibble: 4 x 8
+#> # A tibble: 4 × 8
 #>   Gene  logFC diff_FE mean_FE_nb mean_FE_pb    PValue    FDR diffexpressed
 #>   <chr> <dbl>   <dbl>      <dbl>      <dbl>     <dbl>  <dbl> <chr>        
-#> 1 Oxtr   2.89    7.40      1.12        8.28 0.0000182 0.0230 UP           
-#> 2 Egr1   3.24    9.46      1.00        9.50 0.0000376 0.0230 UP           
-#> 3 Arc    3.14    8.79      1.000       8.79 0.0000392 0.0230 UP           
-#> 4 Fos    2.98    7.90      1.03        8.13 0.0000460 0.0230 UP
+#> 1 Egr1   3.24    9.47      1.00        9.48 0.0000166 0.0210 UP           
+#> 2 Oxtr   2.89    7.42      1.12        8.28 0.0000287 0.0210 UP           
+#> 3 Arc    3.14    8.80      0.997       8.78 0.0000408 0.0210 UP           
+#> 4 Fos    2.99    7.92      1.03        8.13 0.0000420 0.0210 UP
 ```
 
 > **Interpretation:** `diff_FE = mean_FE_pb / mean_FE_nb` — the ratio of
@@ -522,8 +520,6 @@ ptrap_volcano(
 
 ![Volcano plot from unpaired t-test comparing pb vs
 nb](reference/figures/README-volcano-unpaired-1.png)
-
-plot of chunk volcano-unpaired
 
 ------------------------------------------------------------------------
 

@@ -2,18 +2,23 @@
 
 Takes a single tibble produced by
 [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md)
-and returns a classic volcano plot (logFC on the x-axis, -log10(FDR) on
-the y-axis). Non-significant genes are shown in grey; genes classified
-as `"UP"` or `"DOWN"` in the `diffexpressed` column are highlighted with
-distinct fill colours and labelled with their gene identifier. Dashed
-threshold lines are drawn at ±`lfc_threshold` (vertical) and
-`-log10(fdr_threshold)` (horizontal).
+and returns a classic volcano plot (logFC on the x-axis,
+\\-\log\_{10}(\text{FDR})\\ or \\-\log\_{10}(p\text{-value})\\ on the
+y-axis). Non-significant genes are shown in grey; genes classified as
+`"UP"` or `"DOWN"` are highlighted with distinct fill colours. Gene
+labels are added via
+[`ggrepel::geom_text_repel()`](https://ggrepel.slowkow.com/reference/geom_text_repel.html)
+**only for genes supplied in `genes.annot`**; by default
+(`genes.annot = NULL`) no labels are drawn, keeping the plot
+uncluttered. Dashed threshold lines are drawn at ±`lfc_threshold`
+(vertical) and at the chosen p-value cutoff (horizontal).
 
 ## Usage
 
 ``` r
 ptrap_volcano(
   de_result,
+  fdr = TRUE,
   lfc_threshold = 1,
   fdr_threshold = 0.05,
   gene_col = "Gene",
@@ -22,6 +27,7 @@ ptrap_volcano(
   colors = NULL,
   point_size = 3.5,
   point_alpha = 0.7,
+  genes.annot = NULL,
   max_overlaps = 20,
   title = NULL
 )
@@ -33,22 +39,29 @@ ptrap_volcano(
 
   A tibble returned by
   [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md),
-  containing at minimum columns `Gene` (or `gene_col`), `logFC`, `FDR`,
-  and `diffexpressed`.
+  containing at minimum the columns `Gene` (or `gene_col`), `logFC`,
+  `FDR`, and `PValue`. For `test_method = "paired.ttest"`, pass the
+  `$results` component of the returned list.
+
+- fdr:
+
+  Logical. If `TRUE` (default), the y-axis shows
+  \\-\log\_{10}(\text{FDR})\\ and significance is assessed against the
+  BH-adjusted p-value (`FDR` column). If `FALSE`, the y-axis shows
+  \\-\log\_{10}(p\text{-value})\\ and significance is assessed against
+  the raw p-value (`PValue` column).
 
 - lfc_threshold:
 
-  Minimum absolute log2 fold change used to draw the vertical threshold
-  lines. Should match the value used in
-  [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md).
+  Minimum absolute log2 fold change required to classify a gene as
+  differentially expressed (also sets the vertical threshold lines).
   Default is `1`.
 
 - fdr_threshold:
 
-  FDR cutoff used to draw the horizontal threshold line (plotted as
-  `-log10(fdr_threshold)`). Should match the value used in
-  [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md).
-  Default is `0.05`.
+  P-value cutoff used to draw the horizontal threshold line and to
+  classify genes as DE. Applied to `FDR` when `fdr = TRUE` and to
+  `PValue` when `fdr = FALSE`. Default is `0.05`.
 
 - gene_col:
 
@@ -78,6 +91,14 @@ ptrap_volcano(
 
   Opacity of the highlighted (significant) points. Default is `0.7`.
 
+- genes.annot:
+
+  Character vector of gene names to label on the plot via
+  [`ggrepel::geom_text_repel()`](https://ggrepel.slowkow.com/reference/geom_text_repel.html).
+  Names must match values in the column specified by `gene_col`; an
+  error is raised if any names are not found. Default is `NULL` (no
+  labels).
+
 - max_overlaps:
 
   Passed to
@@ -95,6 +116,14 @@ A
 [`ggplot2::ggplot()`](https://ggplot2.tidyverse.org/reference/ggplot.html)
 object.
 
+## Details
+
+The DE classification used for point colouring is computed **inside this
+function** from `logFC`, the chosen p-value column (`FDR` or `PValue`),
+and the supplied thresholds — so the plot always reflects the thresholds
+you pass here, regardless of what was used in
+[`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md).
+
 ## Examples
 
 ``` r
@@ -107,8 +136,11 @@ res <- ptrap_de(
   treatment_name = "pb"
 )
 
-# Default plot
+# Default plot — y-axis uses FDR-adjusted p-values
 ptrap_volcano(res)
+
+# Use raw (unadjusted) p-values on the y-axis
+ptrap_volcano(res, fdr = FALSE)
 
 # Custom thresholds and colours
 ptrap_volcano(res,
