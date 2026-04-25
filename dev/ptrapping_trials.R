@@ -5,24 +5,24 @@ library(readr)
 library(edgeR)
 library(stringr)
 # load counts and metadata
-counts_rimi <- read_tsv(
-  "/Users/camilorl/Quarto_projects/PairBond_PhTRAP/counts_Rimitator_gene.txt",
+counts_rimi_0 <- read_tsv(
+  "/Users/camilorodriguezlopez/Quarto_projects/pTRAPPING/dev/counts_Rimitator_gene.txt",
   comment = "#"
 )
 
 frogs_metadata <- read_csv(
-  "/Users/camilorl/Quarto_projects/PairBond_PhTRAP/frogs_metadata.csv"
+  "/Users/camilorodriguezlopez/Quarto_projects/pTRAPPING/dev/frogs_metadata.csv"
 )
 # remove extra annotation columns to get counts matrix
-counts <- counts_rimi %>%
+counts_rimi_0 <- counts_rimi_0 %>%
   select(-Chr, -Start, -End, -Strand, -Length)
 
 # store gene IDs separately for later use and remove from counts matrix
-gene_ids <- counts$Geneid
-counts <- counts %>% select(-Geneid)
+gene_ids <- counts_rimi_0$Geneid
+counts_rimi <- counts_rimi_0 %>% select(-Geneid)
 
 # create sample metadata dataframe by parsing sample names and joining with frog metadata
-samples <- tibble(sample = colnames(counts)) %>%
+samples <- tibble(sample = colnames(counts)) |>
   mutate(
     tube = str_extract(sample, "\\d+") |> as.integer(),
     fraction = if_else(str_detect(sample, "IP"), "IP", "INPUT")
@@ -32,14 +32,14 @@ samples <- tibble(sample = colnames(counts)) %>%
   rename(BrainRegion = `Brain region`)
 
 # remove samples with known issues (e.g., low library size, outliers, etc.)
-samples <- samples %>%
+samples_rimi <- samples %>%
   filter(!tube %in% c(2, 17, 27))
 
 
 # DE analysis using DESeq2 pipeline, with LFC shrinkage
 rimim_pb_deseq <- ptrap_de(
-  counts_mat = counts,
-  sample_df = samples,
+  counts_mat = counts_rimi,
+  sample_df = samples_rimi,
   gene_ids = gene_ids,
   region_name = "POA",
   treatment_name = "pb",
@@ -55,8 +55,8 @@ samples |>
   print(n = Inf)
 
 rimim_sol_deseq <- ptrap_de(
-  counts_mat = counts,
-  sample_df = samples,
+  counts_mat = counts_rimi,
+  sample_df = samples_rimi,
   gene_ids = gene_ids,
   region_name = "POA",
   treatment_name = "sol",
@@ -360,19 +360,19 @@ ptrap_volcano(rimim_unp_ttest, fdr = TRUE, genes.annot = c("TRH", "NPY", "AVP"))
 
 #R. variabilis data
 
-counts_rv <- read_tsv(
-  "/Users/camilorl/Quarto_projects/PairBond_PhTRAP/counts_Rvariabilis_gene.txt",
+counts_rv_0 <- read_tsv(
+  "/Users/camilorodriguezlopez/Quarto_projects/pTRAPPING/dev/counts_Rvariabilis_gene.txt",
   comment = "#"
 )
 
 frogs_metadata <- read_csv(
-  "/Users/camilorl/Quarto_projects/PairBond_PhTRAP/frogs_metadata.csv"
+  "/Users/camilorodriguezlopez/Quarto_projects/pTRAPPING/dev/frogs_metadata.csv"
 )
-counts_rv <- counts_rv %>%
+counts_rv_0 <- counts_rv_0 %>%
   select(-Chr, -Start, -End, -Strand, -Length)
 
-gene_ids_rv <- counts_rv$Geneid
-counts_rv <- counts_rv %>% select(-Geneid)
+gene_ids_rv <- counts_rv_0$Geneid
+counts_rv <- counts_rv_0 %>% select(-Geneid)
 
 samples_rv <- tibble(sample = colnames(counts_rv)) %>%
   mutate(
@@ -473,3 +473,19 @@ gene_ids_rv |>
         "HTR1E"
       )
   )
+
+
+rvar_poa <- counts_rv_0 |>
+  column_to_rownames("Geneid") |>
+  select(
+    samples_rv |>
+      filter(BrainRegion == "POA") |>
+      select(sample) |>
+      pull()
+  )
+
+colnames(rvar_poa) <- samples_rv |>
+  filter(BrainRegion == "POA") |>
+  mutate(sample2 = paste(Treatment, tube, fraction, sep = "_")) |>
+  select(sample2) |>
+  pull()

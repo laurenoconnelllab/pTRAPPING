@@ -6,9 +6,9 @@ output: github_document
 
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
-  collapse  = TRUE,
-  comment   = "#>",
-  fig.path  = "man/figures/README-",
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
   out.width = "80%",
   fig.width = 7,
   fig.height = 5,
@@ -21,7 +21,7 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 <!-- badges: end -->
 
-**pTRAPPING** is an R package that provides a streamlined, reproducible workflow
+**pTRAPPING** provides a streamlined, reproducible workflow
 for analysing **TRAP-seq** and **PhosphoTRAP** RNA-sequencing data. It wraps the
 statistical power of [edgeR](https://bioconductor.org/packages/edgeR/) and
 [limma](https://bioconductor.org/packages/limma/) behind a compact set of
@@ -79,34 +79,44 @@ library(ggplot2)
 
 set.seed(42)
 
-n_genes  <- 2000
+n_genes <- 2000
 gene_ids <- paste0("Gene", seq_len(n_genes))
 
 # ── Replace early positions with real mouse gene names ──────────────────────
 # Neuronal markers — expected to be enriched in IP in BOTH groups
-neuronal   <- c("Snap25", "Rbfox3", "Camk2a", "Vglut1", "Syn1",
-                "Map2",   "Nrgn",   "Bdnf",   "Pvalb",  "Sst")
+neuronal <- c(
+  "Snap25",
+  "Rbfox3",
+  "Camk2a",
+  "Vglut1",
+  "Syn1",
+  "Map2",
+  "Nrgn",
+  "Bdnf",
+  "Pvalb",
+  "Sst"
+)
 # Pair-bonding markers — enriched in IP only in pb
 pb_markers <- c("Oxtr", "Avpr1a", "Fos", "Arc", "Egr1")
 # Glial markers — NOT enriched in neuronal IP (control transcripts)
-glial      <- c("Gfap", "Aldh1l1", "S100b", "Cx3cr1", "Tmem119")
+glial <- c("Gfap", "Aldh1l1", "S100b", "Cx3cr1", "Tmem119")
 
-gene_ids[seq_along(neuronal)]                                       <- neuronal
-gene_ids[length(neuronal) + seq_along(pb_markers)]                  <- pb_markers
-gene_ids[length(neuronal) + length(pb_markers) + seq_along(glial)]  <- glial
+gene_ids[seq_along(neuronal)] <- neuronal
+gene_ids[length(neuronal) + seq_along(pb_markers)] <- pb_markers
+gene_ids[length(neuronal) + length(pb_markers) + seq_along(glial)] <- glial
 
 # ── True IP / INPUT enrichment ratios ───────────────────────────────────────
-base_enrich        <- rep(1.0, n_genes)
-base_enrich[1:10]  <- 8   # neuronal markers — constitutively enriched in both groups
-base_enrich[11:15] <- 1   # pair-bonding markers — baseline (no enrichment in nb)
+base_enrich <- rep(1.0, n_genes)
+base_enrich[1:10] <- 8 # neuronal markers — constitutively enriched in both groups
+base_enrich[11:15] <- 1 # pair-bonding markers — baseline (no enrichment in nb)
 
-pb_extra           <- rep(1.0, n_genes)
-pb_extra[11:15]    <- 8   # pair-bonding markers strongly enriched only in pb
+pb_extra <- rep(1.0, n_genes)
+pb_extra[11:15] <- 8 # pair-bonding markers strongly enriched only in pb
 
 # ── Helper: simulate one IP/INPUT pair for all genes ────────────────────────
 sim_pair <- function(enrich, mu = 200, size = 10, sd_noise = 0.15) {
   input <- rnbinom(n_genes, mu = mu, size = size)
-  ip    <- pmax(round(input * enrich * exp(rnorm(n_genes, 0, sd_noise))), 0L)
+  ip <- pmax(round(input * enrich * exp(rnorm(n_genes, 0, sd_noise))), 0L)
   list(input = input, ip = ip)
 }
 
@@ -116,8 +126,12 @@ cols <- lapply(1:3, function(i) {
   pb <- sim_pair(base_enrich * pb_extra)
   setNames(
     data.frame(nb$input, nb$ip, pb$input, pb$ip),
-    c(paste0("nb", i, "INPUT"), paste0("nb", i, "IP"),
-      paste0("pb", i, "INPUT"), paste0("pb", i, "IP"))
+    c(
+      paste0("nb", i, "INPUT"),
+      paste0("nb", i, "IP"),
+      paste0("pb", i, "INPUT"),
+      paste0("pb", i, "IP")
+    )
   )
 })
 
@@ -144,26 +158,30 @@ the function which group to analyse: 1
 
 ```{r de-nb}
 res_nb <- ptrap_de(
-  counts_mat     = counts_mat,
+  counts_mat = counts_mat,
   treatment_name = "nb",
-  test_method    = "LRT"        # edgeR likelihood ratio test
+  test_method = "LRT" # edgeR likelihood ratio test
 )
 
 # Top enriched genes in nb
-head(res_nb[res_nb$diffexpressed != "NO",
-            c("Gene", "logFC", "LR", "PValue", "FDR", "diffexpressed")])
+head(res_nb[
+  res_nb$diffexpressed != "NO",
+  c("Gene", "logFC", "LR", "PValue", "FDR", "diffexpressed")
+])
 ```
 
 ```{r de-pb}
 res_pb <- ptrap_de(
-  counts_mat     = counts_mat,
+  counts_mat = counts_mat,
   treatment_name = "pb",
-  test_method    = "LRT"
+  test_method = "LRT"
 )
 
 # Top enriched genes in pb
-head(res_pb[res_pb$diffexpressed != "NO",
-            c("Gene", "logFC", "LR", "PValue", "FDR", "diffexpressed")])
+head(res_pb[
+  res_pb$diffexpressed != "NO",
+  c("Gene", "logFC", "LR", "PValue", "FDR", "diffexpressed")
+])
 ```
 
 The neuronal markers (`Snap25`, `Camk2a`, etc.) are enriched in IP in **both**
@@ -186,24 +204,24 @@ transcripts of pair-bonded neurons.
 ```{r de-methods, eval = FALSE}
 # Quasi-likelihood F-test — more conservative than LRT
 res_qlf <- ptrap_de(
-  counts_mat     = counts_mat,
+  counts_mat = counts_mat,
   treatment_name = "nb",
-  test_method    = "QLF"
+  test_method = "QLF"
 )
 
 # limma-voom — accounts for mean-variance trend with precision weights
 res_voom <- ptrap_de(
-  counts_mat     = counts_mat,
+  counts_mat = counts_mat,
   treatment_name = "nb",
-  test_method    = "voom"
+  test_method = "voom"
 )
 
 # Paired t-test — recommended for real PhosphoTRAP data with n = 3 animals
 # Follows the approach in Tan et al. 2016 (Cell 167, 47-59)
 res_pt <- ptrap_de(
-  counts_mat     = counts_mat,
+  counts_mat = counts_mat,
   treatment_name = "nb",
-  test_method    = "paired.ttest"
+  test_method = "paired.ttest"
 )
 ```
 
@@ -226,10 +244,10 @@ data points or performing additional quality checks:
 
 ```{r return-long}
 res_long <- ptrap_de(
-  counts_mat     = counts_mat,
+  counts_mat = counts_mat,
   treatment_name = "nb",
-  test_method    = "paired.ttest",
-  return_long    = TRUE
+  test_method = "paired.ttest",
+  return_long = TRUE
 )
 
 # DE results tibble
@@ -250,11 +268,11 @@ classification is:
 ```{r custom-thresholds}
 # Relaxed: any enrichment above 0.5 log2FC at FDR < 0.10
 res_relaxed <- ptrap_de(
-  counts_mat     = counts_mat,
+  counts_mat = counts_mat,
   treatment_name = "pb",
-  test_method    = "LRT",
-  lfc_threshold  = 0.5,
-  fdr_threshold  = 0.10
+  test_method = "LRT",
+  lfc_threshold = 0.5,
+  fdr_threshold = 0.10
 )
 
 table(res_relaxed$diffexpressed)
@@ -269,11 +287,11 @@ Quarto / R Markdown reports:
 
 ```{r kable-out, eval = FALSE}
 ptrap_de(
-  counts_mat     = counts_mat,
+  counts_mat = counts_mat,
   treatment_name = "pb",
-  test_method    = "LRT",
-  kable.out      = TRUE,
-  ngenes.out     = 10
+  test_method = "LRT",
+  kable.out = TRUE,
+  ngenes.out = 10
 )
 ```
 
@@ -298,8 +316,8 @@ ptrap_volcano(
   res_pb,
   lfc_threshold = 1,
   fdr_threshold = 0.05,
-  colors        = c("UP" = "#E69F00", "DOWN" = "#56B4E9"),
-  title         = "Pair-bonded (pb) — POA"
+  colors = c("UP" = "#E69F00", "DOWN" = "#56B4E9"),
+  title = "Pair-bonded (pb) — POA"
 )
 ```
 
@@ -317,9 +335,10 @@ genes are colour-coded by their DE status across conditions:
 
 ```{r volcano2-default, fig.alt = "Dual scatter comparing nb and pb treatments"}
 ptrap_volcano2(
-  res_nb, res_pb,
+  res_nb,
+  res_pb,
   treatment_col = "Treatment",
-  title         = "POA — nb vs pb"
+  title = "POA — nb vs pb"
 )
 ```
 
@@ -335,15 +354,16 @@ Customise colours and thresholds:
 
 ```{r volcano2-custom, fig.alt = "Customised dual scatter plot"}
 ptrap_volcano2(
-  res_nb, res_pb,
+  res_nb,
+  res_pb,
   lfc_threshold = 1,
   fdr_threshold = 0.05,
   treatment_col = "Treatment",
-  title         = "POA — nb vs pb",
-  colors        = c(
-    "DE in both"   = "#D55E00",
-    "DE only nb"   = "#0072B2",
-    "DE only pb"   = "#009E73"
+  title = "POA — nb vs pb",
+  colors = c(
+    "DE in both" = "#D55E00",
+    "DE only nb" = "#0072B2",
+    "DE only pb" = "#009E73"
   )
 )
 ```
@@ -360,14 +380,16 @@ observations automatically.
 
 ```{r de-voom}
 res_nb_voom <- ptrap_de(
-  counts_mat     = counts_mat,
+  counts_mat = counts_mat,
   treatment_name = "nb",
-  test_method    = "voom"
+  test_method = "voom"
 )
 
 # Top enriched genes
-head(res_nb_voom[res_nb_voom$diffexpressed != "NO",
-                 c("Gene", "logFC", "t", "PValue", "FDR", "diffexpressed")])
+head(res_nb_voom[
+  res_nb_voom$diffexpressed != "NO",
+  c("Gene", "logFC", "t", "PValue", "FDR", "diffexpressed")
+])
 ```
 
 The output has the same structure as `"LRT"` / `"QLF"` results (`Gene`,
@@ -399,15 +421,24 @@ control, second = treatment):
 ```{r de-unpaired}
 # Auto-assigns: nb = control, pb = treatment
 res_unpaired <- ptrap_de(
-  counts_mat  = counts_mat,
+  counts_mat = counts_mat,
   test_method = "unpaired.ttest"
 )
 
 # Results include mean FE per group and their ratio (diff_FE)
-head(res_unpaired[res_unpaired$diffexpressed != "NO",
-                  c("Gene", "logFC", "diff_FE",
-                    "mean_FE_nb", "mean_FE_pb",
-                    "PValue", "FDR", "diffexpressed")])
+head(res_unpaired[
+  res_unpaired$diffexpressed != "NO",
+  c(
+    "Gene",
+    "logFC",
+    "diff_FE",
+    "mean_FE_nb",
+    "mean_FE_pb",
+    "PValue",
+    "FDR",
+    "diffexpressed"
+  )
+])
 ```
 
 > **Interpretation:** `diff_FE = mean_FE_pb / mean_FE_nb` — the ratio of
@@ -435,25 +466,33 @@ non-standard column naming — supply `sample_df` directly:
 ```{r explicit-sample-df, eval = FALSE}
 # Example: two brain regions, two treatments
 sample_df <- data.frame(
-  sample    = c("POA_nb1_IP", "POA_nb1_INPUT", "POA_pb1_IP", "POA_pb1_INPUT",
-                "AMY_nb1_IP", "AMY_nb1_INPUT", "AMY_pb1_IP", "AMY_pb1_INPUT"),
-  region    = rep(c("POA", "AMY"), each = 4),
+  sample = c(
+    "POA_nb1_IP",
+    "POA_nb1_INPUT",
+    "POA_pb1_IP",
+    "POA_pb1_INPUT",
+    "AMY_nb1_IP",
+    "AMY_nb1_INPUT",
+    "AMY_pb1_IP",
+    "AMY_pb1_INPUT"
+  ),
+  region = rep(c("POA", "AMY"), each = 4),
   treatment = rep(c("nb", "nb", "pb", "pb"), 2),
-  block     = rep("1", 8),
-  fraction  = rep(c("IP", "INPUT", "IP", "INPUT"), 2)
+  block = rep("1", 8),
+  fraction = rep(c("IP", "INPUT", "IP", "INPUT"), 2)
 )
 
 res_poa_pb <- ptrap_de(
-  counts_mat     = my_counts,
-  sample_df      = sample_df,
-  gene_ids       = my_gene_ids,
-  region_name    = "POA",
+  counts_mat = my_counts,
+  sample_df = sample_df,
+  gene_ids = my_gene_ids,
+  region_name = "POA",
   treatment_name = "pb",
-  region_col     = "region",
-  treatment_col  = "treatment",
-  block_col      = "block",
-  fraction_col   = "fraction",
-  test_method    = "paired.ttest"
+  region_col = "region",
+  treatment_col = "treatment",
+  block_col = "block",
+  fraction_col = "fraction",
+  test_method = "paired.ttest"
 )
 ```
 

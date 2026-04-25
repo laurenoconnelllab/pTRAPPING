@@ -100,15 +100,15 @@ ptrap_volcano2 <- function(
   title = NULL
 ) {
   # --- extract treatment and region names from the result tables --------------
-  t1     <- unique(de_result_1[[treatment_col]])
-  t2     <- unique(de_result_2[[treatment_col]])
+  t1 <- unique(de_result_1[[treatment_col]])
+  t2 <- unique(de_result_2[[treatment_col]])
   region <- unique(de_result_1[[region_col]])
 
   # --- DE class labels (derived from treatment names) -------------------------
-  class_both  <- "DE in both"
+  class_both <- "DE in both"
   class_only1 <- paste0("DE only ", t1)
   class_only2 <- paste0("DE only ", t2)
-  class_none  <- "Not DE"
+  class_none <- "Not DE"
 
   # --- default colourblind-friendly palette -----------------------------------
   if (is.null(colors)) {
@@ -156,10 +156,10 @@ ptrap_volcano2 <- function(
     ) |>
     mutate(
       DE_class = case_when(
-        .data$sig_1 &  .data$sig_2  ~ class_both,
-        .data$sig_1 & !.data$sig_2  ~ class_only1,
-        !.data$sig_1 & .data$sig_2  ~ class_only2,
-        TRUE                         ~ class_none
+        .data$sig_1 & .data$sig_2 ~ class_both,
+        .data$sig_1 & !.data$sig_2 ~ class_only1,
+        !.data$sig_1 & .data$sig_2 ~ class_only2,
+        TRUE ~ class_none
       )
     ) |>
     arrange(.data$DE_class)
@@ -170,13 +170,14 @@ ptrap_volcano2 <- function(
     if (length(bad) > 0) {
       stop(
         "The following names in 'genes.annot' were not found in the '",
-        gene_col, "' column: ",
+        gene_col,
+        "' column: ",
         paste(bad, collapse = ", ")
       )
     }
     annot_data <- combined[combined[[gene_col]] %in% genes.annot, ]
   } else {
-    annot_data <- combined[integer(0), ]   # zero-row data frame, correct columns
+    annot_data <- combined[integer(0), ] # zero-row data frame, correct columns
   }
 
   # --- default title ----------------------------------------------------------
@@ -187,39 +188,49 @@ ptrap_volcano2 <- function(
   # --- build plot -------------------------------------------------------------
   ggplot(combined, aes(x = .data$logFC_2, y = .data$logFC_1)) +
     geom_point(
-      data  = combined[combined$DE_class == class_none, ],
+      data = combined[combined$DE_class == class_none, ],
       color = "grey80",
       alpha = 0.5,
-      size  = point_size
+      size = point_size
     ) +
     geom_point(
-      data  = combined[combined$DE_class != class_none, ],
+      data = combined[combined$DE_class != class_none, ],
       aes(fill = .data$DE_class),
       alpha = point_alpha,
-      size  = point_size,
+      size = point_size,
       shape = 21
     ) +
     geom_abline(slope = 1, intercept = 0, linetype = "dotted") +
     geom_vline(
       xintercept = c(-lfc_threshold, lfc_threshold),
-      linetype   = "dashed"
+      linetype = "dashed"
     ) +
     geom_hline(
       yintercept = c(-lfc_threshold, lfc_threshold),
-      linetype   = "dashed"
+      linetype = "dashed"
     ) +
     scale_fill_manual(values = colors) +
+    geom_point(
+      data = annot_data,
+      aes(fill = .data$DE_class),
+      size = point_size + 0.3,
+      shape = 21,
+      stroke = 0.5,
+      color = "black"
+    ) +
     geom_text_repel(
-      data         = annot_data,
-      aes(label    = .data[[gene_col]]),
-      size         = 3,
-      max.overlaps = max_overlaps
+      data = annot_data,
+      aes(label = .data[[gene_col]]),
+      size = 4.3,
+      color = "black",
+      max.overlaps = max_overlaps,
+      min.segment.length = 0
     ) +
     theme_classic() +
     labs(
-      x     = paste0("logFC IP/Input (", t2, ")"),
-      y     = paste0("logFC IP/Input (", t1, ")"),
+      x = paste0("logFC IP/Input (", t2, ")"),
+      y = paste0("logFC IP/Input (", t1, ")"),
       title = title,
-      fill  = "DE class"
+      fill = "DE class"
     )
 }

@@ -177,11 +177,21 @@ ptrap_volcano <- function(
       linetype   = "dashed"
     ) +
     scale_fill_manual(values = colors) +
+    geom_point(
+      data   = annot_data,
+      aes(fill = .data$DE),
+      size   = point_size + 0.3,
+      shape  = 21,
+      stroke = 0.5,
+      color  = "black"
+    ) +
     geom_text_repel(
-      data          = annot_data,
-      aes(label     = .data[[gene_col]]),
-      size          = 3,
-      max.overlaps  = max_overlaps
+      data             = annot_data,
+      aes(label        = .data[[gene_col]]),
+      size             = 4.3,
+      color            = "black",
+      max.overlaps     = max_overlaps,
+      min.segment.length = 0
     ) +
     theme_classic() +
     labs(
