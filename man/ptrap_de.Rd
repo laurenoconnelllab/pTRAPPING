@@ -21,7 +21,7 @@ ptrap_de(
   lfc_threshold = 1,
   fdr_threshold = 0.05,
   test_method = c("LRT", "QLF", "paired.ttest", "unpaired.ttest", "voom", "deseq"),
-  norm.method = c("CPM", "RPKM", "mratios"),
+  norm.method = c("CPM", "RPKM", "mratios", "none"),
   gene.length = NULL,
   prior.count = 1,
   shrink.lfc = FALSE,
@@ -164,6 +164,10 @@ Unlike CPM, this method directly rescales the count matrix by
 sample-specific size factors, making it suitable for between-sample
 comparisons. Use this when you want DESeq2-style normalisation for the
 t-test without running the full DESeq2 pipeline.
+\item \code{"none"} -- no normalisation is applied; the count matrix is used
+as supplied. Intended for pre-normalised matrices (e.g., TPM, FPKM,
+or any user-normalised values) where an additional normalisation step
+would be redundant or distorting.
 }}
 
 \item{gene.length}{Named numeric vector of gene lengths in base pairs

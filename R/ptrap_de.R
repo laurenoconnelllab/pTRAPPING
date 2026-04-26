@@ -273,6 +273,10 @@
 #'     sample-specific size factors, making it suitable for between-sample
 #'     comparisons. Use this when you want DESeq2-style normalisation for the
 #'     t-test without running the full DESeq2 pipeline.
+#'   * `"none"` -- no normalisation is applied; the count matrix is used
+#'     as supplied. Intended for pre-normalised matrices (e.g., TPM, FPKM,
+#'     or any user-normalised values) where an additional normalisation step
+#'     would be redundant or distorting.
 #' @param gene.length Named numeric vector of gene lengths in base pairs
 #'   (names must match gene IDs). Required when `norm.method = "RPKM"`;
 #'   ignored otherwise. Default is `NULL`.
@@ -459,7 +463,7 @@ ptrap_de <- function(
   lfc_threshold = 1,
   fdr_threshold = 0.05,
   test_method = c("LRT", "QLF", "paired.ttest", "unpaired.ttest", "voom", "deseq"),
-  norm.method = c("CPM", "RPKM", "mratios"),
+  norm.method = c("CPM", "RPKM", "mratios", "none"),
   gene.length = NULL,
   prior.count = 1,
   shrink.lfc = FALSE,
@@ -788,7 +792,7 @@ ptrap_de <- function(
         )
       }
       wc <- rpkm(dge, gene.length = gl, log = FALSE)
-    } else {
+    } else if (norm.method == "mratios") {
       # "mratios": DESeq2 median of ratios -- size factors only, no full pipeline
       coldata_mr <- as.data.frame(region_samples)
       rownames(coldata_mr) <- region_samples[[sample_col]]
@@ -799,6 +803,9 @@ ptrap_de <- function(
       )
       dds_mr <- estimateSizeFactors(dds_mr)
       wc <- counts(dds_mr, normalized = TRUE)
+    } else {
+      # "none": use the count matrix as-is, without any normalisation
+      wc <- dge$counts
     }
   }
 
