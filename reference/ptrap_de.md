@@ -75,7 +75,7 @@ ptrap_de(
   lfc_threshold = 1,
   fdr_threshold = 0.05,
   test_method = c("LRT", "QLF", "paired.ttest", "unpaired.ttest", "voom", "deseq"),
-  norm.method = c("CPM", "RPKM", "mratios"),
+  norm.method = c("CPM", "RPKM", "mratios", "none"),
   gene.length = NULL,
   prior.count = 1,
   shrink.lfc = FALSE,
@@ -267,6 +267,11 @@ ptrap_de(
     suitable for between-sample comparisons. Use this when you want
     DESeq2-style normalisation for the t-test without running the full
     DESeq2 pipeline.
+
+  - `"none"` – no normalisation is applied; the count matrix is used as
+    supplied. Intended for pre-normalised matrices (e.g., TPM, FPKM, or
+    any user-normalised values) where an additional normalisation step
+    would be redundant or distorting.
 
 - gene.length:
 
