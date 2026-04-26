@@ -469,7 +469,8 @@ ptrap_de <- function(
   shrink.lfc = FALSE,
   return_long = FALSE,
   ngenes.out = 20,
-  kable.out = FALSE
+  kable.out = FALSE,
+  filter = TRUE
 ) {
   # ---- Step 1: match arguments -----------------------------------------------
   # Capture whether norm.method was explicitly supplied before match.arg()
@@ -763,8 +764,10 @@ ptrap_de <- function(
   dge <- DGEList(counts = counts_region)
   dge$genes <- data.frame(Gene = gene_ids)
 
-  keep <- filterByExpr(dge, group = region_samples[[fraction_col]])
-  dge <- dge[keep, , keep.lib.sizes = FALSE]
+  if (filter) {
+    keep <- filterByExpr(dge, group = region_samples[[fraction_col]])
+    dge <- dge[keep, , keep.lib.sizes = FALSE]
+  }
 
   # TMM normalization -- skipped for "deseq" (DESeq2 handles its own normalization)
   if (test_method != "deseq") {
