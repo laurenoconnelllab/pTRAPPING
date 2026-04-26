@@ -848,10 +848,9 @@ ptrap_de <- function(
     t_stat <- rowMeans(paired_d) / (apply(paired_d, 1L, sd) / sqrt(n_reps))
     p_val <- 2 * pt(-abs(t_stat), df = n_reps - 1L)
 
-    # logFC for reporting: log2(mean_IP / mean_INPUT), pseudocount-protected
-    mean_ip <- rowMeans(ip_mat)
-    mean_input <- rowMeans(input_mat)
-    logFC_vec <- log2((mean_ip + prior.count) / (mean_input + prior.count))
+    # logFC for reporting: mean of per-animal log2 fold enrichments.
+    # Each animal contributes equally, consistent with the paired design.
+    logFC_vec <- rowMeans(log2((ip_mat + prior.count) / (input_mat + prior.count)))
 
     # per-animal fold enrichment: FE_<block_id> — kept separate from results
     FE_mat  <- (ip_mat + prior.count) / (input_mat + prior.count)
@@ -1022,11 +1021,13 @@ ptrap_de <- function(
       ((var_t / n_t)^2 / (n_t - 1L) + (var_c / n_c)^2 / (n_c - 1L))
     p_val <- 2 * pt(-abs(t_stat), df = df_w)
 
-    # Mean linear FE per condition and differential FE
+    # Mean linear FE per condition and differential FE (descriptive columns)
     mean_FE_trt <- rowMeans(FE_trt)
     mean_FE_ctrl <- rowMeans(FE_ctrl)
     diff_FE <- mean_FE_trt / mean_FE_ctrl
-    logFC <- log2(diff_FE)
+    # logFC: mean(log2_FE_treatment) - mean(log2_FE_control), consistent with
+    # the Welch t-test which is run on per-animal log2 FE values.
+    logFC <- mean_t - mean_c
 
     # Build results tibble
     results <- tibble(
