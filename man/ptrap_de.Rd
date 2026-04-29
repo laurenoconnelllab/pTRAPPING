@@ -27,7 +27,8 @@ ptrap_de(
   shrink.lfc = FALSE,
   return_long = FALSE,
   ngenes.out = 20,
-  kable.out = FALSE
+  kable.out = FALSE,
+  filter = TRUE
 )
 }
 \arguments{
