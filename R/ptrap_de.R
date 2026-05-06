@@ -11,16 +11,40 @@
 #   "Nb_IP_1"   -> treatment="Nb", block="1", fraction=ip_level
 #   "B.3.INPUT" -> treatment="B",  block="3", fraction=input_level
 .parse_one_sample <- function(nm, ip_level, input_level) {
-  # remove separators then split at every letter<->digit transition
-  # hyphen must be first in the character class to be treated as a literal
-  # character and not as a range operator
+  # Step 1: Remove separators.
   cleaned <- gsub("[-_. ]+", "", nm)
-  parts <- unlist(strsplit(
+
+  # Step 2: Inject a canonical separator ("_") just before each fraction
+  # keyword, so they are always split off as their own token regardless of
+  # whether they are fused with the treatment name.
+  # INPUT must be handled before IP so the longer keyword wins.
+  # Use case-insensitive replacement via perl = TRUE + (?i).
+  cleaned <- gsub(
+    paste0("(?i)(?=", input_level, ")"),
+    "_",
     cleaned,
-    "(?<=\\d)(?=\\D)|(?<=\\D)(?=\\d)",
     perl = TRUE
-  ))
+  )
+  cleaned <- gsub(
+    paste0("(?i)(?=", ip_level, ")"),
+    "_",
+    cleaned,
+    perl = TRUE
+  )
+
+  # Step 3: Re-strip any double separators produced above.
+  cleaned <- gsub("_+", "_", cleaned)
+  cleaned <- gsub("^_|_$", "", cleaned)
+
+  # Step 4: Split on the canonical separator.
+  parts <- unlist(strsplit(cleaned, "_"))
+
+  # Step 5: Further split each part at digit<->letter transitions.
+  parts <- unlist(lapply(parts, function(p) {
+    unlist(strsplit(p, "(?<=\\d)(?=\\D)|(?<=\\D)(?=\\d)", perl = TRUE))
+  }))
   parts <- parts[nzchar(parts)]
+
   parts_l <- tolower(parts)
 
   # fraction: matches ip_level, input_level, or "in" (short alias for INPUT)
@@ -78,6 +102,26 @@
     block = vapply(parsed, `[[`, character(1L), "block"),
     fraction = vapply(parsed, `[[`, character(1L), "fraction")
   )
+}
+
+# Build a design formula, inserting covariate terms additively.
+# For DESeq2 (method = "deseq"): fraction_col must be last so that results()
+#   auto-detects the contrast. Order: block + covariates + fraction.
+# For edgeR / voom: order does not matter; covariates appended at the end.
+#   Order: fraction + block + covariates.
+.build_formula <- function(method, fraction_col, block_col, covariates) {
+  cov_terms <- if (!is.null(covariates)) {
+    paste(covariates, collapse = " + ")
+  } else {
+    NULL
+  }
+  rhs_parts <- if (method == "deseq") {
+    c(block_col, cov_terms, fraction_col) # fraction last
+  } else {
+    c(fraction_col, block_col, cov_terms) # fraction first
+  }
+  rhs_parts <- rhs_parts[!vapply(rhs_parts, is.null, logical(1L))]
+  as.formula(paste("~", paste(rhs_parts, collapse = " + ")))
 }
 
 
@@ -222,6 +266,8 @@
 #'   Default is `"IP"`.
 #' @param input_level The value in `fraction_col` that identifies the INPUT
 #'   fraction (reference level). Default is `"INPUT"`.
+#' @param covariates Optional character vector of covariate names to include in
+#'   the design formula. Default is `NULL`.
 #' @param lfc_threshold Minimum absolute log2 fold change required to classify
 #'   a gene as differentially expressed. Default is `1`.
 #' @param fdr_threshold Maximum FDR (or adjusted p-value) allowed to classify
@@ -445,6 +491,7 @@
 #' @importFrom stats as.formula model.matrix p.adjust pt sd var
 #' @importFrom knitr kable
 #' @importFrom kableExtra kable_classic row_spec column_spec
+#' @importFrom cli cli_abort
 
 ptrap_de <- function(
   counts_mat,
@@ -460,9 +507,17 @@ ptrap_de <- function(
   treatment_col = "Treatment",
   ip_level = "IP",
   input_level = "INPUT",
+  covariates = NULL,
   lfc_threshold = 1,
   fdr_threshold = 0.05,
-  test_method = c("LRT", "QLF", "paired.ttest", "unpaired.ttest", "voom", "deseq"),
+  test_method = c(
+    "LRT",
+    "QLF",
+    "paired.ttest",
+    "unpaired.ttest",
+    "voom",
+    "deseq"
+  ),
   norm.method = c("CPM", "RPKM", "mratios", "none"),
   gene.length = NULL,
   prior.count = 1,
@@ -485,8 +540,13 @@ ptrap_de <- function(
   # user explicitly passed a norm.method argument.
   if (norm_method_set && test_method %in% c("LRT", "QLF")) {
     message(
-      "norm.method = '", norm.method, "' is ignored for test_method = '",
-      test_method, "'. edgeR's ", test_method, " applies TMM (trimmed mean ",
+      "norm.method = '",
+      norm.method,
+      "' is ignored for test_method = '",
+      test_method,
+      "'. edgeR's ",
+      test_method,
+      " applies TMM (trimmed mean ",
       "of M values) normalisation internally via normLibSizes(): TMM adjusts ",
       "effective library sizes (not the count matrix itself), and those ",
       "adjusted sizes enter the GLM as offsets."
@@ -494,14 +554,18 @@ ptrap_de <- function(
   }
   if (norm_method_set && test_method == "deseq") {
     message(
-      "norm.method = '", norm.method, "' is ignored for test_method = ",
+      "norm.method = '",
+      norm.method,
+      "' is ignored for test_method = ",
       "'deseq'. DESeq2 applies the median of ratios normalisation method ",
       "automatically inside DESeq()."
     )
   }
   if (norm_method_set && test_method == "voom") {
     message(
-      "norm.method = '", norm.method, "' is ignored for test_method = ",
+      "norm.method = '",
+      norm.method,
+      "' is ignored for test_method = ",
       "'voom'. limma-voom transforms counts to log2-CPM (using TMM-adjusted ",
       "library sizes) and derives precision weights from the mean-variance ",
       "trend; these steps are integral to the voom pipeline."
@@ -656,7 +720,8 @@ ptrap_de <- function(
     structural <- c(sample_col, fraction_col, block_col, treatment_col)
     candidate_cols <- Filter(
       function(col) {
-        col %in% names(sample_df) &&
+        col %in%
+          names(sample_df) &&
           !col %in% structural &&
           any(as.character(sample_df[[col]]) == region_name)
       },
@@ -665,21 +730,34 @@ ptrap_de <- function(
     if (length(candidate_cols) == 1L) {
       region_col <- candidate_cols
       message(
-        "Auto-detected region column '", region_col, "' ",
-        "from region_name = '", region_name, "'."
+        "Auto-detected region column '",
+        region_col,
+        "' ",
+        "from region_name = '",
+        region_name,
+        "'."
       )
     } else if (length(candidate_cols) == 0L) {
       warning(
-        "`region_name = '", region_name, "'` was supplied but no column in ",
-        "`sample_df` contains '", region_name, "' as a value. ",
+        "`region_name = '",
+        region_name,
+        "'` was supplied but no column in ",
+        "`sample_df` contains '",
+        region_name,
+        "' as a value. ",
         "Region filtering will NOT be applied. If your data span multiple ",
         "brain regions, set `region_col` to the appropriate column name."
       )
     } else {
       stop(
-        "`region_name = '", region_name, "'` was supplied but multiple columns ",
-        "contain '", region_name, "' as a value: ",
-        paste(candidate_cols, collapse = ", "), ". ",
+        "`region_name = '",
+        region_name,
+        "'` was supplied but multiple columns ",
+        "contain '",
+        region_name,
+        "' as a value: ",
+        paste(candidate_cols, collapse = ", "),
+        ". ",
         "Please specify `region_col` explicitly."
       )
     }
@@ -760,6 +838,53 @@ ptrap_de <- function(
   counts_region <- counts_mat[, region_samples[[sample_col]], drop = FALSE]
   rownames(counts_region) <- gene_ids
 
+  # ---- Step 8b: validate covariates ------------------------------------------
+  if (!is.null(covariates)) {
+    if (!is.character(covariates)) {
+      cli::cli_abort(
+        "{.arg covariates} must be a character vector of column names in \\
+        {.arg sample_df}, e.g. {.code covariates = c(\"batch\", \"sex\")}."
+      )
+    }
+    missing_covs <- setdiff(covariates, names(region_samples))
+    if (length(missing_covs) > 0L) {
+      cli::cli_abort(
+        c(
+          "The following {.arg covariates} column{?s} {?was/were} not found \\
+          in the sample metadata:",
+          "x" = "{.val {missing_covs}}",
+          "i" = "Available columns: {.val {names(region_samples)}}"
+        )
+      )
+    }
+    structural_cols <- c(fraction_col, block_col, treatment_col)
+    clashing <- intersect(covariates, structural_cols)
+    if (length(clashing) > 0L) {
+      cli::cli_abort(
+        c(
+          "{.arg covariates} must not include columns already used as \\
+          structural terms in the model.",
+          "x" = "{.val {clashing}} {?is/are} already used as \\
+          {.arg fraction_col}, {.arg block_col}, or {.arg treatment_col}."
+        )
+      )
+    }
+    if (test_method %in% c("paired.ttest", "unpaired.ttest")) {
+      message(
+        "covariates = c(",
+        paste0("'", covariates, "'", collapse = ", "),
+        ") ",
+        "cannot be applied to test_method = '",
+        test_method,
+        "', which does ",
+        "not use a design matrix. Covariates will be ignored. ",
+        "To control for covariates, use test_method = 'LRT', 'QLF', ",
+        "'voom', or 'deseq'."
+      )
+      covariates <- NULL
+    }
+  }
+
   # ---- Step 9: common DGEList preprocessing (ALL methods) --------------------
   dge <- DGEList(counts = counts_region)
   dge$genes <- data.frame(Gene = gene_ids)
@@ -801,8 +926,8 @@ ptrap_de <- function(
       rownames(coldata_mr) <- region_samples[[sample_col]]
       dds_mr <- DESeqDataSetFromMatrix(
         countData = round(dge$counts),
-        colData   = coldata_mr,
-        design    = ~ 1  # design not needed for normalisation only
+        colData = coldata_mr,
+        design = ~1 # design not needed for normalisation only
       )
       dds_mr <- estimateSizeFactors(dds_mr)
       wc <- counts(dds_mr, normalized = TRUE)
@@ -853,22 +978,27 @@ ptrap_de <- function(
 
     # logFC for reporting: mean of per-animal log2 fold enrichments.
     # Each animal contributes equally, consistent with the paired design.
-    logFC_vec <- rowMeans(log2((ip_mat + prior.count) / (input_mat + prior.count)))
+    logFC_vec <- rowMeans(log2(
+      (ip_mat + prior.count) / (input_mat + prior.count)
+    ))
 
     # per-animal fold enrichment: FE_<block_id> — kept separate from results
-    FE_mat  <- (ip_mat + prior.count) / (input_mat + prior.count)
+    FE_mat <- (ip_mat + prior.count) / (input_mat + prior.count)
     FE_cols <- as.data.frame(FE_mat)
     colnames(FE_cols) <- paste0("FE_", block_ids)
 
     # fe tibble: Gene + one FE_<block> column per animal
-    fe <- bind_cols(tibble(Gene = rownames(ip_mat)), as_tibble(FE_cols))
+    fe <- bind_cols(tibble(Gene = rownames(ip_mat)), as_tibble(FE_cols)) |>
+      mutate(
+        log2_mean_FE = log2(rowMeans(as.matrix(FE_cols)))
+      )
 
     # assemble clean results tibble (no FE columns)
     results <- tibble(
-      Gene        = rownames(ip_mat),
-      logFC       = as.numeric(logFC_vec),
+      Gene = rownames(ip_mat),
+      logFC = as.numeric(logFC_vec),
       t_statistic = as.numeric(t_stat),
-      PValue      = as.numeric(p_val)
+      PValue = as.numeric(p_val)
     ) |>
       mutate(
         FDR = p.adjust(.data$PValue, method = "BH"),
@@ -885,11 +1015,11 @@ ptrap_de <- function(
     long_data <- bind_rows(
       lapply(seq_len(n_reps), function(j) {
         tibble(
-          Gene         = rownames(ip_mat),
+          Gene = rownames(ip_mat),
           !!block_col := block_ids[j],
-          ip_count     = as.numeric(ip_mat[, j]),
-          input_count  = as.numeric(input_mat[, j]),
-          FE           = as.numeric(FE_mat[, j])
+          ip_count = as.numeric(ip_mat[, j]),
+          input_count = as.numeric(input_mat[, j]),
+          FE = as.numeric(FE_mat[, j])
         )
       })
     ) |>
@@ -917,7 +1047,9 @@ ptrap_de <- function(
     # Always return a named list: $results (DE tibble) + $fe (per-animal FE).
     # $long_data is added when return_long = TRUE.
     out <- list(results = results, fe = fe)
-    if (return_long) out$long_data <- long_data
+    if (return_long) {
+      out$long_data <- long_data
+    }
     return(out)
   }
 
@@ -933,6 +1065,7 @@ ptrap_de <- function(
     trt_ip <- trt_samples |>
       filter(.data[[fraction_col]] == ip_level) |>
       arrange(.data[[block_col]])
+
     trt_input <- trt_samples |>
       filter(.data[[fraction_col]] == input_level) |>
       arrange(.data[[block_col]])
@@ -940,6 +1073,7 @@ ptrap_de <- function(
     ctrl_ip <- ctrl_samples |>
       filter(.data[[fraction_col]] == ip_level) |>
       arrange(.data[[block_col]])
+
     ctrl_input <- ctrl_samples |>
       filter(.data[[fraction_col]] == input_level) |>
       arrange(.data[[block_col]])
@@ -999,12 +1133,23 @@ ptrap_de <- function(
     # becomes extremely conservative and will often yield no significant hits.
     if (n_t < 4L || n_c < 4L) {
       message(
-        "Low-power warning ('unpaired.ttest'): '", treatment_name,
-        "' has n = ", n_t, " and '", control_name, "' has n = ", n_c,
+        "Low-power warning ('unpaired.ttest'): '",
+        treatment_name,
+        "' has n = ",
+        n_t,
+        " and '",
+        control_name,
+        "' has n = ",
+        n_c,
         " replicates.\n",
-        "  A Welch t-test with ", min(n_t, n_c), " replicates per group ",
-        "yields only ", min(n_t, n_c) - 1L, " degree(s) of freedom per group,\n",
-        "  making BH correction over ", nrow(log2_FE_trt),
+        "  A Welch t-test with ",
+        min(n_t, n_c),
+        " replicates per group ",
+        "yields only ",
+        min(n_t, n_c) - 1L,
+        " degree(s) of freedom per group,\n",
+        "  making BH correction over ",
+        nrow(log2_FE_trt),
         " genes highly conservative -- few or no genes may reach\n",
         "  significance at the default thresholds. Consider:\n",
         "    * relaxing fdr_threshold (e.g. 0.10 or 0.20) or lfc_threshold;\n",
@@ -1112,13 +1257,14 @@ ptrap_de <- function(
     coldata_ds[[block_col]] <- factor(coldata_ds[[block_col]])
 
     # fraction already factored in Step 6: levels = c(input_level, ip_level)
-    # Block first, fraction last -> results() auto-tests the last variable
-    design_ds <- as.formula(paste("~", block_col, "+", fraction_col))
+    # Block first, optional covariates next, fraction last ->
+    # results() auto-tests the last variable
+    design_ds <- .build_formula("deseq", fraction_col, block_col, covariates)
 
     dds <- DESeqDataSetFromMatrix(
-      countData = round(dge$counts),   # DESeq2 requires integer counts
-      colData   = coldata_ds,
-      design    = design_ds
+      countData = round(dge$counts), # DESeq2 requires integer counts
+      colData = coldata_ds,
+      design = design_ds
     )
     dds <- DESeq(dds, quiet = TRUE)
 
@@ -1135,8 +1281,12 @@ ptrap_de <- function(
           "Install it with: BiocManager::install('apeglm')"
         )
       }
-      res_deseq <- lfcShrink(dds, coef = res_name, type = "apeglm",
-                              quiet = TRUE)
+      res_deseq <- lfcShrink(
+        dds,
+        coef = res_name,
+        type = "apeglm",
+        quiet = TRUE
+      )
     }
 
     results <- as.data.frame(res_deseq) |>
@@ -1146,10 +1296,14 @@ ptrap_de <- function(
       mutate(
         !!treatment_col := treatment_name,
         diffexpressed = case_when(
-          !is.na(.data$logFC) & .data$logFC > lfc_threshold &
-            !is.na(.data$FDR) & .data$FDR < fdr_threshold  ~ "UP",
-          !is.na(.data$logFC) & .data$logFC < -lfc_threshold &
-            !is.na(.data$FDR) & .data$FDR < fdr_threshold  ~ "DOWN",
+          !is.na(.data$logFC) &
+            .data$logFC > lfc_threshold &
+            !is.na(.data$FDR) &
+            .data$FDR < fdr_threshold ~ "UP",
+          !is.na(.data$logFC) &
+            .data$logFC < -lfc_threshold &
+            !is.na(.data$FDR) &
+            .data$FDR < fdr_threshold ~ "DOWN",
           TRUE ~ "NO"
         )
       ) |>
@@ -1180,7 +1334,12 @@ ptrap_de <- function(
 
   # ---- voom branch -----------------------------------------------------------
   if (test_method == "voom") {
-    design_formula <- as.formula(paste("~", fraction_col, "+", block_col))
+    design_formula <- .build_formula(
+      "voom",
+      fraction_col,
+      block_col,
+      covariates
+    )
     design <- model.matrix(design_formula, data = region_samples)
 
     # For RPKM: apply rpkm() and pass matrix; for CPM/none: pass dge directly
@@ -1250,7 +1409,7 @@ ptrap_de <- function(
   }
 
   # ---- edgeR branch (LRT / QLF) ----------------------------------------------
-  design_formula <- as.formula(paste("~", fraction_col, "+", block_col))
+  design_formula <- .build_formula("edger", fraction_col, block_col, covariates)
   design <- model.matrix(design_formula, data = region_samples)
 
   dge <- estimateDisp(dge, design)

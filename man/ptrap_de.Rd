@@ -18,6 +18,7 @@ ptrap_de(
   treatment_col = "Treatment",
   ip_level = "IP",
   input_level = "INPUT",
+  covariates = NULL,
   lfc_threshold = 1,
   fdr_threshold = 0.05,
   test_method = c("LRT", "QLF", "paired.ttest", "unpaired.ttest", "voom", "deseq"),
@@ -107,6 +108,9 @@ Default is \code{"IP"}.}
 
 \item{input_level}{The value in \code{fraction_col} that identifies the INPUT
 fraction (reference level). Default is \code{"INPUT"}.}
+
+\item{covariates}{Optional character vector of covariate names to include in
+the design formula. Default is \code{NULL}.}
 
 \item{lfc_threshold}{Minimum absolute log2 fold change required to classify
 a gene as differentially expressed. Default is \code{1}.}

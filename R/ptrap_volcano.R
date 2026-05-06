@@ -2,54 +2,32 @@
 #'
 #' Takes a single tibble produced by [pTRAPPING::ptrap_de()]
 #' and returns a classic volcano plot (logFC on the x-axis,
-#' \eqn{-\log_{10}(\text{FDR})} or \eqn{-\log_{10}(p\text{-value})} on the
-#' y-axis). Non-significant genes are shown in grey; genes classified as
-#' `"UP"` or `"DOWN"` are highlighted with distinct fill colours. Gene labels
-#' are added via [ggrepel::geom_text_repel()] **only for genes supplied in
-#' `genes.annot`**; by default (`genes.annot = NULL`) no labels are drawn,
-#' keeping the plot uncluttered. Dashed threshold lines are drawn at
-#' ±`lfc_threshold` (vertical) and at the chosen p-value cutoff (horizontal).
+#' -log_base(p) on the y-axis). Non-significant genes are shown in grey;
+#' genes classified as `"UP"` or `"DOWN"` are highlighted with distinct
+#' fill colours. Gene labels are added via [ggrepel::geom_text_repel()]
+#' **only for genes supplied in `genes.annot`**.
 #'
-#' The DE classification used for point colouring is computed **inside this
-#' function** from `logFC`, the chosen p-value column (`FDR` or `PValue`), and
-#' the supplied thresholds — so the plot always reflects the thresholds you
-#' pass here, regardless of what was used in [pTRAPPING::ptrap_de()].
+#' The DE classification is recomputed inside this function from `logFC`,
+#' the chosen p-value column, and the supplied thresholds.
 #'
-#' @param de_result A tibble returned by [pTRAPPING::ptrap_de()], containing at
-#'   minimum the columns `Gene` (or `gene_col`), `logFC`, `FDR`, and `PValue`.
-#'   For `test_method = "paired.ttest"`, pass the `$results` component of the
-#'   returned list.
-#' @param fdr Logical. If `TRUE` (default), the y-axis shows
-#'   \eqn{-\log_{10}(\text{FDR})} and significance is assessed against the
-#'   BH-adjusted p-value (`FDR` column). If `FALSE`, the y-axis shows
-#'   \eqn{-\log_{10}(p\text{-value})} and significance is assessed against the
-#'   raw p-value (`PValue` column).
-#' @param lfc_threshold Minimum absolute log2 fold change required to classify
-#'   a gene as differentially expressed (also sets the vertical threshold lines).
-#'   Default is `1`.
-#' @param fdr_threshold P-value cutoff used to draw the horizontal threshold
-#'   line and to classify genes as DE. Applied to `FDR` when `fdr = TRUE` and
-#'   to `PValue` when `fdr = FALSE`. Default is `0.05`.
-#' @param gene_col Name of the column containing gene identifiers. Default is
-#'   `"Gene"`.
-#' @param treatment_col Name of the column containing the treatment label. Used
-#'   to build the default plot title. Default is `"Treatment"`.
-#' @param region_col Name of the column containing the brain region label. Used
-#'   to build the default plot title. Default is `"BrainRegion"`.
-#' @param colors A named character vector mapping `"UP"` and `"DOWN"` to
-#'   colours. If `NULL` (default), a colourblind-friendly palette is used
-#'   (`"#D55E00"` for `"UP"`, `"#0072B2"` for `"DOWN"`).
-#' @param point_size Size of the points. Default is `3.5`.
-#' @param point_alpha Opacity of the highlighted (significant) points.
-#'   Default is `0.7`.
-#' @param genes.annot Character vector of gene names to label on the plot via
-#'   [ggrepel::geom_text_repel()]. Names must match values in the column
-#'   specified by `gene_col`; an error is raised if any names are not found.
-#'   Default is `NULL` (no labels).
-#' @param max_overlaps Passed to [ggrepel::geom_text_repel()]. Controls how
-#'   many overlapping labels are suppressed. Default is `20`.
-#' @param title Plot title. If `NULL` (default), a title is auto-generated from
-#'   the brain region and treatment labels found in `de_result`.
+#' @param de_result A tibble returned by [pTRAPPING::ptrap_de()]. For
+#'   `test_method = "paired.ttest"`, pass the `$results` component.
+#' @param fdr Logical. If `TRUE` (default), uses `FDR`; if `FALSE`, uses `PValue`.
+#' @param lfc_threshold Minimum absolute log2 fold change. Default `1`.
+#' @param fdr_threshold P-value cutoff. Default `0.05`.
+#' @param log_base Numeric. Base of the logarithm for the p-value axis.
+#'   Default is `10` (-log10, current behaviour). Use `2` for -log2(p)
+#'   as in Tan et al. (2016). Must be a positive number other than `1`.
+#' @param gene_col Column name for gene identifiers. Default `"Gene"`.
+#' @param treatment_col Column name for treatment label. Default `"Treatment"`.
+#' @param region_col Column name for brain region label. Default `"BrainRegion"`.
+#' @param colors Named vector mapping `"UP"` and `"DOWN"` to colours.
+#'   Default is colourblind-friendly: `"#D55E00"` (UP), `"#0072B2"` (DOWN).
+#' @param point_size Size of points. Default `3.5`.
+#' @param point_alpha Opacity of highlighted points. Default `0.7`.
+#' @param genes.annot Character vector of gene names to label. Default `NULL`.
+#' @param max_overlaps Passed to [ggrepel::geom_text_repel()]. Default `20`.
+#' @param title Plot title. Auto-generated from region and treatment if `NULL`.
 #'
 #' @return A [ggplot2::ggplot()] object.
 #'
@@ -57,25 +35,11 @@
 #'
 #' @examples
 #' \dontrun{
-#' res <- ptrap_de(
-#'   counts_mat     = counts_mat,
-#'   sample_df      = sample_df,
-#'   gene_ids       = gene_ids,
-#'   region_name    = "POA",
-#'   treatment_name = "pb"
-#' )
-#'
-#' # Default plot — y-axis uses FDR-adjusted p-values
+#' # Default: -log10(FDR)
 #' ptrap_volcano(res)
 #'
-#' # Use raw (unadjusted) p-values on the y-axis
-#' ptrap_volcano(res, fdr = FALSE)
-#'
-#' # Custom thresholds and colours
-#' ptrap_volcano(res,
-#'               lfc_threshold = 0.5,
-#'               fdr_threshold = 0.1,
-#'               colors        = c("UP" = "#E69F00", "DOWN" = "#56B4E9"))
+#' # Raw p-values, log2 scale -- as in Tan et al. 2016
+#' ptrap_volcano(res, fdr = FALSE, log_base = 2)
 #' }
 #'
 #' @importFrom dplyr mutate case_when
@@ -83,12 +47,14 @@
 #' @importFrom ggplot2 ggplot aes geom_point geom_vline geom_hline
 #'   scale_fill_manual theme_classic labs
 #' @importFrom ggrepel geom_text_repel
+#' @importFrom cli cli_abort
 
 ptrap_volcano <- function(
   de_result,
   fdr = TRUE,
   lfc_threshold = 1,
   fdr_threshold = 0.05,
+  log_base = 10,
   gene_col = "Gene",
   treatment_col = "Treatment",
   region_col = "BrainRegion",
@@ -99,62 +65,63 @@ ptrap_volcano <- function(
   max_overlaps = 20,
   title = NULL
 ) {
-  # --- extract labels from the result table ------------------------------------
+  # --- validate log_base -------------------------------------------------
+  if (!is.numeric(log_base) || length(log_base) != 1L ||
+      is.na(log_base) || log_base <= 0 || log_base == 1) {
+    cli::cli_abort(c(
+      "{.arg log_base} must be a single positive number other than 1.",
+      "x" = "You supplied {.val {log_base}}."
+    ))
+  }
+
+  # --- extract labels ----------------------------------------------------
   treatment <- unique(de_result[[treatment_col]])
   region    <- unique(de_result[[region_col]])
 
-  # --- default colourblind-friendly palette ------------------------------------
+  # --- default colours ---------------------------------------------------
   if (is.null(colors)) {
     colors <- c("UP" = "#D55E00", "DOWN" = "#0072B2")
   }
 
-  # --- choose p-value column and y-axis label based on fdr argument -----------
-  p_col   <- if (fdr) "FDR" else "PValue"
-  y_label <- if (fdr) {
-    expression(-log[10](FDR))
-  } else {
-    expression(-log[10]("p-value"))
-  }
+  # --- choose p-value column ---------------------------------------------
+  p_col <- if (fdr) "FDR" else "PValue"
 
-  # --- recompute DE classification using the chosen p-value column ------------
-  # This ensures the coloring always reflects the thresholds supplied HERE,
-  # independent of what was used inside ptrap_de().
+  # --- auto-generate y-axis label ----------------------------------------
+  base_int <- if (log_base == as.integer(log_base)) as.integer(log_base) else log_base
+  y_label  <- if (fdr) bquote(-log[.(base_int)](FDR)) else bquote(-log[.(base_int)]("p-value"))
+
+  # --- recompute DE classification ---------------------------------------
   plot_data <- de_result |>
     mutate(
       DE = case_when(
-        .data$logFC > lfc_threshold &
-          !is.na(.data[[p_col]]) &
-          .data[[p_col]] < fdr_threshold ~ "UP",
-        .data$logFC < -lfc_threshold &
-          !is.na(.data[[p_col]]) &
-          .data[[p_col]] < fdr_threshold ~ "DOWN",
+        .data$logFC >  lfc_threshold & !is.na(.data[[p_col]]) & .data[[p_col]] < fdr_threshold ~ "UP",
+        .data$logFC < -lfc_threshold & !is.na(.data[[p_col]]) & .data[[p_col]] < fdr_threshold ~ "DOWN",
         TRUE ~ "Not DE"
       ),
       y_val = .data[[p_col]]
     )
 
-  # --- validate and prepare annotation data ------------------------------------
+  # --- annotation data ---------------------------------------------------
   if (!is.null(genes.annot)) {
     bad <- setdiff(genes.annot, plot_data[[gene_col]])
     if (length(bad) > 0) {
       stop(
         "The following names in 'genes.annot' were not found in the '",
-        gene_col, "' column: ",
-        paste(bad, collapse = ", ")
+        gene_col, "' column: ", paste(bad, collapse = ", ")
       )
     }
     annot_data <- plot_data[plot_data[[gene_col]] %in% genes.annot, ]
   } else {
-    annot_data <- plot_data[integer(0), ]   # zero-row tibble, correct columns
+    annot_data <- plot_data[integer(0), ]
   }
 
-  # --- default title -----------------------------------------------------------
+  # --- default title -----------------------------------------------------
   if (is.null(title)) {
     title <- paste0(region, " (", treatment, ")")
   }
 
-  # --- build plot --------------------------------------------------------------
-  ggplot(plot_data, aes(x = .data$logFC, y = -log10(.data$y_val))) +
+  # --- build plot --------------------------------------------------------
+  ggplot(plot_data, aes(x = .data$logFC, y = -log(.data$y_val, base = log_base))) +
     geom_point(
       data  = plot_data[plot_data$DE == "Not DE", ],
       color = "grey80",
@@ -168,14 +135,8 @@ ptrap_volcano <- function(
       size  = point_size,
       shape = 21
     ) +
-    geom_vline(
-      xintercept = c(-lfc_threshold, lfc_threshold),
-      linetype   = "dashed"
-    ) +
-    geom_hline(
-      yintercept = -log10(fdr_threshold),
-      linetype   = "dashed"
-    ) +
+    geom_vline(xintercept = c(-lfc_threshold, lfc_threshold), linetype = "dashed") +
+    geom_hline(yintercept = -log(fdr_threshold, base = log_base), linetype = "dashed") +
     scale_fill_manual(values = colors) +
     geom_point(
       data   = annot_data,
@@ -186,11 +147,11 @@ ptrap_volcano <- function(
       color  = "black"
     ) +
     geom_text_repel(
-      data             = annot_data,
-      aes(label        = .data[[gene_col]]),
-      size             = 4.3,
-      color            = "black",
-      max.overlaps     = max_overlaps,
+      data               = annot_data,
+      aes(label          = .data[[gene_col]]),
+      size               = 4.3,
+      color              = "black",
+      max.overlaps       = max_overlaps,
       min.segment.length = 0
     ) +
     theme_classic() +
