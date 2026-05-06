@@ -23,17 +23,18 @@ publication-ready tables and figures in just a few lines of code.
 ## Installation
 
 ``` r
+
 # install.packages("devtools")
 devtools::install_github("laurenoconnelllab/pTRAPPING")
 ```
 
 ## Functions at a glance
 
-| Function                                                                                        | What it does                                                                                                          |
-|-------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------|
-| [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md)             | IP vs INPUT DE analysis for TRAP-seq (edgeR LRT/QLF, limma-voom, or t-test)                                           |
-| [`ptrap_volcano()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_volcano.md)   | Volcano plot from a single [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md) result |
-| [`ptrap_volcano2()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_volcano2.md) | Dual scatter comparing two treatment conditions side by side                                                          |
+| Function | What it does |
+|----|----|
+| [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md) | IP vs INPUT DE analysis for TRAP-seq (edgeR LRT/QLF, limma-voom, or t-test) |
+| [`ptrap_volcano()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_volcano.md) | Volcano plot from a single [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md) result |
+| [`ptrap_volcano2()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_volcano2.md) | Dual scatter comparing two treatment conditions side by side |
 
 ------------------------------------------------------------------------
 
@@ -56,6 +57,7 @@ The column-naming convention `<treatment><replicate><fraction>`
 parse sample metadata automatically — no `sample_df` needed.
 
 ``` r
+
 library(pTRAPPING)
 library(ggplot2)
 
@@ -131,6 +133,7 @@ names. Providing `treatment_name` tells the function which group to
 analyse: 1
 
 ``` r
+
 res_nb <- ptrap_de(
   counts_mat     = counts_mat,
   treatment_name = "nb",
@@ -156,6 +159,7 @@ head(res_nb[res_nb$diffexpressed != "NO",
 ```
 
 ``` r
+
 res_pb <- ptrap_de(
   counts_mat     = counts_mat,
   treatment_name = "pb",
@@ -189,15 +193,16 @@ for activity-dependent transcripts of pair-bonded neurons.
 
 ### Choosing the right `test_method`
 
-| Method             | When to use                                                                                      |
-|--------------------|--------------------------------------------------------------------------------------------------|
-| `"LRT"`            | edgeR likelihood ratio test — robust with ≥ 4 replicates                                         |
-| `"QLF"`            | edgeR quasi-likelihood F-test — more conservative, better FDR control                            |
-| `"voom"`           | limma-voom — precision weights on log-CPM; useful when library sizes vary                        |
-| `"paired.ttest"`   | Per-gene paired t-test on IP − INPUT differences (Tan et al. 2016) — a single treatment vs INPUT |
-| `"unpaired.ttest"` | Per-gene Welch t-test comparing log₂(FE) between two treatment groups (Knight et al.)            |
+| Method | When to use |
+|----|----|
+| `"LRT"` | edgeR likelihood ratio test — robust with ≥ 4 replicates |
+| `"QLF"` | edgeR quasi-likelihood F-test — more conservative, better FDR control |
+| `"voom"` | limma-voom — precision weights on log-CPM; useful when library sizes vary |
+| `"paired.ttest"` | Per-gene paired t-test on IP − INPUT differences (Tan et al. 2016) — a single treatment vs INPUT |
+| `"unpaired.ttest"` | Per-gene Welch t-test comparing log₂(FE) between two treatment groups (Knight et al.) |
 
 ``` r
+
 # Quasi-likelihood F-test — more conservative than LRT
 res_qlf <- ptrap_de(
   counts_mat     = counts_mat,
@@ -240,6 +245,7 @@ per-animal paired table used internally — useful for plotting individual
 data points or performing additional quality checks:
 
 ``` r
+
 res_long <- ptrap_de(
   counts_mat     = counts_mat,
   treatment_name = "nb",
@@ -282,6 +288,7 @@ Adjust `lfc_threshold` and `fdr_threshold` to control how strict the DE
 classification is:
 
 ``` r
+
 # Relaxed: any enrichment above 0.5 log2FC at FDR < 0.10
 res_relaxed <- ptrap_de(
   counts_mat     = counts_mat,
@@ -309,6 +316,7 @@ Set `kable.out = TRUE` to get a formatted HTML table of top genes —
 ideal for Quarto / R Markdown reports:
 
 ``` r
+
 ptrap_de(
   counts_mat     = counts_mat,
   treatment_name = "pb",
@@ -326,6 +334,7 @@ A classic volcano plot for one treatment condition, with significant
 genes colour-coded and labelled:
 
 ``` r
+
 ptrap_volcano(
   res_nb,
   title = "Non-bonded (nb) — POA"
@@ -338,6 +347,7 @@ mice](reference/figures/README-volcano-nb-1.png)
 Customise colours and thresholds:
 
 ``` r
+
 ptrap_volcano(
   res_pb,
   lfc_threshold = 1,
@@ -364,6 +374,7 @@ shows the log₂ fold-change (IP / INPUT) for one group, and genes are
 colour-coded by their DE status across conditions:
 
 ``` r
+
 ptrap_volcano2(
   res_nb, res_pb,
   treatment_col = "Treatment",
@@ -385,6 +396,7 @@ treatments](reference/figures/README-volcano2-default-1.png)
 Customise colours and thresholds:
 
 ``` r
+
 ptrap_volcano2(
   res_nb, res_pb,
   lfc_threshold = 1,
@@ -413,6 +425,7 @@ useful when **library sizes vary substantially** across samples, as the
 weights down-weight unreliable observations automatically.
 
 ``` r
+
 res_nb_voom <- ptrap_de(
   counts_mat     = counts_mat,
   treatment_name = "nb",
@@ -442,6 +455,7 @@ The output has the same structure as `"LRT"` / `"QLF"` results (`Gene`,
 [`ptrap_volcano()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_volcano.md):
 
 ``` r
+
 ptrap_volcano(
   res_nb_voom,
   title = "Non-bonded (nb) — POA [voom]"
@@ -469,6 +483,7 @@ contains exactly two groups, they are assigned automatically
 (alphabetically; first = control, second = treatment):
 
 ``` r
+
 # Auto-assigns: nb = control, pb = treatment
 res_unpaired <- ptrap_de(
   counts_mat  = counts_mat,
@@ -512,6 +527,7 @@ show up here as genes whose neuronal IP enrichment is higher in `pb`
 than `nb`:
 
 ``` r
+
 ptrap_volcano(
   res_unpaired,
   title = "pb vs nb — POA [unpaired t-test]"
@@ -529,6 +545,7 @@ For more complex designs — multiple brain regions, custom blocking
 variables, or non-standard column naming — supply `sample_df` directly:
 
 ``` r
+
 # Example: two brain regions, two treatments
 sample_df <- data.frame(
   sample    = c("POA_nb1_IP", "POA_nb1_INPUT", "POA_pb1_IP", "POA_pb1_INPUT",

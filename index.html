@@ -78,20 +78,20 @@
 <col width="50%">
 <col width="50%">
 </colgroup>
-<thead><tr class="header">
+<thead><tr>
 <th>Function</th>
 <th>What it does</th>
 </tr></thead>
 <tbody>
-<tr class="odd">
+<tr>
 <td><code><a href="reference/ptrap_de.html">ptrap_de()</a></code></td>
 <td>IP vs INPUT DE analysis for TRAP-seq (edgeR LRT/QLF, limma-voom, or t-test)</td>
 </tr>
-<tr class="even">
+<tr>
 <td><code><a href="reference/ptrap_volcano.html">ptrap_volcano()</a></code></td>
 <td>Volcano plot from a single <code><a href="reference/ptrap_de.html">ptrap_de()</a></code> result</td>
 </tr>
-<tr class="odd">
+<tr>
 <td><code><a href="reference/ptrap_volcano2.html">ptrap_volcano2()</a></code></td>
 <td>Dual scatter comparing two treatment conditions side by side</td>
 </tr>
@@ -236,28 +236,28 @@
 <col width="50%">
 <col width="50%">
 </colgroup>
-<thead><tr class="header">
+<thead><tr>
 <th>Method</th>
 <th>When to use</th>
 </tr></thead>
 <tbody>
-<tr class="odd">
+<tr>
 <td><code>"LRT"</code></td>
 <td>edgeR likelihood ratio test — robust with ≥ 4 replicates</td>
 </tr>
-<tr class="even">
+<tr>
 <td><code>"QLF"</code></td>
 <td>edgeR quasi-likelihood F-test — more conservative, better FDR control</td>
 </tr>
-<tr class="odd">
+<tr>
 <td><code>"voom"</code></td>
 <td>limma-voom — precision weights on log-CPM; useful when library sizes vary</td>
 </tr>
-<tr class="even">
+<tr>
 <td><code>"paired.ttest"</code></td>
 <td>Per-gene paired t-test on IP − INPUT differences (Tan et al. 2016) — a single treatment vs INPUT</td>
 </tr>
-<tr class="odd">
+<tr>
 <td><code>"unpaired.ttest"</code></td>
 <td>Per-gene Welch t-test comparing log₂(FE) between two treatment groups (Knight et al.)</td>
 </tr>

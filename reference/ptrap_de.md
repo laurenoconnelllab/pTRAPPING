@@ -72,6 +72,7 @@ ptrap_de(
   treatment_col = "Treatment",
   ip_level = "IP",
   input_level = "INPUT",
+  covariates = NULL,
   lfc_threshold = 1,
   fdr_threshold = 0.05,
   test_method = c("LRT", "QLF", "paired.ttest", "unpaired.ttest", "voom", "deseq"),
@@ -192,6 +193,11 @@ ptrap_de(
 
   The value in `fraction_col` that identifies the INPUT fraction
   (reference level). Default is `"INPUT"`.
+
+- covariates:
+
+  Optional character vector of covariate names to include in the design
+  formula. Default is `NULL`.
 
 - lfc_threshold:
 
