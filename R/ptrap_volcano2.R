@@ -79,8 +79,7 @@
 #'
 #' @importFrom dplyr select left_join mutate case_when arrange filter all_of
 #' @importFrom rlang .data :=
-#' @importFrom ggplot2 ggplot aes geom_point geom_abline geom_vline geom_hline
-#'   scale_fill_manual theme_classic labs
+#' @importFrom ggplot2 ggplot aes geom_point geom_abline geom_vline geom_hline scale_fill_manual theme_classic labs
 #' @importFrom ggrepel geom_text_repel
 
 ptrap_volcano2 <- function(

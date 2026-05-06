@@ -479,13 +479,10 @@
 #' )
 #' }
 #'
-#' @importFrom edgeR DGEList filterByExpr normLibSizes estimateDisp
-#'   glmFit glmLRT glmQLFit glmQLFTest topTags cpm rpkm
+#' @importFrom edgeR DGEList filterByExpr normLibSizes estimateDisp glmFit glmLRT glmQLFit glmQLFTest topTags cpm rpkm
 #' @importFrom limma voom lmFit eBayes topTable
-#' @importFrom DESeq2 DESeqDataSetFromMatrix DESeq results lfcShrink
-#'   estimateSizeFactors counts
-#' @importFrom dplyr filter mutate case_when relocate slice_head arrange
-#'   bind_rows bind_cols rename
+#' @importFrom DESeq2 DESeqDataSetFromMatrix DESeq results lfcShrink estimateSizeFactors counts
+#' @importFrom dplyr filter mutate case_when relocate slice_head arrange bind_rows bind_cols rename
 #' @importFrom rlang .data :=
 #' @importFrom tibble as_tibble tibble rownames_to_column
 #' @importFrom stats as.formula model.matrix p.adjust pt sd var

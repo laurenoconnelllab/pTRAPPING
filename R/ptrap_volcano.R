@@ -44,8 +44,7 @@
 #'
 #' @importFrom dplyr mutate case_when
 #' @importFrom rlang .data
-#' @importFrom ggplot2 ggplot aes geom_point geom_vline geom_hline
-#'   scale_fill_manual theme_classic labs
+#' @importFrom ggplot2 ggplot aes geom_point geom_vline geom_hline scale_fill_manual theme_classic labs
 #' @importFrom ggrepel geom_text_repel
 #' @importFrom cli cli_abort
 
@@ -66,8 +65,13 @@ ptrap_volcano <- function(
   title = NULL
 ) {
   # --- validate log_base -------------------------------------------------
-  if (!is.numeric(log_base) || length(log_base) != 1L ||
-      is.na(log_base) || log_base <= 0 || log_base == 1) {
+  if (
+    !is.numeric(log_base) ||
+      length(log_base) != 1L ||
+      is.na(log_base) ||
+      log_base <= 0 ||
+      log_base == 1
+  ) {
     cli::cli_abort(c(
       "{.arg log_base} must be a single positive number other than 1.",
       "x" = "You supplied {.val {log_base}}."
@@ -76,7 +80,7 @@ ptrap_volcano <- function(
 
   # --- extract labels ----------------------------------------------------
   treatment <- unique(de_result[[treatment_col]])
-  region    <- unique(de_result[[region_col]])
+  region <- unique(de_result[[region_col]])
 
   # --- default colours ---------------------------------------------------
   if (is.null(colors)) {
@@ -87,15 +91,27 @@ ptrap_volcano <- function(
   p_col <- if (fdr) "FDR" else "PValue"
 
   # --- auto-generate y-axis label ----------------------------------------
-  base_int <- if (log_base == as.integer(log_base)) as.integer(log_base) else log_base
-  y_label  <- if (fdr) bquote(-log[.(base_int)](FDR)) else bquote(-log[.(base_int)]("p-value"))
+  base_int <- if (log_base == as.integer(log_base)) {
+    as.integer(log_base)
+  } else {
+    log_base
+  }
+  y_label <- if (fdr) {
+    bquote(-log[.(base_int)](FDR))
+  } else {
+    bquote(-log[.(base_int)]("p-value"))
+  }
 
   # --- recompute DE classification ---------------------------------------
   plot_data <- de_result |>
     mutate(
       DE = case_when(
-        .data$logFC >  lfc_threshold & !is.na(.data[[p_col]]) & .data[[p_col]] < fdr_threshold ~ "UP",
-        .data$logFC < -lfc_threshold & !is.na(.data[[p_col]]) & .data[[p_col]] < fdr_threshold ~ "DOWN",
+        .data$logFC > lfc_threshold &
+          !is.na(.data[[p_col]]) &
+          .data[[p_col]] < fdr_threshold ~ "UP",
+        .data$logFC < -lfc_threshold &
+          !is.na(.data[[p_col]]) &
+          .data[[p_col]] < fdr_threshold ~ "DOWN",
         TRUE ~ "Not DE"
       ),
       y_val = .data[[p_col]]
@@ -107,7 +123,9 @@ ptrap_volcano <- function(
     if (length(bad) > 0) {
       stop(
         "The following names in 'genes.annot' were not found in the '",
-        gene_col, "' column: ", paste(bad, collapse = ", ")
+        gene_col,
+        "' column: ",
+        paste(bad, collapse = ", ")
       )
     }
     annot_data <- plot_data[plot_data[[gene_col]] %in% genes.annot, ]
@@ -121,44 +139,53 @@ ptrap_volcano <- function(
   }
 
   # --- build plot --------------------------------------------------------
-  ggplot(plot_data, aes(x = .data$logFC, y = -log(.data$y_val, base = log_base))) +
+  ggplot(
+    plot_data,
+    aes(x = .data$logFC, y = -log(.data$y_val, base = log_base))
+  ) +
     geom_point(
-      data  = plot_data[plot_data$DE == "Not DE", ],
+      data = plot_data[plot_data$DE == "Not DE", ],
       color = "grey80",
       alpha = 0.5,
-      size  = point_size
+      size = point_size
     ) +
     geom_point(
-      data  = plot_data[plot_data$DE != "Not DE", ],
+      data = plot_data[plot_data$DE != "Not DE", ],
       aes(fill = .data$DE),
       alpha = point_alpha,
-      size  = point_size,
+      size = point_size,
       shape = 21
     ) +
-    geom_vline(xintercept = c(-lfc_threshold, lfc_threshold), linetype = "dashed") +
-    geom_hline(yintercept = -log(fdr_threshold, base = log_base), linetype = "dashed") +
+    geom_vline(
+      xintercept = c(-lfc_threshold, lfc_threshold),
+      linetype = "dashed"
+    ) +
+    geom_hline(
+      yintercept = -log(fdr_threshold, base = log_base),
+      linetype = "dashed"
+    ) +
     scale_fill_manual(values = colors) +
     geom_point(
-      data   = annot_data,
+      data = annot_data,
       aes(fill = .data$DE),
-      size   = point_size + 0.3,
-      shape  = 21,
+      size = point_size + 0.3,
+      shape = 21,
       stroke = 0.5,
-      color  = "black"
+      color = "black"
     ) +
     geom_text_repel(
-      data               = annot_data,
-      aes(label          = .data[[gene_col]]),
-      size               = 4.3,
-      color              = "black",
-      max.overlaps       = max_overlaps,
+      data = annot_data,
+      aes(label = .data[[gene_col]]),
+      size = 4.3,
+      color = "black",
+      max.overlaps = max_overlaps,
       min.segment.length = 0
     ) +
     theme_classic() +
     labs(
-      x     = expression(log[2] ~ "Fold Change (IP / Input)"),
-      y     = y_label,
+      x = expression(log[2] ~ "Fold Change (IP / Input)"),
+      y = y_label,
       title = title,
-      fill  = "DE"
+      fill = "DE"
     )
 }
