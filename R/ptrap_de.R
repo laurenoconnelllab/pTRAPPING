@@ -5,32 +5,34 @@
 # Strategy: strip separators (_, -, .), split at every alpha<->digit boundary,
 # then classify each token as fraction keyword | numeric block | treatment.
 #
-# Examples (all produce the same output fields):
-#   "b1input"   -> treatment="b",  block="1", fraction=input_level
-#   "nb1ip"     -> treatment="nb", block="1", fraction=ip_level
-#   "Nb_IP_1"   -> treatment="Nb", block="1", fraction=ip_level
-#   "B.3.INPUT" -> treatment="B",  block="3", fraction=input_level
+# All orderings of T / R / F are supported:
+#   T-R-F: "PACAP1IP"    T-F-R: "PACAP_Input_1"  R-T-F: "1_PACAP_IP"
+#   R-F-T: "1_IP_PACAP"  F-T-R: "IP_PACAP_1"     F-R-T: "IP_1_PACAP"
+# "in" (case-insensitive) is accepted as a short alias for input_level.
 .parse_one_sample <- function(nm, ip_level, input_level) {
-  # Step 1: Remove separators.
-  cleaned <- gsub("[-_. ]+", "", nm)
+  # Step 1: Surround fraction keywords with "_" in the ORIGINAL string,
+  # before removing other separators. This preserves word boundaries so
+  # the "in" alias lookbehind/lookahead works correctly (e.g. "PACAP_in_1"
+  # has "_" before "in", which is a non-letter boundary; removing separators
+  # first would fuse "in" with adjacent text and break the lookbehind).
+  # input_level listed first so PCRE picks the longer keyword (prevents
+  # "IP" matching inside "INPUT").
+  cleaned <- gsub(
+    paste0("(?i)(", input_level, "|", ip_level, ")"),
+    "_\\1_",
+    nm,
+    perl = TRUE
+  )
+  # Handle "in" alias (bare, not inside another word).
+  cleaned <- gsub(
+    "(?i)(?<![A-Za-z])(in)(?![A-Za-z])",
+    "_\\1_",
+    cleaned,
+    perl = TRUE
+  )
 
-  # Step 2: Inject a canonical separator ("_") just before each fraction
-  # keyword, so they are always split off as their own token regardless of
-  # whether they are fused with the treatment name.
-  # INPUT must be handled before IP so the longer keyword wins.
-  # Use case-insensitive replacement via perl = TRUE + (?i).
-  cleaned <- gsub(
-    paste0("(?i)(?=", input_level, ")"),
-    "_",
-    cleaned,
-    perl = TRUE
-  )
-  cleaned <- gsub(
-    paste0("(?i)(?=", ip_level, ")"),
-    "_",
-    cleaned,
-    perl = TRUE
-  )
+  # Step 2: Convert remaining separator characters (-, ., space) to "_".
+  cleaned <- gsub("[-. ]+", "_", cleaned)
 
   # Step 3: Re-strip any double separators produced above.
   cleaned <- gsub("_+", "_", cleaned)
@@ -345,7 +347,11 @@
 #'   with `$results` (the DE tibble) and `$long_data` (the per-gene,
 #'   per-animal table used for the test). Default is `FALSE`.
 #' @param ngenes.out Number of top genes (sorted by p-value) to include in the
-#'   output when `kable.out = TRUE`. Default is `20`.
+#'   output when `kable.out = TRUE`. Ignored when `genes.filter` is supplied.
+#'   Default is `20`.
+#' @param genes.filter Optional character vector of gene names (matching the
+#'   `Gene` column of the output) to retain. When supplied, only the listed
+#'   genes are returned and `ngenes.out` is ignored. Default is `NULL`.
 #' @param kable.out Logical. If `TRUE`, returns a `kableExtra` HTML table of
 #'   the top `ngenes.out` genes instead of the full tibble. Default is
 #'   `FALSE`.
@@ -521,6 +527,7 @@ ptrap_de <- function(
   shrink.lfc = FALSE,
   return_long = FALSE,
   ngenes.out = 20,
+  genes.filter = NULL,
   kable.out = FALSE,
   filter = TRUE
 ) {
@@ -1026,10 +1033,18 @@ ptrap_de <- function(
       results <- results |> mutate(!!region_col := region_name)
     }
 
+    if (!is.null(genes.filter)) {
+      results <- dplyr::filter(results, .data$Gene %in% genes.filter)
+    }
+
     if (kable.out) {
+      tbl <- if (is.null(genes.filter)) {
+        slice_head(results, n = ngenes.out)
+      } else {
+        results
+      }
       return(
-        results |>
-          slice_head(n = ngenes.out) |>
+        tbl |>
           kable(
             digits = 3L,
             table.attr = 'data-quarto-disable-processing="true"',
@@ -1223,10 +1238,18 @@ ptrap_de <- function(
       results <- results |> mutate(!!region_col := region_name)
     }
 
+    if (!is.null(genes.filter)) {
+      results <- dplyr::filter(results, .data$Gene %in% genes.filter)
+    }
+
     if (kable.out) {
+      tbl <- if (is.null(genes.filter)) {
+        slice_head(results, n = ngenes.out)
+      } else {
+        results
+      }
       return(
-        results |>
-          slice_head(n = ngenes.out) |>
+        tbl |>
           kable(
             digits = 3L,
             table.attr = 'data-quarto-disable-processing="true"',
@@ -1311,12 +1334,20 @@ ptrap_de <- function(
       results <- results |> mutate(!!region_col := region_name)
     }
 
+    if (!is.null(genes.filter)) {
+      results <- dplyr::filter(results, .data$Gene %in% genes.filter)
+    }
+
     if (kable.out) {
+      tbl <- if (is.null(genes.filter)) {
+        slice_head(results, n = ngenes.out)
+      } else {
+        results
+      }
       return(
-        results |>
-          slice_head(n = ngenes.out) |>
+        tbl |>
           kable(
-            digits = 2L,
+            digits = 3L,
             table.attr = 'data-quarto-disable-processing="true"',
             "html"
           ) |>
@@ -1387,12 +1418,20 @@ ptrap_de <- function(
 
     results <- results |> relocate("Gene")
 
+    if (!is.null(genes.filter)) {
+      results <- dplyr::filter(results, .data$Gene %in% genes.filter)
+    }
+
     if (kable.out) {
+      tbl <- if (is.null(genes.filter)) {
+        slice_head(results, n = ngenes.out)
+      } else {
+        results
+      }
       return(
-        results |>
-          slice_head(n = ngenes.out) |>
+        tbl |>
           kable(
-            digits = 2L,
+            digits = 3L,
             table.attr = 'data-quarto-disable-processing="true"',
             "html"
           ) |>
@@ -1438,12 +1477,20 @@ ptrap_de <- function(
 
   results <- results |> relocate("Gene")
 
+  if (!is.null(genes.filter)) {
+    results <- dplyr::filter(results, .data$Gene %in% genes.filter)
+  }
+
   if (kable.out) {
+    tbl <- if (is.null(genes.filter)) {
+      slice_head(results, n = ngenes.out)
+    } else {
+      results
+    }
     return(
-      results |>
-        slice_head(n = ngenes.out) |>
+      tbl |>
         kable(
-          digits = 2L,
+          digits = 3L,
           table.attr = 'data-quarto-disable-processing="true"',
           "html"
         ) |>

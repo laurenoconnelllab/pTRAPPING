@@ -25,5 +25,7 @@ Imports:
 URL: https://github.com/laurenoconnelllab/pTRAPPING, https://laurenoconnelllab.github.io/pTRAPPING/
 BugReports: https://github.com/laurenoconnelllab/pTRAPPING/issues
 Suggests:
-    apeglm
+    apeglm,
+    testthat (>= 3.0.0)
 Config/roxygen2/version: 8.0.0
+Config/testthat/edition: 3

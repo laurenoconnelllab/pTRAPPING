@@ -30,7 +30,7 @@
 #'   result tibbles. Default is `"Gene"`.
 #' @param treatment_col Name of the column containing the treatment label in
 #'   both result tibbles. Used to auto-generate axis labels and DE class names.
-#'   Default is `"Treatment"`.
+#'   Default is `"treatment"`.
 #' @param region_col Name of the column containing the brain region label.
 #'   Used to set the default plot title. Default is `"BrainRegion"`.
 #' @param colors A named character vector mapping each DE class to a colour.
@@ -89,7 +89,7 @@ ptrap_volcano2 <- function(
   lfc_threshold = 1,
   fdr_threshold = 0.05,
   gene_col = "Gene",
-  treatment_col = "Treatment",
+  treatment_col = "treatment",
   region_col = "BrainRegion",
   colors = NULL,
   point_size = 3.5,

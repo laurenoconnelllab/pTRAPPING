@@ -28,6 +28,7 @@ ptrap_de(
   shrink.lfc = FALSE,
   return_long = FALSE,
   ngenes.out = 20,
+  genes.filter = NULL,
   kable.out = FALSE,
   filter = TRUE
 )
@@ -201,7 +202,12 @@ with \verb{$results} (the DE tibble) and \verb{$long_data} (the per-gene,
 per-animal table used for the test). Default is \code{FALSE}.}
 
 \item{ngenes.out}{Number of top genes (sorted by p-value) to include in the
-output when \code{kable.out = TRUE}. Default is \code{20}.}
+output when \code{kable.out = TRUE}. Ignored when \code{genes.filter} is supplied.
+Default is \code{20}.}
+
+\item{genes.filter}{Optional character vector of gene names (matching the
+\code{Gene} column of the output) to retain. When supplied, only the listed
+genes are returned and \code{ngenes.out} is ignored. Default is \code{NULL}.}
 
 \item{kable.out}{Logical. If \code{TRUE}, returns a \code{kableExtra} HTML table of
 the top \code{ngenes.out} genes instead of the full tibble. Default is

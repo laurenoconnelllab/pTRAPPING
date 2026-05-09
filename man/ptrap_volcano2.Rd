@@ -11,7 +11,7 @@ ptrap_volcano2(
   lfc_threshold = 1,
   fdr_threshold = 0.05,
   gene_col = "Gene",
-  treatment_col = "Treatment",
+  treatment_col = "treatment",
   region_col = "BrainRegion",
   colors = NULL,
   point_size = 3.5,
@@ -45,7 +45,7 @@ result tibbles. Default is \code{"Gene"}.}
 
 \item{treatment_col}{Name of the column containing the treatment label in
 both result tibbles. Used to auto-generate axis labels and DE class names.
-Default is \code{"Treatment"}.}
+Default is \code{"treatment"}.}
 
 \item{region_col}{Name of the column containing the brain region label.
 Used to set the default plot title. Default is \code{"BrainRegion"}.}

@@ -11,7 +11,7 @@ ptrap_volcano(
   fdr_threshold = 0.05,
   log_base = 10,
   gene_col = "Gene",
-  treatment_col = "Treatment",
+  treatment_col = "treatment",
   region_col = "BrainRegion",
   colors = NULL,
   point_size = 3.5,
@@ -37,7 +37,7 @@ as in Tan et al. (2016). Must be a positive number other than \code{1}.}
 
 \item{gene_col}{Column name for gene identifiers. Default \code{"Gene"}.}
 
-\item{treatment_col}{Column name for treatment label. Default \code{"Treatment"}.}
+\item{treatment_col}{Column name for treatment label. Default \code{"treatment"}.}
 
 \item{region_col}{Column name for brain region label. Default \code{"BrainRegion"}.}
 

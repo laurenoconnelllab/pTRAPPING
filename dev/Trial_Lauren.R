@@ -274,13 +274,145 @@ ggarrange(
   legend = "top"
 )
 
+### pTRAPPING demonstration
+
+## Data from Tan et al., RPKM transformed counts
 tan_rpkm <- read_tsv(
-  "/Users/camilorl/Quarto_projects/pTRAPPING/dev/TAN_etal_2016_RPKM.txt"
+  "dev/TAN_etal_2016_RPKM.txt"
 )
 
+## Data from Tan et al, raw (no-transformed) counts
+tan_raw <- read_tsv("dev/TAN_etal_2016_raw.txt")
 
+#The simpliest usage of the functions
+
+###_________DE genes____________###
+
+tan_raw |>
+  ptrap_de(treatment_name = "PACAP")
+
+###_________DE genes in kable output____________###
+tan_raw |>
+  ptrap_de(
+    treatment_name = "PACAP",
+    kable.out = T,
+    genes.filter = c(
+      "Ucn3",
+      "Fosl2",
+      "Bdnf",
+      "Adcyap1",
+      "Junb",
+      "Gadd45b"
+    )
+  )
+
+###_________volcano plot for one condition____________###
+tan_raw |>
+  ptrap_de(treatment_name = "PACAP") |>
+  ptrap_volcano()
+
+###_________volcano plot for one condition with annotated genes____________###
+tan_raw |>
+  ptrap_de(treatment_name = "PACAP") |>
+  ptrap_volcano(
+    genes.annot = c(
+      "Ucn3",
+      "Fosl2",
+      "Bdnf",
+      "Adcyap1",
+      "Junb",
+      "Gadd45b"
+    )
+  )
+
+###______Dual volcano plot comparing 2 conditions_____###
+
+tan_dbnf <- tan_raw |>
+  ptrap_de(treatment_name = "BDNF")
+
+tan_pacap <- tan_raw |>
+  ptrap_de(treatment_name = "PACAP")
+
+ptrap_volcano2(tan_dbnf, tan_pacap)
+
+
+###______Dual volcano plot with annotated genes_____###
+ptrap_volcano2(
+  tan_dbnf,
+  tan_pacap,
+  genes.annot = c(
+    "Ucn3",
+    "Fosl2",
+    "Bdnf",
+    "Adcyap1",
+    "Junb",
+    "Gadd45b"
+  )
+)
+
+# ptrap_de():
+
+## Show parsing sample metadata from column names
+
+### --------------parsing 1------------------ ###
+
+parsing1 <- read_tsv("dev/parser_examples/parsing1.txt")
+
+parsing1 |>
+  colnames()
+
+parsing1 |>
+  ptrap_de(treatment_name = "ABC")
+
+### --------------parsing 2------------------- ###
+
+parsing2 <- read_tsv("dev/parser_examples/parsing2.txt")
+
+parsing2 |>
+  colnames()
+
+parsing2 |>
+  ptrap_de(treatment_name = "cont")
+
+### --------------parsing 3------------------- ###
+
+parsing3 <- read_tsv("dev/parser_examples/parsing3.txt")
+
+parsing3 |>
+  ptrap_de(treatment_name = "a")
+
+# TODO: What happened with the brain region. Can it be parsed and separated?
+
+## test method
+
+###__________edgeR pipeline: LRT__________###
+
+tan_raw |>
+  ptrap_de(treatment_name = "PACAP", test_method = "LRT") |>
+  ptrap_volcano(genes.annot = c("Pwwp2a"))
+
+###__________edgeR pipeline: QLF__________###
+
+tan_raw |>
+  ptrap_de(treatment_name = "PACAP", test_method = "QLF") |>
+  ptrap_volcano(genes.annot = c("Pwwp2a"))
+
+###__________ Deseq2 pipeline_________##
+tan_raw |>
+  ptrap_de(treatment_name = "PACAP", test_method = "deseq") |>
+  ptrap_volcano(genes.annot = c("Pwwp2a"))
+
+
+###__________limma-voom pipeline_________##
+tan_raw |>
+  ptrap_de(treatment_name = "PACAP", test_method = "voom") |>
+  ptrap_volcano(genes.annot = c("Pwwp2a"))
+
+###__________paired t-test_____________###
+
+##Paired t-test pipeline with no transformation, no filtering
 pacap_de <- tan_rpkm |>
-  filter(if_any(where(is.numeric), ~ .x > 1)) |>
+  filter(if_any(where(is.numeric), ~ .x > 1)) |> #keep counts > 1
   mutate(gene = make.unique(Gene)) |>
   column_to_rownames("gene") |>
   #round() |>

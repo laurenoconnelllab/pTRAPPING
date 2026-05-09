@@ -19,7 +19,7 @@
 #'   Default is `10` (-log10, current behaviour). Use `2` for -log2(p)
 #'   as in Tan et al. (2016). Must be a positive number other than `1`.
 #' @param gene_col Column name for gene identifiers. Default `"Gene"`.
-#' @param treatment_col Column name for treatment label. Default `"Treatment"`.
+#' @param treatment_col Column name for treatment label. Default `"treatment"`.
 #' @param region_col Column name for brain region label. Default `"BrainRegion"`.
 #' @param colors Named vector mapping `"UP"` and `"DOWN"` to colours.
 #'   Default is colourblind-friendly: `"#D55E00"` (UP), `"#0072B2"` (DOWN).
@@ -55,7 +55,7 @@ ptrap_volcano <- function(
   fdr_threshold = 0.05,
   log_base = 10,
   gene_col = "Gene",
-  treatment_col = "Treatment",
+  treatment_col = "treatment",
   region_col = "BrainRegion",
   colors = NULL,
   point_size = 3.5,
