@@ -199,6 +199,7 @@ by <code>norm.method</code> (default is <code>"CPM"</code>; all three options ar
 <span>  shrink.lfc <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  return_long <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  ngenes.out <span class="op">=</span> <span class="fl">20</span>,</span>
+<span>  genes.filter <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  kable.out <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  filter <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -414,7 +415,14 @@ per-animal table used for the test). Default is <code>FALSE</code>.</p></dd>
 
 <dt id="arg-ngenes-out">ngenes.out<a class="anchor" aria-label="anchor" href="#arg-ngenes-out"></a></dt>
 <dd><p>Number of top genes (sorted by p-value) to include in the
-output when <code>kable.out = TRUE</code>. Default is <code>20</code>.</p></dd>
+output when <code>kable.out = TRUE</code>. Ignored when <code>genes.filter</code> is supplied.
+Default is <code>20</code>.</p></dd>
+
+
+<dt id="arg-genes-filter">genes.filter<a class="anchor" aria-label="anchor" href="#arg-genes-filter"></a></dt>
+<dd><p>Optional character vector of gene names (matching the
+<code>Gene</code> column of the output) to retain. When supplied, only the listed
+genes are returned and <code>ngenes.out</code> is ignored. Default is <code>NULL</code>.</p></dd>
 
 
 <dt id="arg-kable-out">kable.out<a class="anchor" aria-label="anchor" href="#arg-kable-out"></a></dt>

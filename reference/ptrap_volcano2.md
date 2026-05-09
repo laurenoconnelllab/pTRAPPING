@@ -19,7 +19,7 @@ ptrap_volcano2(
   lfc_threshold = 1,
   fdr_threshold = 0.05,
   gene_col = "Gene",
-  treatment_col = "Treatment",
+  treatment_col = "treatment",
   region_col = "BrainRegion",
   colors = NULL,
   point_size = 3.5,
@@ -70,7 +70,7 @@ ptrap_volcano2(
 
   Name of the column containing the treatment label in both result
   tibbles. Used to auto-generate axis labels and DE class names. Default
-  is `"Treatment"`.
+  is `"treatment"`.
 
 - region_col:
 

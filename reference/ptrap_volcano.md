@@ -19,7 +19,7 @@ ptrap_volcano(
   fdr_threshold = 0.05,
   log_base = 10,
   gene_col = "Gene",
-  treatment_col = "Treatment",
+  treatment_col = "treatment",
   region_col = "BrainRegion",
   colors = NULL,
   point_size = 3.5,
@@ -62,7 +62,7 @@ ptrap_volcano(
 
 - treatment_col:
 
-  Column name for treatment label. Default `"Treatment"`.
+  Column name for treatment label. Default `"treatment"`.
 
 - region_col:
 

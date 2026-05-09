@@ -82,6 +82,7 @@ ptrap_de(
   shrink.lfc = FALSE,
   return_long = FALSE,
   ngenes.out = 20,
+  genes.filter = NULL,
   kable.out = FALSE,
   filter = TRUE
 )
@@ -317,7 +318,14 @@ ptrap_de(
 - ngenes.out:
 
   Number of top genes (sorted by p-value) to include in the output when
-  `kable.out = TRUE`. Default is `20`.
+  `kable.out = TRUE`. Ignored when `genes.filter` is supplied. Default
+  is `20`.
+
+- genes.filter:
+
+  Optional character vector of gene names (matching the `Gene` column of
+  the output) to retain. When supplied, only the listed genes are
+  returned and `ngenes.out` is ignored. Default is `NULL`.
 
 - kable.out:
 
