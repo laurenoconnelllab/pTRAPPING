@@ -60,7 +60,12 @@ When \code{region_col} is \code{NULL} (default) but \code{region_name} is suppli
 function automatically scans \code{sample_df} for a non-structural column whose
 values include \code{region_name}, and uses it as \code{region_col} if exactly one
 such column is found (a message is shown). Can be \code{NULL} when the data
-contain only a single region.}
+contain only a single region.
+
+\strong{Auto-parsing mode} (\code{sample_df = NULL}): \code{region_name} is additionally
+used during column-name parsing to extract the region token directly from
+each column name (e.g., \code{"POA"} in \code{b1inputPOA}). See the \emph{Automatic
+column-name parsing} section for details.}
 
 \item{treatment_name}{The treatment condition whose samples will be
 \strong{subsetted} for the IP vs INPUT comparison (e.g., \code{"pb"} to analyse
@@ -334,6 +339,24 @@ Valid column name examples (default \code{ip_level = "IP"},
 \code{PB.2.ip}            \tab treatment = \code{PB}, block = \code{2} \cr
 \code{Trim_10-INPUT}      \tab treatment = \code{Trim}, block = \code{10} \cr
 \code{SOL1INPUT}          \tab treatment = \code{SOL}, block = \code{1} \cr
+}
+
+\strong{Region-aware parsing}: When \code{region_name} is also supplied and
+\code{sample_df = NULL}, the parser uses \code{region_name} to identify and strip the
+brain-region token from each column name. Matching is case-insensitive and
+the extracted region is stored in a \code{region} column of the auto-built
+sample metadata (which is then used for the usual region-filtering step).
+Column names that do \emph{not} contain the supplied \code{region_name} will retain
+the unrecognised token as part of the treatment string; those samples are
+automatically excluded when the function filters for \code{treatment_name}.
+
+Region-aware examples (\code{region_name = "POA"}, \code{ip_level = "IP"},
+\code{input_level = "INPUT"}):
+\tabular{lll}{
+\strong{Column name} \tab \strong{treatment} \tab \strong{region} \cr
+\code{b1inputPOA}    \tab \code{b}           \tab \code{POA}      \cr
+\code{a2ipPOA}       \tab \code{a}           \tab \code{POA}      \cr
+\code{b_1_input_POA} \tab \code{b}           \tab \code{POA}      \cr
 }
 }
 

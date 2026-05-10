@@ -39,3 +39,36 @@ test_that("genes.filter does not affect kable.out path (returns knitr_kable)", {
     )
   expect_s3_class(res, "knitr_kable")
 })
+
+test_that("ptrap_de() auto-parses region from column names when region_name supplied", {
+  res <- region_raw |>
+    ptrap_de(
+      treatment_name = "b",
+      region_name    = "POA",
+      test_method    = "paired.ttest",
+      filter         = FALSE
+    )
+  expect_type(res, "list")
+  expect_true("results" %in% names(res))
+  expect_gt(nrow(res$results), 0L)
+  # treatment column should only contain "b"
+  expect_true(all(res$results$treatment == "b"))
+})
+
+test_that("ptrap_de() auto-parsing with region still works for treatment 'a'", {
+  res <- region_raw |>
+    ptrap_de(
+      treatment_name = "a",
+      region_name    = "POA",
+      test_method    = "paired.ttest",
+      filter         = FALSE
+    )
+  expect_gt(nrow(res$results), 0L)
+  expect_true(all(res$results$treatment == "a"))
+})
+
+test_that("ptrap_de() without region_name still works (backward compat)", {
+  # Use the original tan_raw fixture — no region in column names
+  res <- tan_raw |> ptrap_de(treatment_name = "PACAP")
+  expect_gt(nrow(res), 0L)
+})

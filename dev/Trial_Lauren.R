@@ -381,7 +381,14 @@ parsing3 <- read_tsv("dev/parser_examples/parsing3.txt")
 parsing3 |>
   ptrap_de(treatment_name = "a")
 
-# TODO: What happened with the brain region. Can it be parsed and separated?
+
+### --------------parsing 4: including samples from more than one brain region------------------- ###
+
+parsing4 <- read_tsv("dev/parser_examples/parsing4.txt")
+
+parsing4 |>
+  ptrap_de(treatment_name = "a", region_name = "POA")
+
 
 ## test method
 

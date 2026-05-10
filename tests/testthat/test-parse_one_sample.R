@@ -137,3 +137,77 @@ test_that(".parse_one_sample() errors when replicate is missing", {
     "Cannot identify a replicate number"
   )
 })
+
+# --- region_names tests -------------------------------------------------------
+
+test_that(".parse_one_sample() extracts region and cleans treatment (T-R-F-Region)", {
+  devtools::load_all(quiet = TRUE)
+
+  r <- pTRAPPING:::.parse_one_sample("b1inputPOA", "IP", "INPUT", region_names = "POA")
+  expect_equal(r$treatment, "b")
+  expect_equal(r$block, "1")
+  expect_equal(r$fraction, "INPUT")
+  expect_equal(r$region, "POA")
+})
+
+test_that(".parse_one_sample() region matching is case-insensitive", {
+  devtools::load_all(quiet = TRUE)
+
+  r <- pTRAPPING:::.parse_one_sample("a1ipSTR", "IP", "INPUT", region_names = "str")
+  expect_equal(r$treatment, "a")
+  expect_equal(r$block, "1")
+  expect_equal(r$fraction, "IP")
+  expect_equal(r$region, "str") # stored in user-supplied case
+})
+
+test_that(".parse_one_sample() region stays NA when region_names not matched", {
+  devtools::load_all(quiet = TRUE)
+
+  r <- pTRAPPING:::.parse_one_sample("b1inputPOA", "IP", "INPUT", region_names = "STR")
+  expect_true(is.na(r$region))
+  expect_equal(r$treatment, "bPOA") # POA becomes part of treatment
+})
+
+test_that(".parse_one_sample() region is NA when region_names = NULL", {
+  devtools::load_all(quiet = TRUE)
+
+  r <- pTRAPPING:::.parse_one_sample("b1inputPOA", "IP", "INPUT")
+  expect_true(is.na(r$region))
+  expect_equal(r$treatment, "bPOA")
+})
+
+test_that(".parse_one_sample() handles region with explicit separators", {
+  devtools::load_all(quiet = TRUE)
+
+  r <- pTRAPPING:::.parse_one_sample("b_1_input_POA", "IP", "INPUT", region_names = "POA")
+  expect_equal(r$treatment, "b")
+  expect_equal(r$region, "POA")
+})
+
+test_that(".build_sample_df_from_cols() adds region column when regions detected", {
+  devtools::load_all(quiet = TRUE)
+
+  cols <- c("b1inputPOA", "b1ipPOA", "a1inputPOA", "a1ipPOA")
+  df <- pTRAPPING:::.build_sample_df_from_cols(cols, "IP", "INPUT", region_names = "POA")
+  expect_true("region" %in% names(df))
+  expect_true(all(df$region == "POA"))
+  expect_setequal(df$treatment, c("a", "b"))
+})
+
+test_that(".build_sample_df_from_cols() omits region column without region_names", {
+  devtools::load_all(quiet = TRUE)
+
+  cols <- c("PACAP1IP", "PACAP1INPUT")
+  df <- pTRAPPING:::.build_sample_df_from_cols(cols, "IP", "INPUT")
+  expect_false("region" %in% names(df))
+})
+
+test_that(".build_sample_df_from_cols() handles mixed region/non-region columns", {
+  devtools::load_all(quiet = TRUE)
+
+  cols <- c("b1inputPOA", "b1ipPOA", "b1inputSTR", "b1ipSTR")
+  df <- pTRAPPING:::.build_sample_df_from_cols(cols, "IP", "INPUT", region_names = "POA")
+  expect_true("region" %in% names(df))
+  expect_equal(sum(df$region == "POA", na.rm = TRUE), 2L)
+  expect_equal(sum(is.na(df$region)), 2L)
+})

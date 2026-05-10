@@ -9,7 +9,7 @@
 #   T-R-F: "PACAP1IP"    T-F-R: "PACAP_Input_1"  R-T-F: "1_PACAP_IP"
 #   R-F-T: "1_IP_PACAP"  F-T-R: "IP_PACAP_1"     F-R-T: "IP_1_PACAP"
 # "in" (case-insensitive) is accepted as a short alias for input_level.
-.parse_one_sample <- function(nm, ip_level, input_level) {
+.parse_one_sample <- function(nm, ip_level, input_level, region_names = NULL) {
   # Step 1: Surround fraction keywords with "_" in the ORIGINAL string,
   # before removing other separators. This preserves word boundaries so
   # the "in" alias lookbehind/lookahead works correctly (e.g. "PACAP_in_1"
@@ -57,6 +57,19 @@
   # treatment: everything that is neither fraction nor block
   treat_idx <- setdiff(seq_along(parts), c(frac_idx, block_idx))
 
+  # region: a treatment token that matches one of the known region names
+  region <- NA_character_
+  if (!is.null(region_names) && length(treat_idx) > 0L) {
+    region_names_l <- tolower(region_names)
+    region_match <- which(parts_l[treat_idx] %in% region_names_l)
+    if (length(region_match) > 0L) {
+      region_token_idx <- treat_idx[region_match[1L]]
+      # Store in user-supplied case so downstream == comparisons work
+      region <- region_names[match(parts_l[region_token_idx], region_names_l)]
+      treat_idx <- setdiff(treat_idx, treat_idx[region_match])
+    }
+  }
+
   if (length(frac_idx) == 0L) {
     stop(
       "Cannot identify IP/INPUT fraction in column name '",
@@ -87,23 +100,30 @@
   block <- parts[block_idx[1L]]
   treatment <- paste(parts[treat_idx], collapse = "")
 
-  list(sample = nm, treatment = treatment, block = block, fraction = fraction)
+  list(sample = nm, treatment = treatment, block = block, fraction = fraction, region = region)
 }
 
 # Build a tibble of sample metadata by parsing every column name.
-.build_sample_df_from_cols <- function(col_names, ip_level, input_level) {
+.build_sample_df_from_cols <- function(col_names, ip_level, input_level,
+                                       region_names = NULL) {
   parsed <- lapply(
     col_names,
     .parse_one_sample,
     ip_level = ip_level,
-    input_level = input_level
+    input_level = input_level,
+    region_names = region_names
   )
-  tibble::tibble(
-    sample = vapply(parsed, `[[`, character(1L), "sample"),
+  result <- tibble::tibble(
+    sample    = vapply(parsed, `[[`, character(1L), "sample"),
     treatment = vapply(parsed, `[[`, character(1L), "treatment"),
-    block = vapply(parsed, `[[`, character(1L), "block"),
-    fraction = vapply(parsed, `[[`, character(1L), "fraction")
+    block     = vapply(parsed, `[[`, character(1L), "block"),
+    fraction  = vapply(parsed, `[[`, character(1L), "fraction")
   )
+  regions <- vapply(parsed, `[[`, character(1L), "region")
+  if (any(!is.na(regions))) {
+    result$region <- regions
+  }
+  result
 }
 
 # Build a design formula, inserting covariate terms additively.
@@ -207,6 +227,24 @@
 #'   `SOL1INPUT`          \tab treatment = `SOL`, block = `1` \cr
 #' }
 #'
+#' **Region-aware parsing**: When `region_name` is also supplied and
+#' `sample_df = NULL`, the parser uses `region_name` to identify and strip the
+#' brain-region token from each column name. Matching is case-insensitive and
+#' the extracted region is stored in a `region` column of the auto-built
+#' sample metadata (which is then used for the usual region-filtering step).
+#' Column names that do *not* contain the supplied `region_name` will retain
+#' the unrecognised token as part of the treatment string; those samples are
+#' automatically excluded when the function filters for `treatment_name`.
+#'
+#' Region-aware examples (`region_name = "POA"`, `ip_level = "IP"`,
+#' `input_level = "INPUT"`):
+#' \tabular{lll}{
+#'   **Column name** \tab **treatment** \tab **region** \cr
+#'   `b1inputPOA`    \tab `b`           \tab `POA`      \cr
+#'   `a2ipPOA`       \tab `a`           \tab `POA`      \cr
+#'   `b_1_input_POA` \tab `b`           \tab `POA`      \cr
+#' }
+#'
 #' @param counts_mat A counts matrix in one of two formats:
 #'   * **Matrix** -- numeric, genes x samples; column names are sample IDs;
 #'     gene IDs are in `rownames` or supplied via `gene_ids`.
@@ -229,6 +267,11 @@
 #'   values include `region_name`, and uses it as `region_col` if exactly one
 #'   such column is found (a message is shown). Can be `NULL` when the data
 #'   contain only a single region.
+#'
+#'   **Auto-parsing mode** (`sample_df = NULL`): `region_name` is additionally
+#'   used during column-name parsing to extract the region token directly from
+#'   each column name (e.g., `"POA"` in `b1inputPOA`). See the *Automatic
+#'   column-name parsing* section for details.
 #' @param treatment_name The treatment condition whose samples will be
 #'   **subsetted** for the IP vs INPUT comparison (e.g., `"pb"` to analyse
 #'   only the pair-bonded samples). For `"unpaired.ttest"`, this is the
@@ -609,25 +652,31 @@ ptrap_de <- function(
     sample_df <- .build_sample_df_from_cols(
       colnames(counts_mat),
       ip_level = ip_level,
-      input_level = input_level
+      input_level = input_level,
+      region_names = region_name
     )
     # override column name arguments to match the auto-built data frame
     sample_col <- "sample"
     fraction_col <- "fraction"
     block_col <- "block"
     treatment_col <- "treatment"
+    if ("region" %in% names(sample_df)) {
+      region_col <- "region"
+    }
 
-    message(
+    msg <- paste0(
       "Auto-parsed sample metadata from column names.\n",
-      "  Treatments : ",
-      paste(sort(unique(sample_df$treatment)), collapse = ", "),
-      "\n",
-      "  Blocks     : ",
-      paste(sort(unique(sample_df$block)), collapse = ", "),
-      "\n",
-      "  Fractions  : ",
-      paste(sort(unique(sample_df$fraction)), collapse = ", ")
+      "  Treatments : ", paste(sort(unique(sample_df$treatment)), collapse = ", "), "\n",
+      "  Blocks     : ", paste(sort(unique(sample_df$block)), collapse = ", "), "\n",
+      "  Fractions  : ", paste(sort(unique(sample_df$fraction)), collapse = ", ")
     )
+    if ("region" %in% names(sample_df)) {
+      msg <- paste0(
+        msg, "\n  Regions    : ",
+        paste(sort(unique(sample_df$region[!is.na(sample_df$region)])), collapse = ", ")
+      )
+    }
+    message(msg)
   }
 
   # ---- Step 4: resolve treatment_name (and control_name for unpaired.ttest) --
