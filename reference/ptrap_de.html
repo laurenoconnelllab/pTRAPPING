@@ -240,7 +240,11 @@ When <code>region_col</code> is <code>NULL</code> (default) but <code>region_nam
 function automatically scans <code>sample_df</code> for a non-structural column whose
 values include <code>region_name</code>, and uses it as <code>region_col</code> if exactly one
 such column is found (a message is shown). Can be <code>NULL</code> when the data
-contain only a single region.</p></dd>
+contain only a single region.</p>
+<p><strong>Auto-parsing mode</strong> (<code>sample_df = NULL</code>): <code>region_name</code> is additionally
+used during column-name parsing to extract the region token directly from
+each column name (e.g., <code>"POA"</code> in <code>b1inputPOA</code>). See the <em>Automatic
+column-name parsing</em> section for details.</p></dd>
 
 
 <dt id="arg-treatment-name">treatment_name<a class="anchor" aria-label="anchor" href="#arg-treatment-name"></a></dt>
@@ -495,7 +499,16 @@ is also accepted as a short alias for the INPUT fraction.</p></dd>
 
 
 </dl><p>Valid column name examples (default <code>ip_level = "IP"</code>,
-<code>input_level = "INPUT"</code>):</p><table class="table table"><tr><td><strong>Column name</strong></td><td><strong>Parsed as</strong></td></tr><tr><td><code>b1input</code>, <code>b1ip</code></td><td>treatment = <code>b</code>, block = <code>1</code></td></tr><tr><td><code>nb2INPUT</code></td><td>treatment = <code>nb</code>, block = <code>2</code></td></tr><tr><td><code>Nb_IP_1</code></td><td>treatment = <code>Nb</code>, block = <code>1</code></td></tr><tr><td><code>B_3_INPUT</code></td><td>treatment = <code>B</code>, block = <code>3</code></td></tr><tr><td><code>PB.2.ip</code></td><td>treatment = <code>PB</code>, block = <code>2</code></td></tr><tr><td><code>Trim_10-INPUT</code></td><td>treatment = <code>Trim</code>, block = <code>10</code></td></tr><tr><td><code>SOL1INPUT</code></td><td>treatment = <code>SOL</code>, block = <code>1</code></td></tr></table></div>
+<code>input_level = "INPUT"</code>):</p><table class="table table"><tr><td><strong>Column name</strong></td><td><strong>Parsed as</strong></td></tr><tr><td><code>b1input</code>, <code>b1ip</code></td><td>treatment = <code>b</code>, block = <code>1</code></td></tr><tr><td><code>nb2INPUT</code></td><td>treatment = <code>nb</code>, block = <code>2</code></td></tr><tr><td><code>Nb_IP_1</code></td><td>treatment = <code>Nb</code>, block = <code>1</code></td></tr><tr><td><code>B_3_INPUT</code></td><td>treatment = <code>B</code>, block = <code>3</code></td></tr><tr><td><code>PB.2.ip</code></td><td>treatment = <code>PB</code>, block = <code>2</code></td></tr><tr><td><code>Trim_10-INPUT</code></td><td>treatment = <code>Trim</code>, block = <code>10</code></td></tr><tr><td><code>SOL1INPUT</code></td><td>treatment = <code>SOL</code>, block = <code>1</code></td></tr></table><p><strong>Region-aware parsing</strong>: When <code>region_name</code> is also supplied and
+<code>sample_df = NULL</code>, the parser uses <code>region_name</code> to identify and strip the
+brain-region token from each column name. Matching is case-insensitive and
+the extracted region is stored in a <code>region</code> column of the auto-built
+sample metadata (which is then used for the usual region-filtering step).
+Column names that do <em>not</em> contain the supplied <code>region_name</code> will retain
+the unrecognised token as part of the treatment string; those samples are
+automatically excluded when the function filters for <code>treatment_name</code>.</p>
+<p>Region-aware examples (<code>region_name = "POA"</code>, <code>ip_level = "IP"</code>,
+<code>input_level = "INPUT"</code>):</p><table class="table table"><tr><td><strong>Column name</strong></td><td><strong>treatment</strong></td><td><strong>region</strong></td></tr><tr><td><code>b1inputPOA</code></td><td><code>b</code></td><td><code>POA</code></td></tr><tr><td><code>a2ipPOA</code></td><td><code>a</code></td><td><code>POA</code></td></tr><tr><td><code>b_1_input_POA</code></td><td><code>b</code></td><td><code>POA</code></td></tr></table></div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
     <p>Tan, C.L., Cooke, E.K., Leib, D.E., Lin, Y.C., Daly, G.E., Zimmerman,

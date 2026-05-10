@@ -128,6 +128,11 @@ ptrap_de(
   exactly one such column is found (a message is shown). Can be `NULL`
   when the data contain only a single region.
 
+  **Auto-parsing mode** (`sample_df = NULL`): `region_name` is
+  additionally used during column-name parsing to extract the region
+  token directly from each column name (e.g., `"POA"` in `b1inputPOA`).
+  See the *Automatic column-name parsing* section for details.
+
 - treatment_name:
 
   The treatment condition whose samples will be **subsetted** for the IP
@@ -419,6 +424,26 @@ Valid column name examples (default `ip_level = "IP"`,
 | `PB.2.ip`         | treatment = `PB`, block = `2`    |
 | `Trim_10-INPUT`   | treatment = `Trim`, block = `10` |
 | `SOL1INPUT`       | treatment = `SOL`, block = `1`   |
+
+**Region-aware parsing**: When `region_name` is also supplied and
+`sample_df = NULL`, the parser uses `region_name` to identify and strip
+the brain-region token from each column name. Matching is
+case-insensitive and the extracted region is stored in a `region` column
+of the auto-built sample metadata (which is then used for the usual
+region-filtering step). Column names that do *not* contain the supplied
+`region_name` will retain the unrecognised token as part of the
+treatment string; those samples are automatically excluded when the
+function filters for `treatment_name`.
+
+Region-aware examples (`region_name = "POA"`, `ip_level = "IP"`,
+`input_level = "INPUT"`):
+
+|                 |               |            |
+|-----------------|---------------|------------|
+| **Column name** | **treatment** | **region** |
+| `b1inputPOA`    | `b`           | `POA`      |
+| `a2ipPOA`       | `a`           | `POA`      |
+| `b_1_input_POA` | `b`           | `POA`      |
 
 ## References
 
