@@ -1,13 +1,13 @@
-# Dual volcano plot comparing two treatment conditions from TRAP-seq DE results
+# Compare IP enrichment across two treatment conditions in a single scatter plot
 
-Takes two tibbles produced by
+When you have run
 [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md)
-— one per treatment condition, both from the same brain region — joins
-them by gene, classifies each gene according to its differential
-expression status in each condition, and returns a scatter plot of
-logFC\\\_{\text{treatment 1}}\\ vs logFC\\\_{\text{treatment 2}}\\.
-Significant genes are highlighted and labelled; threshold lines are
-drawn at ±`lfc_threshold` on both axes.
+for two treatment groups (e.g., pair-bonded and non-bonded animals) in
+the same brain region, looking at two separate volcano plots makes it
+hard to see which genes behave similarly or differently across
+conditions. This function places both results on a single 2D scatter:
+the logFC (IP vs. input) of condition 1 on the y-axis and condition 2 on
+the x-axis. Each point is one gene.
 
 ## Usage
 
@@ -81,8 +81,9 @@ ptrap_volcano2(
 
   A named character vector mapping each DE class to a colour. Names must
   be `"DE in both"`, `"DE only <t1>"`, and `"DE only <t2>"`, where
-  `<t1>` / `<t2>` are the treatment names found in the data. If `NULL`
-  (default), a colourblind-friendly palette is used.
+  `<t1>` / `<t2>` are the treatment names found in the data (e.g.,
+  `"DE only pb"` and `"DE only sol"`). See the examples for a template.
+  If `NULL` (default), a colourblind-friendly palette is used.
 
 - point_size:
 
@@ -120,10 +121,23 @@ object.
 
 ## Details
 
-Significance can be assessed using either FDR-adjusted p-values
-(`fdr = TRUE`, default) or raw p-values (`fdr = FALSE`). In both cases
-the cutoff is `fdr_threshold` and the classification is computed inside
-this function from the supplied thresholds.
+Reading the plot:
+
+- Genes near the **diagonal** (y = x dotted line) are equally enriched
+  in both conditions.
+
+- Genes **above** the diagonal are more enriched in condition 1; genes
+  **below** are more enriched in condition 2.
+
+- Genes that pass the fold-change and p-value thresholds in **both**
+  conditions, or in only **one**, are highlighted in distinct colours.
+  Genes that fail in both are shown in grey.
+
+Significance uses FDR-adjusted p-values by default (`fdr = TRUE`); set
+`fdr = FALSE` to use raw p-values instead. The DE classification is
+recomputed inside this function from the supplied thresholds, so you can
+explore different cutoffs without re-running
+[`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md).
 
 ## Examples
 

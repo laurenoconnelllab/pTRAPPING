@@ -1,59 +1,61 @@
 # Differential expression analysis for PhosphoTRAP data
 
-Compares IP vs INPUT fractions for a specified treatment condition using
-one of six statistical approaches (see `test_method`). Both `sample_df`
-and `gene_ids` are optional: the function can derive sample metadata
-automatically from the column names of `counts_mat`, and gene
-identifiers from its first column.
+In PhosphoTRAP and TRAP-seq experiments, RNA from a target cell
+population is physically isolated by immunoprecipitation — the **IP**
+fraction. Each sample also provides an **INPUT**: total RNA before the
+pulldown, serving as the background reference. `ptrap_de()` asks:
+**which genes are enriched (or depleted) in the IP fraction relative to
+input?** A positive log2 fold change (logFC \> 0) means a gene's RNA is
+more abundant in the IP; a negative logFC means it is less abundant.
 
-- `"LRT"` and `"QLF"` use edgeR's GLM framework with a multi-factor
-  design (`~ fraction + block`), accounting for the paired animal
-  structure via the blocking variable. Both methods automatically apply
-  **edgeR's TMM (trimmed mean of M values) normalization** via
-  `normLibSizes()`, which adjusts effective library sizes (not the count
-  matrix itself) for use in the GLM as offsets. `norm.method` is not
-  applicable and is ignored. Recommended with **4 or more replicates**
-  and raw count data.
+Six statistical methods are available via `test_method`. The right
+choice depends on your replicate count and experimental question:
 
-- `"deseq"` uses the **DESeq2** pipeline with a multi-factor design
-  (`~ block + fraction`; fraction goes last so `results()` auto-tests
-  it). DESeq2 applies the **median of ratios normalization** internally
-  via `DESeq()`. `norm.method` is not applicable and is ignored.
-  Recommended when you prefer the negative-binomial shrinkage estimators
-  of DESeq2 over edgeR. **Important:** by default, `logFC` is the
-  **maximum likelihood estimate (MLE)** from `results()`, which can be
-  noisy and large in magnitude for low-count genes. Set
-  `shrink.lfc = TRUE` to apply empirical Bayes LFC shrinkage via
-  `lfcShrink()` (requires the `apeglm` package), which is strongly
-  recommended before ranking genes or producing volcano plots for
-  publication.
+- `"LRT"` and `"QLF"` use **edgeR**'s generalized linear model (GLM)
+  framework with a design that pairs each animal's IP with its own input
+  (`~ fraction + block`). Both apply **TMM normalization** (trimmed mean
+  of M values) internally, which corrects for differences in sample
+  composition by rescaling effective library sizes rather than the count
+  matrix itself. `"QLF"` is more conservative than `"LRT"`.
+  `norm.method` is not applicable and is ignored. Recommended with **4
+  or more replicates** and raw count data.
 
-- `"voom"` uses the **limma-voom** pipeline with a paired design
-  (`~ fraction + block`) and empirical Bayes moderation. Voom internally
-  transforms counts to **log2-CPM** (using TMM-adjusted library sizes)
-  and derives **precision weights** from the mean-variance trend; these
-  two steps are integral to the method. `norm.method` is not applicable
-  and is ignored.
+- `"deseq"` uses the **DESeq2** pipeline with the same paired design
+  (`~ block + fraction`). Normalization (median of ratios) is handled
+  internally; `norm.method` is ignored. **Important:** by default,
+  `logFC` is the raw maximum-likelihood estimate (MLE), which can appear
+  unrealistically large for genes with very few reads. Set
+  `shrink.lfc = TRUE` to pull these noisy estimates towards zero —
+  strongly recommended before ranking genes or producing publication
+  figures.
 
-- `"paired.ttest"` runs a per-gene **paired t-test between IP and
-  INPUT** values across the experimental repeats, following Tan et
-  al. (2016) *Cell* 167, 47-59
+- `"voom"` uses the **limma-voom** pipeline, which bridges count data
+  and linear models: it converts counts to log2-CPM and assigns each
+  observation a precision weight based on its mean-variance
+  relationship, then fits a linear model with empirical Bayes
+  moderation. `norm.method` is not applicable and is ignored.
+
+- `"paired.ttest"` runs a per-gene **paired t-test** between IP and
+  INPUT values, treating each animal like a matched before/after
+  measurement. This is the approach from Tan et al. (2016) *Cell* 167,
+  47–59
   [doi:10.1016/j.cell.2016.08.028](https://doi.org/10.1016/j.cell.2016.08.028)
-  : *"p value for each gene was calculated as the paired t-test between
-  input and immunoprecipitated RPKM values from the three experimental
-  repeats."* The count scale for the test is controlled by `norm.method`
-  (Tan et al. used `"RPKM"`; all three options are valid; default is
-  `"CPM"`). `logFC` is reported as \\\log_2(\bar{\mathrm{IP}} /
-  \bar{\mathrm{INPUT}})\\. Recommended for PhosphoTRAP experiments with
-  **3 replicates**, where GLM-based dispersion estimates are unreliable.
+  , who used `"RPKM"` normalization; the default here is `"CPM"`.
+  Recommended for **3-replicate** experiments, where GLM-based methods
+  struggle to estimate variability reliably. `logFC` is
+  \\\log_2(\bar{\mathrm{IP}} / \bar{\mathrm{INPUT}})\\.
 
-- `"unpaired.ttest"` compares **fold enrichments (IP/INPUT) between two
-  treatment groups** using a Welch (unpaired) t-test on per-animal
-  log2(FE) values. Use this to test whether ribosomal association
-  differs between conditions. Requires exactly two treatments; use
-  `treatment_name` and `control_name` to specify which is which. The
-  count scale is controlled by `norm.method` (default is `"CPM"`; all
-  three options are valid).
+- `"unpaired.ttest"` answers a *different question* than the other
+  methods: not "is IP enriched over input?" but "does the *degree* of
+  enrichment differ between two treatment groups (e.g., pair-bonded vs.
+  non-bonded animals)?" It runs a per-gene Welch t-test on per-animal
+  log2(IP/INPUT) fold enrichment values. Requires exactly two
+  treatments; use `treatment_name` and `control_name` to specify which
+  is which. Count scale is controlled by `norm.method`.
+
+Both `sample_df` and `gene_ids` are optional: sample metadata can be
+parsed automatically from column names of `counts_mat`, and gene IDs
+from its first column or row names.
 
 ## Usage
 
@@ -171,11 +173,14 @@ ptrap_de(
 
 - block_col:
 
-  Name of the column in `sample_df` used as the blocking / pairing
-  variable (e.g., individual animal or tube). For `"LRT"` / `"QLF"`,
-  `"deseq"`, and `"voom"` it enters the design matrix; for
-  `"paired.ttest"` and `"unpaired.ttest"` it aligns each animal's IP
-  with its own INPUT. Default is `"tube"`.
+  Name of the column in `sample_df` that identifies which IP and INPUT
+  samples come from the **same animal** (the blocking / pairing
+  variable, e.g., tube ID or animal number). Linking each IP to its own
+  input control — like a matched before/after comparison within a
+  subject — removes animal-to-animal variability from the test. For
+  GLM-based methods (`"LRT"`, `"QLF"`, `"deseq"`, `"voom"`) it enters
+  the design formula; for t-test methods it aligns paired samples by
+  position. Default is `"tube"`.
 
 - region_col:
 
@@ -208,83 +213,80 @@ ptrap_de(
 - lfc_threshold:
 
   Minimum absolute log2 fold change required to classify a gene as
-  differentially expressed. Default is `1`.
+  differentially expressed. A threshold of `1` means a gene must be at
+  least 2× more (or less) abundant in IP vs. input. Default is `1`.
 
 - fdr_threshold:
 
-  Maximum FDR (or adjusted p-value) allowed to classify a gene as
-  differentially expressed. Default is `0.05`.
+  Maximum FDR (false discovery rate — the expected proportion of
+  significant findings that are false alarms, adjusted for multiple
+  testing) allowed to classify a gene as differentially expressed.
+  Default is `0.05`.
 
 - test_method:
 
-  Statistical method to use. One of:
+  Statistical method to use. See `@description` for a full explanation
+  of each. One of:
 
-  - `"LRT"` – edgeR likelihood ratio test via `glmFit` + `glmLRT`
-    (default). TMM normalisation is applied internally; `norm.method` is
-    not applicable. Suitable for \>= 4 replicates and raw count data.
+  - `"LRT"` (default) — edgeR likelihood ratio test (`glmFit` +
+    `glmLRT`). Recommended for \>= 4 replicates and raw count data. TMM
+    normalisation applied internally; `norm.method` ignored.
 
-  - `"QLF"` – edgeR quasi-likelihood F-test via `glmQLFit` +
-    `glmQLFTest`. TMM normalisation is applied internally; `norm.method`
-    is not applicable. More conservative than `"LRT"`.
+  - `"QLF"` — edgeR quasi-likelihood F-test (`glmQLFit` + `glmQLFTest`).
+    More conservative than `"LRT"`. TMM normalisation applied
+    internally; `norm.method` ignored.
 
-  - `"deseq"` – DESeq2 pipeline with a multi-factor design
-    (`~ block + fraction`). Median of ratios normalisation is applied
-    internally by `DESeq()`; `norm.method` is not applicable. Results
-    obtained via `results(dds, name = "fraction_IP_vs_INPUT")`. `logFC`
-    is MLE by default; use `shrink.lfc = TRUE` for shrunken estimates.
+  - `"deseq"` — DESeq2 pipeline (`~ block + fraction`). Median-of-ratios
+    normalisation applied internally; `norm.method` ignored. `logFC` is
+    MLE by default; use `shrink.lfc = TRUE` for publication-ready
+    estimates.
 
-  - `"voom"` – limma-voom pipeline with a paired design
-    (`~ fraction + block`) and empirical Bayes moderation via `lmFit` +
-    `eBayes` + `topTable`. Log2-CPM transformation and voom precision
-    weights are applied internally; `norm.method` is not applicable.
+  - `"voom"` — limma-voom pipeline (`~ fraction + block`) with empirical
+    Bayes moderation (`lmFit` + `eBayes` + `topTable`). Log2-CPM
+    transformation and precision weights applied internally;
+    `norm.method` ignored.
 
-  - `"paired.ttest"` – per-gene paired t-test between IP and INPUT
-    values across replicates, following Tan et al. (2016). The count
-    scale is controlled by `norm.method` (default `"CPM"`; Tan et al.
-    used `"RPKM"`). Best suited for n = 3 replicates. P-values adjusted
-    with BH.
+  - `"paired.ttest"` — per-gene paired t-test (IP vs. INPUT across
+    replicates). Best for n = 3 replicates. Count scale set by
+    `norm.method` (default `"CPM"`; Tan et al. 2016 used `"RPKM"`).
+    P-values adjusted with Benjamini-Hochberg (BH).
 
-  - `"unpaired.ttest"` – per-gene Welch unpaired t-test comparing
-    log2(FE) values between two treatment groups. The count scale is
-    controlled by `norm.method` (default `"CPM"`). Requires exactly two
-    treatments; use `treatment_name` and `control_name` to specify which
-    group is which.
+  - `"unpaired.ttest"` — per-gene Welch t-test comparing log2(IP/INPUT)
+    between two treatment groups. Count scale set by `norm.method`.
+    Requires exactly two treatments (set via `treatment_name` and
+    `control_name`).
 
 - norm.method:
 
-  Count normalisation method used by the t-test branches
+  Count normalisation method used only by the t-test branches
   (`"paired.ttest"` and `"unpaired.ttest"`). Ignored for `"LRT"`,
   `"QLF"`, `"voom"`, and `"deseq"`, which each handle normalisation
-  internally (a message is shown if you explicitly supply `norm.method`
-  for those methods). Default is `"CPM"`. One of:
+  internally (a message is shown if you set this for those methods). The
+  goal of normalisation is to make counts comparable across samples by
+  accounting for differences in sequencing depth and library
+  composition. Default is `"CPM"`. One of:
 
-  - `"CPM"` (default) – counts per million, computed from edgeR's
-    TMM-adjusted effective library sizes (`lib.size x norm.factors`) via
-    [`edgeR::cpm()`](https://rdrr.io/pkg/edgeR/man/cpm.html). Because
-    TMM adjusts *effective library sizes* rather than the count matrix
-    directly, CPM values here reflect both sequencing depth and TMM
-    normalisation. Suitable for comparisons between replicates of the
-    same sample group.
+  - `"CPM"` (default) — counts per million, scaled by TMM-adjusted
+    library sizes via
+    [`edgeR::cpm()`](https://rdrr.io/pkg/edgeR/man/cpm.html). Suitable
+    for comparing the same gene across replicates of the same group.
 
-  - `"RPKM"` – reads per kilobase per million: CPM further divided by
-    gene length in kilobases, via
+  - `"RPKM"` — CPM divided by gene length in kilobases, via
     [`edgeR::rpkm()`](https://rdrr.io/pkg/edgeR/man/cpm.html). Requires
-    `gene.length`. Suitable for within-sample comparisons between genes
-    (the scale used by Tan et al. 2016 for PhosphoTRAP). **Not**
-    recommended for between-sample comparisons.
+    `gene.length`. This was the scale used by Tan et al. 2016 for
+    PhosphoTRAP. Useful for within-sample comparisons between genes of
+    different lengths, but **not** recommended for between-sample
+    comparisons.
 
-  - `"mratios"` – DESeq2 **median of ratios** normalisation, computed
-    via `estimateSizeFactors()` and retrieved with
-    `counts(dds, normalized = TRUE)`. Unlike CPM, this method directly
-    rescales the count matrix by sample-specific size factors, making it
-    suitable for between-sample comparisons. Use this when you want
-    DESeq2-style normalisation for the t-test without running the full
-    DESeq2 pipeline.
+  - `"mratios"` — DESeq2 median-of-ratios normalisation: each sample's
+    counts are divided by a size factor estimated from the geometric
+    mean of all genes. This directly rescales the count matrix and is
+    suitable for between-sample comparisons. Use when you want
+    DESeq2-style normalisation without running the full DESeq2 pipeline.
 
-  - `"none"` – no normalisation is applied; the count matrix is used as
-    supplied. Intended for pre-normalised matrices (e.g., TPM, FPKM, or
-    any user-normalised values) where an additional normalisation step
-    would be redundant or distorting.
+  - `"none"` — no normalisation; the count matrix is used as supplied.
+    For pre-normalised inputs (e.g., TPM, FPKM) where an additional
+    normalisation step would be redundant.
 
 - gene.length:
 
@@ -302,16 +304,16 @@ ptrap_de(
 
 - shrink.lfc:
 
-  Logical. Only used when `test_method = "deseq"`. If `TRUE`, log2 fold
-  changes are shrunk using empirical Bayes estimation via
-  `DESeq2::lfcShrink(type = "apeglm")`, which requires the
-  [apeglm](https://bioconductor.org/packages/apeglm/) package. Shrunken
-  LFCs are more reliable for ranking genes and for visualisation because
-  they pull noisy, high-variance estimates (typically from low-count
-  genes) towards zero. P-values and FDR are not affected – they always
-  come from `results()`. Default is `FALSE` (MLE fold changes are
-  returned), but `TRUE` is strongly recommended for any result used in a
-  figure or table.
+  Logical; only applies to `test_method = "deseq"`. Raw (MLE)
+  fold-change estimates from DESeq2 can be unrealistically large for
+  genes with very few reads, making them noisy to rank or plot. Setting
+  `shrink.lfc = TRUE` corrects this by applying empirical Bayes
+  shrinkage via `DESeq2::lfcShrink(type = "apeglm")` (requires the
+  `apeglm` package): estimates from low-count genes are pulled towards
+  zero, giving more trustworthy rankings and cleaner volcano plots.
+  P-values and FDR are not affected — they always come from `results()`.
+  Default is `FALSE`, but `TRUE` is strongly recommended for any result
+  used in a figure or table.
 
 - return_long:
 
@@ -336,6 +338,16 @@ ptrap_de(
 
   Logical. If `TRUE`, returns a `kableExtra` HTML table of the top
   `ngenes.out` genes instead of the full tibble. Default is `FALSE`.
+
+- filter:
+
+  Logical. If `TRUE` (default), low-expression genes are removed using
+  [`edgeR::filterByExpr()`](https://rdrr.io/pkg/edgeR/man/filterByExpr.html)
+  before fitting any model. This is appropriate for raw count matrices.
+  Set `filter = FALSE` when passing a pre-normalised matrix (e.g., RPKM,
+  TPM) via `norm.method = "none"`, because `filterByExpr` expects
+  integer counts and will incorrectly discard genes whose normalised
+  values fall below the count threshold.
 
 ## Value
 
