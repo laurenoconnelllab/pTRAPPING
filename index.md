@@ -35,93 +35,82 @@ automatically.
 
 ## Quick start
 
-The package ships with real PhosphoTRAP data from [Tan et al. (2016)
-*Cell* 167:47–59](https://doi.org/10.1016/j.cell.2016.08.028), a
-landmark study identifying warm-sensitive neurons in the mouse preoptic
-hypothalamus. Mice were exposed to 37 °C, their activated neurons
-captured by phospho-S6 immunoprecipitation, and the IP fraction
-sequenced alongside total INPUT RNA to find which genes are translated
-in warm-activated cells.
-
 ``` r
 
 library(pTRAPPING)
 
-# Load the pre-normalised RPKM matrix (already RPKM; norm.method = "none")
-counts <- read.delim(
-  system.file("extdata", "TAN_etal_2016_RPKM.txt", package = "pTRAPPING")
+# Load counts matrix
+counts.mat <- read.delim(
+  system.file("extdata", "TAN_etal_2016_raw.txt", package = "pTRAPPING")
 )
 
-# Differential expression: which genes are enriched in IP vs INPUT
-# for the PACAP (warm-exposed) group?
-res_PACAP <- ptrap_de(
-  counts_mat     = counts,
+# Table of differentially expressed genes of interest for one condition using the default method "LRT" from edgeR
+ptrap_de(
+  counts_mat = counts.mat,
   treatment_name = "PACAP",
-  test_method    = "paired.ttest",
-  norm.method    = "none",
-  input_level    = "Input",
-  filter         = FALSE
+  kable.out = TRUE,
+  genes.filter = c(
+    "Adcyap1",
+    "Bdnf",
+    "Ucn3",
+    "Gng8",
+    "Fosl2",
+    "Junb",
+    "Trappc12",
+    "Gfap"
+  )
 )
-
-head(res_PACAP$results[, c("Gene", "logFC", "PValue", "FDR", "diffexpressed")])
-#> # A tibble: 6 × 5
-#>   Gene     logFC   PValue   FDR diffexpressed
-#>   <chr>    <dbl>    <dbl> <dbl> <chr>        
-#> 1 Birc5   -0.567 0        0     NO           
-#> 2 Dhx15    0.471 0.000215 0.547 NO           
-#> 3 Tbc1d13 -0.369 0.000231 0.547 NO           
-#> 4 Tm2d2    0.110 0.000320 0.547 NO           
-#> 5 Sox3    -1.04  0.000464 0.547 NO           
-#> 6 Elof1    0.905 0.000560 0.547 NO
 ```
+
+| Gene     |  logFC | logCPM |     LR | PValue  | FDR     | treatment | diffexpressed |
+|:---------|-------:|-------:|-------:|:--------|:--------|:----------|:--------------|
+| Gng8     |  4.056 |  5.578 | 41.232 | \<0.001 | \<0.001 | PACAP     | UP            |
+| Ucn3     |  3.948 |  5.218 | 25.888 | \<0.001 | \<0.001 | PACAP     | UP            |
+| Bdnf     |  4.336 |  3.090 | 23.351 | \<0.001 | \<0.001 | PACAP     | UP            |
+| Gfap     | -2.979 |  5.086 | 10.697 | 0.001   | 0.028   | PACAP     | DOWN          |
+| Trappc12 | -3.350 |  1.809 | 10.479 | 0.001   | 0.030   | PACAP     | DOWN          |
+| Fosl2    |  0.781 |  6.990 |  3.988 | 0.046   | 0.266   | PACAP     | NO            |
+| Adcyap1  |  1.516 |  3.665 |  2.691 | 0.101   | 0.387   | PACAP     | NO            |
+| Junb     |  0.757 |  4.568 |  1.343 | 0.247   | 0.597   | PACAP     | NO            |
 
 ``` r
 
-# Volcano plot — label a few known warm-sensitive markers
-ptrap_volcano(
-  res_PACAP$results,
-  fdr         = FALSE,
-  log_base    = 2,
-  genes.annot = c("Adcyap1", "Bdnf", "Ucn3", "Gng8"),
-  title       = "Warm-exposed neurons (PACAP) — Preoptic Area"
-)
+# Volcano plot — label a few genes of interest
+ptrap_de(
+  counts_mat = counts.mat,
+  treatment_name = "PACAP"
+) |>
+  ptrap_volcano(
+    genes.annot = c(
+      "Adcyap1",
+      "Bdnf",
+      "Ucn3",
+      "Gng8",
+      "Fosl2",
+      "Junb",
+      "Trappc12",
+      "Gfap"
+    ),
+    title = "PACAP"
+  )
 ```
 
-![Volcano plot of IP vs INPUT enrichment for warm-exposed (PACAP)
-neurons. Known warm-sensitive markers Adcyap1, Bdnf, Ucn3, and Gng8 are
-labeled.](reference/figures/README-quick-volcano-1.png)
-
-> **Note on replicates:** this dataset has only n = 2 per group, so
-> dispersion estimates from GLM-based methods (LRT, QLF, voom, DESeq2)
-> are unreliable. The paired t-test used above is appropriate for small
-> n and is the approach used in the original paper. For typical
-> experiments with ≥ 3–4 replicates, `test_method = "LRT"` is the
-> recommended default.
+![Volcano plot of IP vs INPUT enrichment in
+PACAP](reference/figures/README-quick-volcano-1.png)
 
 ## Learn more
 
 - **Full walkthrough:**
   [`vignette("getting-started", package = "pTRAPPING")`](https://laurenoconnelllab.github.io/pTRAPPING/articles/getting-started.md)
-- **Reference docs:** <https://laurenoconnelllab.github.io/pTRAPPING/>
-- **Report a bug:**
-  <https://github.com/laurenoconnelllab/pTRAPPING/issues>
 
-## Citation
-
-If you use pTRAPPING in your work, please cite:
-
-> Rodríguez, C. (2024). *pTRAPPING: A Suite of Functions for the
-> Analysis of PhosphoTRAP Data in R.* R package version 0.0.0.9000.
-> <https://github.com/laurenoconnelllab/pTRAPPING>
-
-The example dataset is from:
+- The example dataset is from:
 
 > Tan, C.L., Cooke, E.K., Leib, D.E., Lin, Y.-C., Daly, G.E., Zimmerman,
 > C.A., and Knight, Z.A. (2016). Warm-sensitive neurons that control
 > body temperature. *Cell* 167, 47–59.
 > <https://doi.org/10.1016/j.cell.2016.08.028>
 
-The PhosphoTRAP method was introduced in:
+- The PhosphoTRAP method was introduced in:
 
 > Knight, Z.A., Tan, K., Birsoy, K., Schmidt, S., Garrison, J.L.,
 > Wysocki, R.W., Emiliano, A., Ekstrand, M.I., and Friedman, J.M.

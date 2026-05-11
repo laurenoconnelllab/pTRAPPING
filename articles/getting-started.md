@@ -36,15 +36,9 @@ Throughout this vignette we use data from [Tan et al. (2016) *Cell* 167,
 47–59](https://doi.org/10.1016/j.cell.2016.08.028), a landmark
 PhosphoTRAP study that identified **warm-sensitive neurons** in the
 mouse preoptic area (POA) of the hypothalamus — the brain region that
-controls body temperature.
-
-Mice were briefly exposed to warmth (37 °C). Neurons that fired in
-response had their ribosomes phosphorylated, which were then isolated by
-immunoprecipitation. Two groups of mice were compared:
-
-- **PACAP** — warm-exposed mice (their warm-activated neurons were
-  captured)
-- **BDNF** — baseline control mice
+controls body temperature. Mice were briefly exposed to warmth (37 °C).
+Neurons that fired in response had their ribosomes phosphorylated, which
+were then isolated by immunoprecipitation (PhosphoTRAP!!).
 
 Each group has **2 biological replicates** (2 mice), giving 8 samples
 total: 4 for PACAP (2 IP + 2 INPUT) and 4 for BDNF (2 IP + 2 INPUT).
@@ -69,7 +63,7 @@ counts_rpkm <- read.delim(
   system.file("extdata", "TAN_etal_2016_RPKM.txt", package = "pTRAPPING")
 )
 
-dim(counts_raw)   # 8862 genes × 9 columns (1 gene-ID + 8 samples)
+dim(counts_raw) # 8862 genes × 9 columns (1 gene-ID + 8 samples)
 #> [1] 8863    9
 names(counts_raw) # column names encode treatment, fraction, and replicate
 #> [1] "Gene"          "PACAP_Input_1" "PACAP_IP_1"    "PACAP_Input_2"
@@ -164,7 +158,7 @@ res_PACAP <- ptrap_de(
   test_method = "paired.ttest",
   norm.method = "none",
   input_level = "Input", # matches "Input" (not "INPUT") in the column names
-  filter = FALSE          # skip count-based filtering; data are pre-normalised
+  filter = FALSE # skip count-based filtering; data are pre-normalised
 )
 ```
 
@@ -407,8 +401,8 @@ Pass a `colors` vector using those names:
 ``` r
 
 ptrap_volcano2(
-  res_PACAP$results,
   res_BDNF$results,
+  res_PACAP$results,
   fdr = FALSE,
   colors = c(
     "DE in both" = "#D55E00",
