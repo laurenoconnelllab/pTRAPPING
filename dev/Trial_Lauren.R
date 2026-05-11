@@ -387,7 +387,7 @@ parsing3 |>
 parsing4 <- read_tsv("dev/parser_examples/parsing4.txt")
 
 parsing4 |>
-  ptrap_de(treatment_name = "a", region_name = "POA")
+  ptrap_de(treatment_name = "a", region_name = "STR")
 
 
 ## test method
@@ -406,7 +406,11 @@ tan_raw |>
 
 ###__________ Deseq2 pipeline_________##
 tan_raw |>
-  ptrap_de(treatment_name = "PACAP", test_method = "deseq") |>
+  ptrap_de(
+    treatment_name = "PACAP",
+    test_method = "deseq",
+    shrink.lfc = TRUE
+  ) |>
   ptrap_volcano(genes.annot = c("Pwwp2a"))
 
 

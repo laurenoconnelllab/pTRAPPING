@@ -14,6 +14,7 @@ Depends: R (>= 4.1.0)
 Imports:
     ggrepel,
     rlang,
+    cli,
     edgeR,
     limma,
     DESeq2,
@@ -26,6 +27,8 @@ URL: https://github.com/laurenoconnelllab/pTRAPPING, https://laurenoconnelllab.g
 BugReports: https://github.com/laurenoconnelllab/pTRAPPING/issues
 Suggests:
     apeglm,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    rmarkdown
+VignetteBuilder: knitr
 Config/roxygen2/version: 8.0.0
 Config/testthat/edition: 3

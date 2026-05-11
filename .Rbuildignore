@@ -6,3 +6,11 @@
 ^docs$
 ^pkgdown$
 ^\.github$
+^\.claude$
+^\.vscode$
+^dev$
+^data-raw$
+^fix2\.py$
+^fix_ptrap_de\.py$
+^pTRAPPING_function_reference\.docx$
+^~\$RAPPING_function_reference\.docx$

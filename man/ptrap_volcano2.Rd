@@ -2,7 +2,7 @@
 % Please edit documentation in R/ptrap_volcano2.R
 \name{ptrap_volcano2}
 \alias{ptrap_volcano2}
-\title{Dual volcano plot comparing two treatment conditions from TRAP-seq DE results}
+\title{Compare IP enrichment across two treatment conditions in a single scatter plot}
 \usage{
 ptrap_volcano2(
   de_result_1,
@@ -52,7 +52,8 @@ Used to set the default plot title. Default is \code{"BrainRegion"}.}
 
 \item{colors}{A named character vector mapping each DE class to a colour.
 Names must be \code{"DE in both"}, \code{"DE only <t1>"}, and \code{"DE only <t2>"},
-where \verb{<t1>} / \verb{<t2>} are the treatment names found in the data.
+where \verb{<t1>} / \verb{<t2>} are the treatment names found in the data (e.g.,
+\code{"DE only pb"} and \code{"DE only sol"}). See the examples for a template.
 If \code{NULL} (default), a colourblind-friendly palette is used.}
 
 \item{point_size}{Size of the points. Default is \code{3.5}.}
@@ -76,18 +77,29 @@ extracted from \code{de_result_1} is used.}
 A \code{\link[ggplot2:ggplot]{ggplot2::ggplot()}} object.
 }
 \description{
-Takes two tibbles produced by \code{\link[=ptrap_de]{ptrap_de()}} — one per treatment
-condition, both from the same brain region — joins them by gene, classifies
-each gene according to its differential expression status in each condition,
-and returns a scatter plot of
-logFC\eqn{_{\text{treatment 1}}} vs logFC\eqn{_{\text{treatment 2}}}.
-Significant genes are highlighted and labelled; threshold lines are drawn at
-±\code{lfc_threshold} on both axes.
+When you have run \code{\link[=ptrap_de]{ptrap_de()}} for two treatment groups (e.g.,
+pair-bonded and non-bonded animals) in the same brain region, looking at
+two separate volcano plots makes it hard to see which genes behave similarly
+or differently across conditions. This function places both results on a
+single 2D scatter: the logFC (IP vs. input) of condition 1 on the y-axis
+and condition 2 on the x-axis. Each point is one gene.
 }
 \details{
-Significance can be assessed using either FDR-adjusted p-values (\code{fdr = TRUE}, default) or raw p-values (\code{fdr = FALSE}). In both cases the cutoff
-is \code{fdr_threshold} and the classification is computed inside this function
-from the supplied thresholds.
+Reading the plot:
+\itemize{
+\item Genes near the \strong{diagonal} (y = x dotted line) are equally enriched in
+both conditions.
+\item Genes \strong{above} the diagonal are more enriched in condition 1; genes
+\strong{below} are more enriched in condition 2.
+\item Genes that pass the fold-change and p-value thresholds in \strong{both}
+conditions, or in only \strong{one}, are highlighted in distinct colours.
+Genes that fail in both are shown in grey.
+}
+
+Significance uses FDR-adjusted p-values by default (\code{fdr = TRUE}); set
+\code{fdr = FALSE} to use raw p-values instead. The DE classification is
+recomputed inside this function from the supplied thresholds, so you can
+explore different cutoffs without re-running \code{ptrap_de()}.
 }
 \examples{
 \dontrun{

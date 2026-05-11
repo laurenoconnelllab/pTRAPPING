@@ -1,17 +1,25 @@
-#' Dual volcano plot comparing two treatment conditions from TRAP-seq DE results
+#' Compare IP enrichment across two treatment conditions in a single scatter plot
 #'
-#' Takes two tibbles produced by [pTRAPPING::ptrap_de()] — one per treatment
-#' condition, both from the same brain region — joins them by gene, classifies
-#' each gene according to its differential expression status in each condition,
-#' and returns a scatter plot of
-#' logFC\eqn{_{\text{treatment 1}}} vs logFC\eqn{_{\text{treatment 2}}}.
-#' Significant genes are highlighted and labelled; threshold lines are drawn at
-#' ±`lfc_threshold` on both axes.
+#' When you have run [pTRAPPING::ptrap_de()] for two treatment groups (e.g.,
+#' pair-bonded and non-bonded animals) in the same brain region, looking at
+#' two separate volcano plots makes it hard to see which genes behave similarly
+#' or differently across conditions. This function places both results on a
+#' single 2D scatter: the logFC (IP vs. input) of condition 1 on the y-axis
+#' and condition 2 on the x-axis. Each point is one gene.
 #'
-#' Significance can be assessed using either FDR-adjusted p-values (`fdr =
-#' TRUE`, default) or raw p-values (`fdr = FALSE`). In both cases the cutoff
-#' is `fdr_threshold` and the classification is computed inside this function
-#' from the supplied thresholds.
+#' Reading the plot:
+#' * Genes near the **diagonal** (y = x dotted line) are equally enriched in
+#'   both conditions.
+#' * Genes **above** the diagonal are more enriched in condition 1; genes
+#'   **below** are more enriched in condition 2.
+#' * Genes that pass the fold-change and p-value thresholds in **both**
+#'   conditions, or in only **one**, are highlighted in distinct colours.
+#'   Genes that fail in both are shown in grey.
+#'
+#' Significance uses FDR-adjusted p-values by default (`fdr = TRUE`); set
+#' `fdr = FALSE` to use raw p-values instead. The DE classification is
+#' recomputed inside this function from the supplied thresholds, so you can
+#' explore different cutoffs without re-running `ptrap_de()`.
 #'
 #' @param de_result_1 A tibble returned by [pTRAPPING::ptrap_de()] for the
 #'   **first** treatment condition (plotted on the **y-axis**).
@@ -35,7 +43,8 @@
 #'   Used to set the default plot title. Default is `"BrainRegion"`.
 #' @param colors A named character vector mapping each DE class to a colour.
 #'   Names must be `"DE in both"`, `"DE only <t1>"`, and `"DE only <t2>"`,
-#'   where `<t1>` / `<t2>` are the treatment names found in the data.
+#'   where `<t1>` / `<t2>` are the treatment names found in the data (e.g.,
+#'   `"DE only pb"` and `"DE only sol"`). See the examples for a template.
 #'   If `NULL` (default), a colourblind-friendly palette is used.
 #' @param point_size Size of the points. Default is `3.5`.
 #' @param point_alpha Opacity of the coloured (significant) points.
@@ -111,7 +120,7 @@ ptrap_volcano2 <- function(
 
   # --- default colourblind-friendly palette -----------------------------------
   if (is.null(colors)) {
-    colors <- c("#D55E00", "#0072B2", "#009E73")
+    colors <- c("#0072b2", "#E69f00", "#009e73")
     names(colors) <- c(class_both, class_only1, class_only2)
   }
 

@@ -100,12 +100,22 @@
   block <- parts[block_idx[1L]]
   treatment <- paste(parts[treat_idx], collapse = "")
 
-  list(sample = nm, treatment = treatment, block = block, fraction = fraction, region = region)
+  list(
+    sample = nm,
+    treatment = treatment,
+    block = block,
+    fraction = fraction,
+    region = region
+  )
 }
 
 # Build a tibble of sample metadata by parsing every column name.
-.build_sample_df_from_cols <- function(col_names, ip_level, input_level,
-                                       region_names = NULL) {
+.build_sample_df_from_cols <- function(
+  col_names,
+  ip_level,
+  input_level,
+  region_names = NULL
+) {
   parsed <- lapply(
     col_names,
     .parse_one_sample,
@@ -114,10 +124,10 @@
     region_names = region_names
   )
   result <- tibble::tibble(
-    sample    = vapply(parsed, `[[`, character(1L), "sample"),
+    sample = vapply(parsed, `[[`, character(1L), "sample"),
     treatment = vapply(parsed, `[[`, character(1L), "treatment"),
-    block     = vapply(parsed, `[[`, character(1L), "block"),
-    fraction  = vapply(parsed, `[[`, character(1L), "fraction")
+    block = vapply(parsed, `[[`, character(1L), "block"),
+    fraction = vapply(parsed, `[[`, character(1L), "fraction")
   )
   regions <- vapply(parsed, `[[`, character(1L), "region")
   if (any(!is.na(regions))) {
@@ -155,52 +165,55 @@
 #' @title Differential expression analysis for PhosphoTRAP data
 #'
 #' @description
-#' Compares IP vs INPUT fractions for a specified treatment condition using
-#' one of six statistical approaches (see `test_method`). Both `sample_df`
-#' and `gene_ids` are optional: the function can derive sample metadata
-#' automatically from the column names of `counts_mat`, and gene identifiers
-#' from its first column.
+#' In PhosphoTRAP and TRAP-seq experiments, RNA from a target cell population
+#' is physically isolated by immunoprecipitation — the **IP** fraction. Each
+#' sample also provides an **INPUT**: total RNA before the pulldown, serving as
+#' the background reference. `ptrap_de()` asks: **which genes are enriched (or
+#' depleted) in the IP fraction relative to input?** A positive log2 fold
+#' change (logFC > 0) means a gene's RNA is more abundant in the IP; a
+#' negative logFC means it is less abundant.
 #'
-#' * `"LRT"` and `"QLF"` use edgeR's GLM framework with a multi-factor
-#'   design (`~ fraction + block`), accounting for the paired animal structure
-#'   via the blocking variable. Both methods automatically apply **edgeR's TMM
-#'   (trimmed mean of M values) normalization** via `normLibSizes()`, which
-#'   adjusts effective library sizes (not the count matrix itself) for use in
-#'   the GLM as offsets. `norm.method` is not applicable and is ignored.
-#'   Recommended with **4 or more replicates** and raw count data.
-#' * `"deseq"` uses the **DESeq2** pipeline with a multi-factor design
-#'   (`~ block + fraction`; fraction goes last so `results()` auto-tests it).
-#'   DESeq2 applies the **median of ratios normalization** internally via
-#'   `DESeq()`. `norm.method` is not applicable and is ignored. Recommended
-#'   when you prefer the negative-binomial shrinkage estimators of DESeq2 over
-#'   edgeR. **Important:** by default, `logFC` is the **maximum likelihood
-#'   estimate (MLE)** from `results()`, which can be noisy and large in
-#'   magnitude for low-count genes. Set `shrink.lfc = TRUE` to apply
-#'   empirical Bayes LFC shrinkage via `lfcShrink()` (requires the
-#'   `apeglm` package), which is strongly recommended before ranking genes
-#'   or producing volcano plots for publication.
-#' * `"voom"` uses the **limma-voom** pipeline with a paired design
-#'   (`~ fraction + block`) and empirical Bayes moderation. Voom internally
-#'   transforms counts to **log2-CPM** (using TMM-adjusted library sizes) and
-#'   derives **precision weights** from the mean-variance trend; these two
-#'   steps are integral to the method. `norm.method` is not applicable and is
-#'   ignored.
-#' * `"paired.ttest"` runs a per-gene **paired t-test between IP and INPUT**
-#'   values across the experimental repeats, following Tan et al. (2016)
-#'   *Cell* 167, 47-59 \doi{10.1016/j.cell.2016.08.028}: *"p value for each
-#'   gene was calculated as the paired t-test between input and
-#'   immunoprecipitated RPKM values from the three experimental repeats."*
-#'   The count scale for the test is controlled by `norm.method` (Tan et al.
-#'   used `"RPKM"`; all three options are valid; default is `"CPM"`). `logFC`
-#'   is reported as \eqn{\log_2(\bar{\mathrm{IP}} / \bar{\mathrm{INPUT}})}.
-#'   Recommended for PhosphoTRAP experiments with **3 replicates**, where
-#'   GLM-based dispersion estimates are unreliable.
-#' * `"unpaired.ttest"` compares **fold enrichments (IP/INPUT) between two
-#'   treatment groups** using a Welch (unpaired) t-test on per-animal log2(FE)
-#'   values. Use this to test whether ribosomal association differs between
-#'   conditions. Requires exactly two treatments; use `treatment_name` and
-#'   `control_name` to specify which is which. The count scale is controlled
-#'   by `norm.method` (default is `"CPM"`; all three options are valid).
+#' Six statistical methods are available via `test_method`. The right choice
+#' depends on your replicate count and experimental question:
+#'
+#' * `"LRT"` and `"QLF"` use **edgeR**'s generalized linear model (GLM)
+#'   framework with a design that pairs each animal's IP with its own input
+#'   (`~ fraction + block`). Both apply **TMM normalization** (trimmed mean of
+#'   M values) internally, which corrects for differences in sample composition
+#'   by rescaling effective library sizes rather than the count matrix itself.
+#'   `"QLF"` is more conservative than `"LRT"`. `norm.method` is not
+#'   applicable and is ignored. Recommended with **4 or more replicates** and
+#'   raw count data.
+#' * `"deseq"` uses the **DESeq2** pipeline with the same paired design
+#'   (`~ block + fraction`). Normalization (median of ratios) is handled
+#'   internally; `norm.method` is ignored. **Important:** by default, `logFC`
+#'   is the raw maximum-likelihood estimate (MLE), which can appear
+#'   unrealistically large for genes with very few reads. Set `shrink.lfc =
+#'   TRUE` to pull these noisy estimates towards zero — strongly recommended
+#'   before ranking genes or producing publication figures.
+#' * `"voom"` uses the **limma-voom** pipeline, which bridges count data and
+#'   linear models: it converts counts to log2-CPM and assigns each observation
+#'   a precision weight based on its mean-variance relationship, then fits a
+#'   linear model with empirical Bayes moderation. `norm.method` is not
+#'   applicable and is ignored.
+#' * `"paired.ttest"` runs a per-gene **paired t-test** between IP and INPUT
+#'   values, treating each animal like a matched before/after measurement. This
+#'   is the approach from Tan et al. (2016) *Cell* 167, 47–59
+#'   \doi{10.1016/j.cell.2016.08.028}, who used `"RPKM"` normalization; the
+#'   default here is `"CPM"`. Recommended for **3-replicate** experiments,
+#'   where GLM-based methods struggle to estimate variability reliably.
+#'   `logFC` is \eqn{\log_2(\bar{\mathrm{IP}} / \bar{\mathrm{INPUT}})}.
+#' * `"unpaired.ttest"` answers a *different question* than the other methods:
+#'   not "is IP enriched over input?" but "does the *degree* of enrichment
+#'   differ between two treatment groups (e.g., pair-bonded vs. non-bonded
+#'   animals)?" It runs a per-gene Welch t-test on per-animal log2(IP/INPUT)
+#'   fold enrichment values. Requires exactly two treatments; use
+#'   `treatment_name` and `control_name` to specify which is which. Count
+#'   scale is controlled by `norm.method`.
+#'
+#' Both `sample_df` and `gene_ids` are optional: sample metadata can be parsed
+#' automatically from column names of `counts_mat`, and gene IDs from its first
+#' column or row names.
 #'
 #' @section Automatic column-name parsing:
 #' When `sample_df = NULL`, the column names of `counts_mat` (excluding the
@@ -295,11 +308,13 @@
 #'   internally). Default is `"sample"`.
 #' @param fraction_col Name of the column in `sample_df` that distinguishes IP
 #'   from INPUT fractions. Default is `"fraction"`.
-#' @param block_col Name of the column in `sample_df` used as the blocking /
-#'   pairing variable (e.g., individual animal or tube). For `"LRT"` / `"QLF"`,
-#'   `"deseq"`, and `"voom"` it enters the design matrix; for `"paired.ttest"`
-#'   and `"unpaired.ttest"` it aligns each animal's IP with its own INPUT.
-#'   Default is `"tube"`.
+#' @param block_col Name of the column in `sample_df` that identifies which IP
+#'   and INPUT samples come from the **same animal** (the blocking / pairing
+#'   variable, e.g., tube ID or animal number). Linking each IP to its own
+#'   input control — like a matched before/after comparison within a subject —
+#'   removes animal-to-animal variability from the test. For GLM-based methods
+#'   (`"LRT"`, `"QLF"`, `"deseq"`, `"voom"`) it enters the design formula; for
+#'   t-test methods it aligns paired samples by position. Default is `"tube"`.
 #' @param region_col Name of the column in `sample_df` containing brain region
 #'   labels (e.g., `"BrainRegion"`). When `NULL` (default) and `region_name`
 #'   is supplied, the column is auto-detected (see `region_name`). Set
@@ -314,60 +329,57 @@
 #' @param covariates Optional character vector of covariate names to include in
 #'   the design formula. Default is `NULL`.
 #' @param lfc_threshold Minimum absolute log2 fold change required to classify
-#'   a gene as differentially expressed. Default is `1`.
-#' @param fdr_threshold Maximum FDR (or adjusted p-value) allowed to classify
-#'   a gene as differentially expressed. Default is `0.05`.
-#' @param test_method Statistical method to use. One of:
-#'   * `"LRT"` -- edgeR likelihood ratio test via `glmFit` + `glmLRT`
-#'     (default). TMM normalisation is applied internally; `norm.method` is
-#'     not applicable. Suitable for >= 4 replicates and raw count data.
-#'   * `"QLF"` -- edgeR quasi-likelihood F-test via `glmQLFit` + `glmQLFTest`.
-#'     TMM normalisation is applied internally; `norm.method` is not
-#'     applicable. More conservative than `"LRT"`.
-#'   * `"deseq"` -- DESeq2 pipeline with a multi-factor design
-#'     (`~ block + fraction`). Median of ratios normalisation is applied
-#'     internally by `DESeq()`; `norm.method` is not applicable. Results
-#'     obtained via `results(dds, name = "fraction_IP_vs_INPUT")`. `logFC`
-#'     is MLE by default; use `shrink.lfc = TRUE` for shrunken estimates.
-#'   * `"voom"` -- limma-voom pipeline with a paired design
-#'     (`~ fraction + block`) and empirical Bayes moderation via
-#'     `lmFit` + `eBayes` + `topTable`. Log2-CPM transformation and voom
-#'     precision weights are applied internally; `norm.method` is not
-#'     applicable.
-#'   * `"paired.ttest"` -- per-gene paired t-test between IP and INPUT values
-#'     across replicates, following Tan et al. (2016). The count scale is
-#'     controlled by `norm.method` (default `"CPM"`; Tan et al. used
-#'     `"RPKM"`). Best suited for n = 3 replicates. P-values adjusted with BH.
-#'   * `"unpaired.ttest"` -- per-gene Welch unpaired t-test comparing log2(FE)
-#'     values between two treatment groups. The count scale is controlled by
-#'     `norm.method` (default `"CPM"`). Requires exactly two treatments; use
-#'     `treatment_name` and `control_name` to specify which group is which.
-#' @param norm.method Count normalisation method used by the t-test branches
-#'   (`"paired.ttest"` and `"unpaired.ttest"`). Ignored for `"LRT"`, `"QLF"`,
-#'   `"voom"`, and `"deseq"`, which each handle normalisation internally (a
-#'   message is shown if you explicitly supply `norm.method` for those
-#'   methods). Default is `"CPM"`. One of:
-#'   * `"CPM"` (default) -- counts per million, computed from edgeR's
-#'     TMM-adjusted effective library sizes (`lib.size x norm.factors`) via
-#'     `edgeR::cpm()`. Because TMM adjusts *effective library sizes* rather
-#'     than the count matrix directly, CPM values here reflect both
-#'     sequencing depth and TMM normalisation. Suitable for comparisons
-#'     between replicates of the same sample group.
-#'   * `"RPKM"` -- reads per kilobase per million: CPM further divided by gene
-#'     length in kilobases, via `edgeR::rpkm()`. Requires `gene.length`.
-#'     Suitable for within-sample comparisons between genes (the scale used
-#'     by Tan et al. 2016 for PhosphoTRAP). **Not** recommended for
+#'   a gene as differentially expressed. A threshold of `1` means a gene must
+#'   be at least 2× more (or less) abundant in IP vs. input. Default is `1`.
+#' @param fdr_threshold Maximum FDR (false discovery rate — the expected
+#'   proportion of significant findings that are false alarms, adjusted for
+#'   multiple testing) allowed to classify a gene as differentially expressed.
+#'   Default is `0.05`.
+#' @param test_method Statistical method to use. See `@description` for a
+#'   full explanation of each. One of:
+#'   * `"LRT"` (default) — edgeR likelihood ratio test (`glmFit` +
+#'     `glmLRT`). Recommended for >= 4 replicates and raw count data. TMM
+#'     normalisation applied internally; `norm.method` ignored.
+#'   * `"QLF"` — edgeR quasi-likelihood F-test (`glmQLFit` + `glmQLFTest`).
+#'     More conservative than `"LRT"`. TMM normalisation applied internally;
+#'     `norm.method` ignored.
+#'   * `"deseq"` — DESeq2 pipeline (`~ block + fraction`). Median-of-ratios
+#'     normalisation applied internally; `norm.method` ignored. `logFC` is MLE
+#'     by default; use `shrink.lfc = TRUE` for publication-ready estimates.
+#'   * `"voom"` — limma-voom pipeline (`~ fraction + block`) with empirical
+#'     Bayes moderation (`lmFit` + `eBayes` + `topTable`). Log2-CPM
+#'     transformation and precision weights applied internally; `norm.method`
+#'     ignored.
+#'   * `"paired.ttest"` — per-gene paired t-test (IP vs. INPUT across
+#'     replicates). Best for n = 3 replicates. Count scale set by
+#'     `norm.method` (default `"CPM"`; Tan et al. 2016 used `"RPKM"`).
+#'     P-values adjusted with Benjamini-Hochberg (BH).
+#'   * `"unpaired.ttest"` — per-gene Welch t-test comparing log2(IP/INPUT)
+#'     between two treatment groups. Count scale set by `norm.method`. Requires
+#'     exactly two treatments (set via `treatment_name` and `control_name`).
+#' @param norm.method Count normalisation method used only by the t-test
+#'   branches (`"paired.ttest"` and `"unpaired.ttest"`). Ignored for `"LRT"`,
+#'   `"QLF"`, `"voom"`, and `"deseq"`, which each handle normalisation
+#'   internally (a message is shown if you set this for those methods). The
+#'   goal of normalisation is to make counts comparable across samples by
+#'   accounting for differences in sequencing depth and library composition.
+#'   Default is `"CPM"`. One of:
+#'   * `"CPM"` (default) — counts per million, scaled by TMM-adjusted library
+#'     sizes via `edgeR::cpm()`. Suitable for comparing the same gene across
+#'     replicates of the same group.
+#'   * `"RPKM"` — CPM divided by gene length in kilobases, via
+#'     `edgeR::rpkm()`. Requires `gene.length`. This was the scale used by
+#'     Tan et al. 2016 for PhosphoTRAP. Useful for within-sample comparisons
+#'     between genes of different lengths, but **not** recommended for
 #'     between-sample comparisons.
-#'   * `"mratios"` -- DESeq2 **median of ratios** normalisation, computed via
-#'     `estimateSizeFactors()` and retrieved with `counts(dds, normalized = TRUE)`.
-#'     Unlike CPM, this method directly rescales the count matrix by
-#'     sample-specific size factors, making it suitable for between-sample
-#'     comparisons. Use this when you want DESeq2-style normalisation for the
-#'     t-test without running the full DESeq2 pipeline.
-#'   * `"none"` -- no normalisation is applied; the count matrix is used
-#'     as supplied. Intended for pre-normalised matrices (e.g., TPM, FPKM,
-#'     or any user-normalised values) where an additional normalisation step
-#'     would be redundant or distorting.
+#'   * `"mratios"` — DESeq2 median-of-ratios normalisation: each sample's
+#'     counts are divided by a size factor estimated from the geometric mean
+#'     of all genes. This directly rescales the count matrix and is suitable
+#'     for between-sample comparisons. Use when you want DESeq2-style
+#'     normalisation without running the full DESeq2 pipeline.
+#'   * `"none"` — no normalisation; the count matrix is used as supplied.
+#'     For pre-normalised inputs (e.g., TPM, FPKM) where an additional
+#'     normalisation step would be redundant.
 #' @param gene.length Named numeric vector of gene lengths in base pairs
 #'   (names must match gene IDs). Required when `norm.method = "RPKM"`;
 #'   ignored otherwise. Default is `NULL`.
@@ -376,14 +388,14 @@
 #'   to avoid log(0). Default is `1`. Set to `0` if values are already
 #'   normalised and guaranteed positive. Used only by `"paired.ttest"` and
 #'   `"unpaired.ttest"`.
-#' @param shrink.lfc Logical. Only used when `test_method = "deseq"`. If
-#'   `TRUE`, log2 fold changes are shrunk using empirical Bayes estimation via
-#'   `DESeq2::lfcShrink(type = "apeglm")`, which requires the
-#'   [apeglm](https://bioconductor.org/packages/apeglm/) package. Shrunken
-#'   LFCs are more reliable for ranking genes and for visualisation because
-#'   they pull noisy, high-variance estimates (typically from low-count genes)
-#'   towards zero. P-values and FDR are not affected -- they always come from
-#'   `results()`. Default is `FALSE` (MLE fold changes are returned), but
+#' @param shrink.lfc Logical; only applies to `test_method = "deseq"`. Raw
+#'   (MLE) fold-change estimates from DESeq2 can be unrealistically large for
+#'   genes with very few reads, making them noisy to rank or plot. Setting
+#'   `shrink.lfc = TRUE` corrects this by applying empirical Bayes shrinkage
+#'   via `DESeq2::lfcShrink(type = "apeglm")` (requires the `apeglm`
+#'   package): estimates from low-count genes are pulled towards zero, giving
+#'   more trustworthy rankings and cleaner volcano plots. P-values and FDR are
+#'   not affected — they always come from `results()`. Default is `FALSE`, but
 #'   `TRUE` is strongly recommended for any result used in a figure or table.
 #' @param return_long Logical. Only used when `test_method` is
 #'   `"paired.ttest"` or `"unpaired.ttest"`. If `TRUE`, returns a named list
@@ -398,6 +410,12 @@
 #' @param kable.out Logical. If `TRUE`, returns a `kableExtra` HTML table of
 #'   the top `ngenes.out` genes instead of the full tibble. Default is
 #'   `FALSE`.
+#' @param filter Logical. If `TRUE` (default), low-expression genes are removed
+#'   using [edgeR::filterByExpr()] before fitting any model. This is
+#'   appropriate for raw count matrices. Set `filter = FALSE` when passing a
+#'   pre-normalised matrix (e.g., RPKM, TPM) via `norm.method = "none"`,
+#'   because `filterByExpr` expects integer counts and will incorrectly discard
+#'   genes whose normalised values fall below the count threshold.
 #'
 #' @return When `kable.out = FALSE` (default), a tibble with one row per gene
 #'   sorted by p-value. Columns depend on `test_method`:
@@ -666,14 +684,23 @@ ptrap_de <- function(
 
     msg <- paste0(
       "Auto-parsed sample metadata from column names.\n",
-      "  Treatments : ", paste(sort(unique(sample_df$treatment)), collapse = ", "), "\n",
-      "  Blocks     : ", paste(sort(unique(sample_df$block)), collapse = ", "), "\n",
-      "  Fractions  : ", paste(sort(unique(sample_df$fraction)), collapse = ", ")
+      "  Treatments : ",
+      paste(sort(unique(sample_df$treatment)), collapse = ", "),
+      "\n",
+      "  Blocks     : ",
+      paste(sort(unique(sample_df$block)), collapse = ", "),
+      "\n",
+      "  Fractions  : ",
+      paste(sort(unique(sample_df$fraction)), collapse = ", ")
     )
     if ("region" %in% names(sample_df)) {
       msg <- paste0(
-        msg, "\n  Regions    : ",
-        paste(sort(unique(sample_df$region[!is.na(sample_df$region)])), collapse = ", ")
+        msg,
+        "\n  Regions    : ",
+        paste(
+          sort(unique(sample_df$region[!is.na(sample_df$region)])),
+          collapse = ", "
+        )
       )
     }
     message(msg)

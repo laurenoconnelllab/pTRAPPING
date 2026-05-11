@@ -2,7 +2,7 @@
 % Please edit documentation in R/ptrap_volcano.R
 \name{ptrap_volcano}
 \alias{ptrap_volcano}
-\title{Single volcano plot for TRAP-seq or RNA-seq differential expression results}
+\title{Single volcano plot for PhosphoTRAP / TRAP-seq differential expression results}
 \usage{
 ptrap_volcano(
   de_result,
@@ -25,15 +25,19 @@ ptrap_volcano(
 \item{de_result}{A tibble returned by \code{\link[=ptrap_de]{ptrap_de()}}. For
 \code{test_method = "paired.ttest"}, pass the \verb{$results} component.}
 
-\item{fdr}{Logical. If \code{TRUE} (default), uses \code{FDR}; if \code{FALSE}, uses \code{PValue}.}
+\item{fdr}{Logical. If \code{TRUE} (default), significance is assessed using
+\code{FDR} (false discovery rate — multiple-testing adjusted p-value); if
+\code{FALSE}, uses raw \code{PValue}.}
 
-\item{lfc_threshold}{Minimum absolute log2 fold change. Default \code{1}.}
+\item{lfc_threshold}{Minimum absolute log2 fold change for a gene to be
+coloured as DE. A value of \code{1} means at least a 2× change. Default \code{1}.}
 
-\item{fdr_threshold}{P-value cutoff. Default \code{0.05}.}
+\item{fdr_threshold}{Significance cutoff applied to the column selected by
+\code{fdr}. Default \code{0.05}.}
 
 \item{log_base}{Numeric. Base of the logarithm for the p-value axis.
-Default is \code{10} (-log10, current behaviour). Use \code{2} for -log2(p)
-as in Tan et al. (2016). Must be a positive number other than \code{1}.}
+Base 10 (default) is conventional; base 2 matches Tan et al. (2016).
+Must be a positive number other than \code{1}.}
 
 \item{gene_col}{Column name for gene identifiers. Default \code{"Gene"}.}
 
@@ -42,7 +46,7 @@ as in Tan et al. (2016). Must be a positive number other than \code{1}.}
 \item{region_col}{Column name for brain region label. Default \code{"BrainRegion"}.}
 
 \item{colors}{Named vector mapping \code{"UP"} and \code{"DOWN"} to colours.
-Default is colourblind-friendly: \code{"#D55E00"} (UP), \code{"#0072B2"} (DOWN).}
+Default is colourblind-friendly: \code{"#0072b2"} (UP), \code{"#E69f00"} (DOWN).}
 
 \item{point_size}{Size of points. Default \code{3.5}.}
 
@@ -58,16 +62,20 @@ Default is colourblind-friendly: \code{"#D55E00"} (UP), \code{"#0072B2"} (DOWN).
 A \code{\link[ggplot2:ggplot]{ggplot2::ggplot()}} object.
 }
 \description{
-Takes a single tibble produced by \code{\link[=ptrap_de]{ptrap_de()}}
-and returns a classic volcano plot (logFC on the x-axis,
--log_base(p) on the y-axis). Non-significant genes are shown in grey;
-genes classified as \code{"UP"} or \code{"DOWN"} are highlighted with distinct
-fill colours. Gene labels are added via \code{\link[ggrepel:geom_text_repel]{ggrepel::geom_text_repel()}}
-\strong{only for genes supplied in \code{genes.annot}}.
+A volcano plot puts log2 fold change (logFC, x-axis) against statistical
+significance (-log p-value, y-axis). Genes that are both strongly enriched
+\emph{and} statistically reliable appear in the upper corners — the most
+biologically meaningful candidates. Genes that fail either threshold are
+shown in grey; those that pass both are coloured by direction (\code{"UP"} for
+enriched in IP, \code{"DOWN"} for depleted).
 }
 \details{
-The DE classification is recomputed inside this function from \code{logFC},
-the chosen p-value column, and the supplied thresholds.
+Takes a single tibble from \code{\link[=ptrap_de]{ptrap_de()}} (for
+\code{test_method = "paired.ttest"}, pass the \verb{$results} component). Gene
+labels are drawn only for genes listed in \code{genes.annot}, via
+\code{\link[ggrepel:geom_text_repel]{ggrepel::geom_text_repel()}}. The DE classification is recomputed inside
+this function from the supplied thresholds, so you can explore different
+cutoffs without re-running \code{ptrap_de()}.
 }
 \examples{
 \dontrun{
