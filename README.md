@@ -38,89 +38,476 @@ automatically.
 
 ## Quick start
 
-The package ships with real PhosphoTRAP data from [Tan et al. (2016)
-*Cell* 167:47–59](https://doi.org/10.1016/j.cell.2016.08.028), a
-landmark study identifying warm-sensitive neurons in the mouse preoptic
-hypothalamus. Mice were exposed to 37 °C, their activated neurons
-captured by phospho-S6 immunoprecipitation, and the IP fraction
-sequenced alongside total INPUT RNA to find which genes are translated
-in warm-activated cells.
-
 ``` r
 library(pTRAPPING)
 
-# Load the pre-normalised RPKM matrix (already RPKM; norm.method = "none")
-counts <- read.delim(
-  system.file("extdata", "TAN_etal_2016_RPKM.txt", package = "pTRAPPING")
+# Load counts matrix
+counts.mat <- read.delim(
+  system.file("extdata", "TAN_etal_2016_raw.txt", package = "pTRAPPING")
 )
 
-# Differential expression: which genes are enriched in IP vs INPUT
-# for the PACAP (warm-exposed) group?
-res_PACAP <- ptrap_de(
-  counts_mat     = counts,
+# Table of differentially expressed genes of interest for one condition using the default method "LRT" from edgeR
+ptrap_de(
+  counts_mat = counts.mat,
   treatment_name = "PACAP",
-  test_method    = "paired.ttest",
-  norm.method    = "none",
-  input_level    = "Input",
-  filter         = FALSE
+  kable.out = TRUE,
+  genes.filter = c(
+    "Adcyap1",
+    "Bdnf",
+    "Ucn3",
+    "Gng8",
+    "Fosl2",
+    "Junb",
+    "Trappc12",
+    "Gfap"
+  )
 )
-
-head(res_PACAP$results[, c("Gene", "logFC", "PValue", "FDR", "diffexpressed")])
-#> # A tibble: 6 × 5
-#>   Gene     logFC   PValue   FDR diffexpressed
-#>   <chr>    <dbl>    <dbl> <dbl> <chr>        
-#> 1 Birc5   -0.567 0        0     NO           
-#> 2 Dhx15    0.471 0.000215 0.547 NO           
-#> 3 Tbc1d13 -0.369 0.000231 0.547 NO           
-#> 4 Tm2d2    0.110 0.000320 0.547 NO           
-#> 5 Sox3    -1.04  0.000464 0.547 NO           
-#> 6 Elof1    0.905 0.000560 0.547 NO
 ```
+
+<table data-quarto-disable-processing="true" class=" lightable-classic" style="font-family: Cambria; width: auto !important; margin-left: auto; margin-right: auto;">
+
+<thead>
+
+<tr>
+
+<th style="text-align:left;font-weight: bold;font-style: italic;">
+
+Gene
+</th>
+
+<th style="text-align:right;font-weight: bold;font-style: italic;">
+
+logFC
+</th>
+
+<th style="text-align:right;font-weight: bold;font-style: italic;">
+
+logCPM
+</th>
+
+<th style="text-align:right;font-weight: bold;font-style: italic;">
+
+LR
+</th>
+
+<th style="text-align:left;font-weight: bold;font-style: italic;">
+
+PValue
+</th>
+
+<th style="text-align:left;font-weight: bold;font-style: italic;">
+
+FDR
+</th>
+
+<th style="text-align:left;font-weight: bold;font-style: italic;">
+
+treatment
+</th>
+
+<th style="text-align:left;font-weight: bold;font-style: italic;">
+
+diffexpressed
+</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td style="text-align:left;font-weight: bold;">
+
+Gng8
+</td>
+
+<td style="text-align:right;">
+
+4.056
+</td>
+
+<td style="text-align:right;">
+
+5.578
+</td>
+
+<td style="text-align:right;">
+
+41.232
+</td>
+
+<td style="text-align:left;">
+
+\<0.001
+</td>
+
+<td style="text-align:left;">
+
+\<0.001
+</td>
+
+<td style="text-align:left;">
+
+PACAP
+</td>
+
+<td style="text-align:left;">
+
+UP
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;font-weight: bold;">
+
+Ucn3
+</td>
+
+<td style="text-align:right;">
+
+3.948
+</td>
+
+<td style="text-align:right;">
+
+5.218
+</td>
+
+<td style="text-align:right;">
+
+25.888
+</td>
+
+<td style="text-align:left;">
+
+\<0.001
+</td>
+
+<td style="text-align:left;">
+
+\<0.001
+</td>
+
+<td style="text-align:left;">
+
+PACAP
+</td>
+
+<td style="text-align:left;">
+
+UP
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;font-weight: bold;">
+
+Bdnf
+</td>
+
+<td style="text-align:right;">
+
+4.336
+</td>
+
+<td style="text-align:right;">
+
+3.090
+</td>
+
+<td style="text-align:right;">
+
+23.351
+</td>
+
+<td style="text-align:left;">
+
+\<0.001
+</td>
+
+<td style="text-align:left;">
+
+\<0.001
+</td>
+
+<td style="text-align:left;">
+
+PACAP
+</td>
+
+<td style="text-align:left;">
+
+UP
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;font-weight: bold;">
+
+Gfap
+</td>
+
+<td style="text-align:right;">
+
+-2.979
+</td>
+
+<td style="text-align:right;">
+
+5.086
+</td>
+
+<td style="text-align:right;">
+
+10.697
+</td>
+
+<td style="text-align:left;">
+
+0.001
+</td>
+
+<td style="text-align:left;">
+
+0.028
+</td>
+
+<td style="text-align:left;">
+
+PACAP
+</td>
+
+<td style="text-align:left;">
+
+DOWN
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;font-weight: bold;">
+
+Trappc12
+</td>
+
+<td style="text-align:right;">
+
+-3.350
+</td>
+
+<td style="text-align:right;">
+
+1.809
+</td>
+
+<td style="text-align:right;">
+
+10.479
+</td>
+
+<td style="text-align:left;">
+
+0.001
+</td>
+
+<td style="text-align:left;">
+
+0.030
+</td>
+
+<td style="text-align:left;">
+
+PACAP
+</td>
+
+<td style="text-align:left;">
+
+DOWN
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;font-weight: bold;">
+
+Fosl2
+</td>
+
+<td style="text-align:right;">
+
+0.781
+</td>
+
+<td style="text-align:right;">
+
+6.990
+</td>
+
+<td style="text-align:right;">
+
+3.988
+</td>
+
+<td style="text-align:left;">
+
+0.046
+</td>
+
+<td style="text-align:left;">
+
+0.266
+</td>
+
+<td style="text-align:left;">
+
+PACAP
+</td>
+
+<td style="text-align:left;">
+
+NO
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;font-weight: bold;">
+
+Adcyap1
+</td>
+
+<td style="text-align:right;">
+
+1.516
+</td>
+
+<td style="text-align:right;">
+
+3.665
+</td>
+
+<td style="text-align:right;">
+
+2.691
+</td>
+
+<td style="text-align:left;">
+
+0.101
+</td>
+
+<td style="text-align:left;">
+
+0.387
+</td>
+
+<td style="text-align:left;">
+
+PACAP
+</td>
+
+<td style="text-align:left;">
+
+NO
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;font-weight: bold;">
+
+Junb
+</td>
+
+<td style="text-align:right;">
+
+0.757
+</td>
+
+<td style="text-align:right;">
+
+4.568
+</td>
+
+<td style="text-align:right;">
+
+1.343
+</td>
+
+<td style="text-align:left;">
+
+0.247
+</td>
+
+<td style="text-align:left;">
+
+0.597
+</td>
+
+<td style="text-align:left;">
+
+PACAP
+</td>
+
+<td style="text-align:left;">
+
+NO
+</td>
+
+</tr>
+
+</tbody>
+
+</table>
 
 ``` r
-# Volcano plot — label a few known warm-sensitive markers
-ptrap_volcano(
-  res_PACAP$results,
-  fdr         = FALSE,
-  log_base    = 2,
-  genes.annot = c("Adcyap1", "Bdnf", "Ucn3", "Gng8"),
-  title       = "Warm-exposed neurons (PACAP) — Preoptic Area"
-)
+# Volcano plot — label a few genes of interest
+ptrap_de(
+  counts_mat = counts.mat,
+  treatment_name = "PACAP"
+) |>
+  ptrap_volcano(
+    genes.annot = c(
+      "Adcyap1",
+      "Bdnf",
+      "Ucn3",
+      "Gng8",
+      "Fosl2",
+      "Junb",
+      "Trappc12",
+      "Gfap"
+    ),
+    title = "PACAP"
+  )
 ```
 
-<img src="man/figures/README-quick-volcano-1.png" alt="Volcano plot of IP vs INPUT enrichment for warm-exposed (PACAP) neurons. Known warm-sensitive markers Adcyap1, Bdnf, Ucn3, and Gng8 are labeled." width="80%" />
-
-> **Note on replicates:** this dataset has only n = 2 per group, so
-> dispersion estimates from GLM-based methods (LRT, QLF, voom, DESeq2)
-> are unreliable. The paired t-test used above is appropriate for small
-> n and is the approach used in the original paper. For typical
-> experiments with ≥ 3–4 replicates, `test_method = "LRT"` is the
-> recommended default.
+<img src="man/figures/README-quick-volcano-1.png" alt="Volcano plot of IP vs INPUT enrichment in PACAP" width="80%" />
 
 ## Learn more
 
 - **Full walkthrough:**
   `vignette("getting-started", package = "pTRAPPING")`
-- **Reference docs:** <https://laurenoconnelllab.github.io/pTRAPPING/>
-- **Report a bug:**
-  <https://github.com/laurenoconnelllab/pTRAPPING/issues>
 
-## Citation
-
-If you use pTRAPPING in your work, please cite:
-
-> Rodríguez, C. (2024). *pTRAPPING: A Suite of Functions for the
-> Analysis of PhosphoTRAP Data in R.* R package version 0.0.0.9000.
-> <https://github.com/laurenoconnelllab/pTRAPPING>
-
-The example dataset is from:
+- The example dataset is from:
 
 > Tan, C.L., Cooke, E.K., Leib, D.E., Lin, Y.-C., Daly, G.E., Zimmerman,
 > C.A., and Knight, Z.A. (2016). Warm-sensitive neurons that control
 > body temperature. *Cell* 167, 47–59.
 > <https://doi.org/10.1016/j.cell.2016.08.028>
 
-The PhosphoTRAP method was introduced in:
+- The PhosphoTRAP method was introduced in:
 
 > Knight, Z.A., Tan, K., Birsoy, K., Schmidt, S., Garrison, J.L.,
 > Wysocki, R.W., Emiliano, A., Ekstrand, M.I., and Friedman, J.M.

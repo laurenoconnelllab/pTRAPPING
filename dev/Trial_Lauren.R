@@ -498,16 +498,16 @@ bdnf_de$results |>
 
 
 ptrap_volcano2(
-  pacap_de$results,
   bdnf_de$results,
+  pacap_de$results,
   fdr = FALSE,
   point_alpha = 0.1,
   treatment_col = "treatment",
-  genes.annot = c("VIP", "TRH", "PRRP", "PNOC", "PENKA", "PDYN", "OXT", "NPY")
+  genes.annot = c("Adcyap1", "Bdnf", "Ucn3", "Nxph4", "Ghrh")
 )
 
 warm_de <- read.delim(
-  "/Users/camilorl/Downloads/GSE80121_PhosphoTRAP_Processed_Data.txt",
+  "/Users/camilorodriguezlopez/Downloads/GSE80121_PhosphoTRAP_Processed_Data.txt",
   skip = 2, # skip the two descriptor rows
   header = TRUE,
   check.names = FALSE
@@ -600,8 +600,8 @@ left_join(
 
 
 ptrap_volcano2(
-  de_result_1 = pacap_de$results,
-  de_result_2 = bdnf_de$results,
+  de_result_1 = bdnf_de$results,
+  de_result_2 = pacap_de$results,
   fdr = FALSE, # no FDR filtering, just show enrichment
   lfc_threshold = 0,
   gene_col = "Gene",
@@ -628,4 +628,13 @@ pacap_fe |>
   select(Gene, log2_mean_FE_pacap, log2_mean_FE_bdnf) |>
   arrange(desc(log2_mean_FE_pacap))
 
+
 ##
+
+write.table(
+  warm_de,
+  file = "dev/warm_counts.txt",
+  sep = "\t",
+  quote = FALSE,
+  row.names = FALSE
+)

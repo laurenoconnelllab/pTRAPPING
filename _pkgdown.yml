@@ -2,8 +2,4 @@ url: https://laurenoconnelllab.github.io/pTRAPPING/
 template:
   bootstrap: 5
 
-articles:
-  - title: Tutorials
-    contents:
-      - getting-started
 

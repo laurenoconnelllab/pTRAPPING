@@ -1121,6 +1121,18 @@ ptrap_de <- function(
       }
       return(
         tbl |>
+          mutate(
+            PValue = ifelse(
+              .data$PValue < 0.001,
+              "<0.001",
+              sprintf("%.3f", .data$PValue)
+            ),
+            FDR = ifelse(
+              .data$FDR < 0.001,
+              "<0.001",
+              sprintf("%.3f", .data$FDR)
+            )
+          ) |>
           kable(
             digits = 3L,
             table.attr = 'data-quarto-disable-processing="true"',
@@ -1326,6 +1338,18 @@ ptrap_de <- function(
       }
       return(
         tbl |>
+          mutate(
+            PValue = ifelse(
+              .data$PValue < 0.001,
+              "<0.001",
+              sprintf("%.3f", .data$PValue)
+            ),
+            FDR = ifelse(
+              .data$FDR < 0.001,
+              "<0.001",
+              sprintf("%.3f", .data$FDR)
+            )
+          ) |>
           kable(
             digits = 3L,
             table.attr = 'data-quarto-disable-processing="true"',
@@ -1422,6 +1446,18 @@ ptrap_de <- function(
       }
       return(
         tbl |>
+          mutate(
+            PValue = ifelse(
+              .data$PValue < 0.001,
+              "<0.001",
+              sprintf("%.3f", .data$PValue)
+            ),
+            FDR = ifelse(
+              .data$FDR < 0.001,
+              "<0.001",
+              sprintf("%.3f", .data$FDR)
+            )
+          ) |>
           kable(
             digits = 3L,
             table.attr = 'data-quarto-disable-processing="true"',
@@ -1506,6 +1542,18 @@ ptrap_de <- function(
       }
       return(
         tbl |>
+          mutate(
+            PValue = ifelse(
+              .data$PValue < 0.001,
+              "<0.001",
+              sprintf("%.3f", .data$PValue)
+            ),
+            FDR = ifelse(
+              .data$FDR < 0.001,
+              "<0.001",
+              sprintf("%.3f", .data$FDR)
+            )
+          ) |>
           kable(
             digits = 3L,
             table.attr = 'data-quarto-disable-processing="true"',
@@ -1565,6 +1613,18 @@ ptrap_de <- function(
     }
     return(
       tbl |>
+        mutate(
+          PValue = ifelse(
+            .data$PValue < 0.001,
+            "<0.001",
+            sprintf("%.3f", .data$PValue)
+          ),
+          FDR = ifelse(
+            .data$FDR < 0.001,
+            "<0.001",
+            sprintf("%.3f", .data$FDR)
+          )
+        ) |>
         kable(
           digits = 3L,
           table.attr = 'data-quarto-disable-processing="true"',

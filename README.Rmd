@@ -1,14 +1,15 @@
 ---
 output: github_document
+always_allow_html: true
 ---
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
-  collapse  = TRUE,
-  comment   = "#>",
-  fig.path  = "man/figures/README-",
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
   out.width = "80%",
   fig.width = 7,
   fig.height = 5,
@@ -52,73 +53,64 @@ automatically.
 
 ## Quick start
 
-The package ships with real PhosphoTRAP data from
-[Tan et al. (2016) *Cell* 167:47–59](https://doi.org/10.1016/j.cell.2016.08.028),
-a landmark study identifying warm-sensitive neurons in the mouse preoptic
-hypothalamus. Mice were exposed to 37 °C, their activated neurons captured by
-phospho-S6 immunoprecipitation, and the IP fraction sequenced alongside total
-INPUT RNA to find which genes are translated in warm-activated cells.
-
 ```{r quick-start, message = FALSE, warning = FALSE}
 library(pTRAPPING)
 
-# Load the pre-normalised RPKM matrix (already RPKM; norm.method = "none")
-counts <- read.delim(
-  system.file("extdata", "TAN_etal_2016_RPKM.txt", package = "pTRAPPING")
+# Load counts matrix
+counts.mat <- read.delim(
+  system.file("extdata", "TAN_etal_2016_raw.txt", package = "pTRAPPING")
 )
 
-# Differential expression: which genes are enriched in IP vs INPUT
-# for the PACAP (warm-exposed) group?
-res_PACAP <- ptrap_de(
-  counts_mat     = counts,
+# Table of differentially expressed genes of interest for one condition using the default method "LRT" from edgeR
+ptrap_de(
+  counts_mat = counts.mat,
   treatment_name = "PACAP",
-  test_method    = "paired.ttest",
-  norm.method    = "none",
-  input_level    = "Input",
-  filter         = FALSE
-)
-
-head(res_PACAP$results[, c("Gene", "logFC", "PValue", "FDR", "diffexpressed")])
-```
-
-```{r quick-volcano, message = FALSE, warning = FALSE, fig.alt = "Volcano plot of IP vs INPUT enrichment for warm-exposed (PACAP) neurons. Known warm-sensitive markers Adcyap1, Bdnf, Ucn3, and Gng8 are labeled."}
-# Volcano plot — label a few known warm-sensitive markers
-ptrap_volcano(
-  res_PACAP$results,
-  fdr         = FALSE,
-  log_base    = 2,
-  genes.annot = c("Adcyap1", "Bdnf", "Ucn3", "Gng8"),
-  title       = "Warm-exposed neurons (PACAP) — Preoptic Area"
+  kable.out = TRUE,
+  genes.filter = c(
+    "Adcyap1",
+    "Bdnf",
+    "Ucn3",
+    "Gng8",
+    "Fosl2",
+    "Junb",
+    "Trappc12",
+    "Gfap"
+  )
 )
 ```
 
-> **Note on replicates:** this dataset has only n = 2 per group, so dispersion
-> estimates from GLM-based methods (LRT, QLF, voom, DESeq2) are unreliable.
-> The paired t-test used above is appropriate for small n and is the approach
-> used in the original paper. For typical experiments with ≥ 3–4 replicates,
-> `test_method = "LRT"` is the recommended default.
+```{r quick-volcano, message = FALSE, warning = FALSE, fig.alt = "Volcano plot of IP vs INPUT enrichment in PACAP"}
+# Volcano plot — label a few genes of interest
+ptrap_de(
+  counts_mat = counts.mat,
+  treatment_name = "PACAP"
+) |>
+  ptrap_volcano(
+    genes.annot = c(
+      "Adcyap1",
+      "Bdnf",
+      "Ucn3",
+      "Gng8",
+      "Fosl2",
+      "Junb",
+      "Trappc12",
+      "Gfap"
+    ),
+    title = "PACAP"
+  )
+```
 
 ## Learn more
 
 - **Full walkthrough:** `vignette("getting-started", package = "pTRAPPING")`
-- **Reference docs:** <https://laurenoconnelllab.github.io/pTRAPPING/>
-- **Report a bug:** <https://github.com/laurenoconnelllab/pTRAPPING/issues>
 
-## Citation
-
-If you use pTRAPPING in your work, please cite:
-
-> Rodríguez, C. (2024). *pTRAPPING: A Suite of Functions for the Analysis of
-> PhosphoTRAP Data in R.* R package version 0.0.0.9000.
-> <https://github.com/laurenoconnelllab/pTRAPPING>
-
-The example dataset is from:
+- The example dataset is from:
 
 > Tan, C.L., Cooke, E.K., Leib, D.E., Lin, Y.-C., Daly, G.E., Zimmerman, C.A.,
 > and Knight, Z.A. (2016). Warm-sensitive neurons that control body temperature.
 > *Cell* 167, 47–59. <https://doi.org/10.1016/j.cell.2016.08.028>
 
-The PhosphoTRAP method was introduced in:
+- The PhosphoTRAP method was introduced in:
 
 > Knight, Z.A., Tan, K., Birsoy, K., Schmidt, S., Garrison, J.L., Wysocki, R.W.,
 > Emiliano, A., Ekstrand, M.I., and Friedman, J.M. (2012). Molecular profiling of
