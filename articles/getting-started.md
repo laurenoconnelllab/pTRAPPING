@@ -30,60 +30,42 @@ genes are translated in these cells *right now*, after a specific
 stimulus?”. The experimental design is otherwise identical: IP fraction
 (activated cells’ RNA) vs. INPUT fraction (total tissue RNA).
 
-## The example dataset: Tan et al. (2016)
+## The example datasets: Tan et al. (2016)
 
 Throughout this vignette we use data from [Tan et al. (2016) *Cell* 167,
 47–59](https://doi.org/10.1016/j.cell.2016.08.028), a landmark
-PhosphoTRAP study that identified **warm-sensitive neurons** in the
-mouse preoptic area (POA) of the hypothalamus — the brain region that
-controls body temperature. Mice were briefly exposed to warmth (37 °C).
-Neurons that fired in response had their ribosomes phosphorylated, which
-were then isolated by immunoprecipitation (PhosphoTRAP!!).
+PhosphoTRAP study in mice.
 
-Each group has **2 biological replicates** (2 mice), giving 8 samples
-total: 4 for PACAP (2 IP + 2 INPUT) and 4 for BDNF (2 IP + 2 INPUT).
-
-> **A note on replicates:** n = 2 is small for GLM-based methods. For
-> this dataset we use the **paired t-test**, which is the approach from
-> the original paper. For your own experiments, aim for ≥ 3–4
-> replicates; with ≥ 4, `test_method = "LRT"` is the recommended
-> default.
+**Dataset 1: Identify warm-sentive neurons** ***Experiment:*** To
+identify which genes are highly enriched in warm-sensitive neurons, mice
+were challenged with heat and phosphorilated ribosomes in neurons that
+fired in response were isolated by immunoprecipitation. RNA from
+immunoprecipitates was sequenced and fold-enrichment for each gene was
+calculated as IP/Input fractions. This data set has RPKM normalized
+counts (counts per million, scaled by TMM-adjusted library sizes, and
+divided by gene length in kilobases) for 8863 genes across 3 biological
+replicates (3 mice - IP and Input sample each).
 
 ``` r
 
 library(pTRAPPING)
-
-# Raw integer counts — use with GLM methods or CPM/mratios normalisation
-counts_raw <- read.delim(
-  system.file("extdata", "TAN_etal_2016_raw.txt", package = "pTRAPPING")
-)
+library(dplyr)
+library(tibble)
 
 # Pre-computed RPKM values — already normalised; use with norm.method = "none"
-counts_rpkm <- read.delim(
-  system.file("extdata", "TAN_etal_2016_RPKM.txt", package = "pTRAPPING")
+warm_counts <- read.delim(
+  system.file("extdata", "warm_counts.txt", package = "pTRAPPING")
 )
 
-dim(counts_raw) # 8862 genes × 9 columns (1 gene-ID + 8 samples)
-#> [1] 8863    9
-names(counts_raw) # column names encode treatment, fraction, and replicate
-#> [1] "Gene"          "PACAP_Input_1" "PACAP_IP_1"    "PACAP_Input_2"
-#> [5] "PACAP_IP_2"    "BDNF_Input_1"  "BDNF_IP_1"     "BDNF_Input_2" 
-#> [9] "BDNF_IP_2"
+dim(warm_counts) # 8863 genes × 9 columns (1 gene-ID + 8 samples)
+#> [1] 13724     7
+names(warm_counts) # column names encode treatment, fraction, and replicate
+#> [1] "Gene"      "WC1_INPUT" "WC1_IP"    "WC2_INPUT" "WC2_IP"    "WC3_INPUT"
+#> [7] "WC3_IP"
 ```
 
-The package ships two versions of the same dataset:
-
-- **`TAN_etal_2016_raw.txt`** — raw integer read counts, the starting
-  point for GLM-based methods (`"LRT"`, `"QLF"`, `"deseq"`, `"voom"`)
-  and for `"CPM"` or `"mratios"` normalisation inside the t-test branch.
-- **`TAN_etal_2016_RPKM.txt`** — the same data already normalised to
-  RPKM by the original authors. Because the values are pre-normalised,
-  use `norm.method = "none"` when passing this matrix — this is the
-  approach taken in Tan et al. (2016) and is what we demonstrate in the
-  worked examples below.
-
 The column names follow the convention pTRAPPING expects: each name
-contains a **treatment label** (`PACAP` or `BDNF`), a **fraction
+contains a **treatment label** (`WC - warm-cells`), a **fraction
 keyword** (`IP` or `Input`), and a **replicate number** (`1` or `2`), in
 any order and separated by underscores. The function parses these
 automatically — no metadata table needed.
@@ -94,32 +76,29 @@ automatically — no metadata table needed.
 
 [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md)
 compares the IP fraction to the INPUT fraction for a given treatment
-group and returns a ranked table of genes. The key number it produces is
-the **log2 fold change (logFC)**:
+group and returns a ranked table of genes based on four available
+methods. Use this table as a quick guide to pick you model and
+normalisation method:
 
-- **logFC \> 0** → the gene is *more abundant* in IP than INPUT
-  (enriched in your target cells)
-- **logFC \< 0** → the gene is *less abundant* in IP (present in the
-  tissue but not your target cells)
-- A logFC of **1** means the gene is exactly **2× more abundant** in IP;
-  a logFC of **2** means **4×**, and so on.
+| Feature | DESeq2 | edgeR LRT | edgeR QLF | limma/voom |
+|----|----|----|----|----|
+| **Normalization** | Median-of-ratios (geometric) | TMM | TMM | Quantile normalization |
+| **Core assumption** | Most genes not DE | Most genes not DE | Most genes not DE | No DE assumption; matches distributions |
+| **How it works** | Per-gene ratio to geometric mean → median ratio = size factor | Weighted mean of log-ratios vs. reference; trims extreme genes | Same as LRT | Forces identical count distributions across all samples |
+| **What is scaled** | Raw counts ÷ size factor | Library sizes (indirect) | Library sizes (indirect) | Full distribution remapped per sample |
+| **Statistical model** | Negative binomial GLM + dispersion shrinkage | NB GLM; likelihood ratio test | NB GLM; quasi-likelihood F-test | Linear model; `voom` precision weights handle count variance |
+| **Test statistic** | Wald test (default) or LRT | Chi-squared LRT | F-test with empirical Bayes squeezing | Moderated t/F-test (empirical Bayes) |
+| **Dispersion estimation** | Shared + gene-wise + MAP shrinkage | Common → trended → tagwise | Common → trended → tagwise + QL dispersion | Mean-variance trend via `voom` |
+| **Small sample behavior** | Good; shrinkage stabilizes estimates | Conservative; can be anti-conservative with few replicates | Better than LRT with few replicates; QL adds extra variance component | Good; empirical Bayes borrows strength across genes |
+| **Key functions** | `estimateSizeFactors()`, `DESeq()` | `calcNormFactors()`, `glmFit()`, `glmLRT()` | `calcNormFactors()`, `glmQLFit()`, `glmQLFTest()` | `normalizeQuantiles()`, `voom()`, `lmFit()` |
+| **Data type** | RNA-seq counts | RNA-seq counts | RNA-seq counts | Microarrays (native); RNA-seq via `voom` |
+| **Strengths** | Small *n*; LFC shrinkage | Well-established; fast | More reliable with small *n*; recommended over LRT for most RNA-seq | Large datasets; microarrays; complex linear models |
+| **Bioconductor pkg** | `DESeq2` | `edgeR` | `edgeR` | `limma` |
 
-### Choosing a statistical method
-
-Six methods are available. Use this table as a quick guide:
-
-| Method | Package | Min. replicates | Notes |
-|----|----|:--:|----|
-| `"LRT"` | edgeR | 4 | **Recommended default** for most experiments |
-| `"QLF"` | edgeR | 4 | More conservative than LRT |
-| `"deseq"` | DESeq2 | 4 | Use `shrink.lfc = TRUE` for figures/ranking |
-| `"voom"` | limma | 4 | Good for complex designs with covariates |
-| `"paired.ttest"` | base R | 3 | Per-animal IP/INPUT pairing; small n |
-| `"unpaired.ttest"` | base R | 4 | Compares enrichment *between* two groups |
-
-All four GLM-based methods (`"LRT"`, `"QLF"`, `"deseq"`, `"voom"`)
-normalise the data internally — you do not need to normalise first. For
-the t-test methods you can choose a normalisation via `norm.method`:
+All three GLM-based methods (`"LRT"`, `"QLF"`, `"deseq"`) and the
+LM-based `"voom"` normalise the data internally — you do not need to
+normalise first. For the t-test methods you can choose a normalisation
+via `norm.method`:
 
 | `norm.method` | When to use |
 |----|----|
@@ -143,47 +122,61 @@ the t-test methods you can choose a normalisation via `norm.method`:
 > cause real genes to be dropped. Set `filter = FALSE` whenever
 > `norm.method = "none"` is used with a pre-normalised input.
 
-### Running the paired t-test (Tan et al. approach)
+### Calculating gene fold enrichment and p-values with the paired t-test
 
-Because this dataset has only n = 2 replicates per group, we use the
-paired t-test — the same approach as the original paper. Tan et al. ran
-the test on RPKM values, so we pass the pre-normalised RPKM matrix and
-set `norm.method = "none"` to skip any additional normalisation step.
+We use the paired t-test — the same approach as the original paper. Tan
+et al. ran the test on RPKM values, so we pass the pre-normalised RPKM
+matrix and set `norm.method = "none"` and `filter = FALSE` to skip any
+additional normalisation step. Also, pior.count is set to 0 because RPKM
+values are already normalised and do not require a pseudocount.
 
 ``` r
 
-res_PACAP <- ptrap_de(
-  counts_mat = counts_rpkm,
-  treatment_name = "PACAP",
-  test_method = "paired.ttest",
-  norm.method = "none",
-  input_level = "Input", # matches "Input" (not "INPUT") in the column names
-  filter = FALSE # skip count-based filtering; data are pre-normalised
-)
+warm_de <- warm_counts |>
+  dplyr::filter(dplyr::if_any(dplyr::where(is.numeric), ~ .x > 1)) |> #keep counts > 1
+  ptrap_de(
+    treatment_name = "WC", # only one treatment group in this dataset
+    test_method = "paired.ttest",
+    norm.method = "none", # data are pre-normalised
+    filter = FALSE, # skip count-based filtering
+    prior.count = 0 # no pseudocount needed for RPKM values
+  )
 ```
 
 The function prints a message showing what it auto-parsed from the
-column names: treatments, replicate numbers, and fractions. Inspect the
-result:
+column names: treatments, replicate numbers (blocks), and fractions. The
+argument “paired.ttest” in the test_method argument (as well as
+“unpaired.ttest”) returns a named list including `$results` and `$fe`
+tables. Inspect the result:
 
 ``` r
 
 # The paired.ttest method always returns a named list
-names(res_PACAP)
+names(warm_de)
 #> [1] "results" "fe"
 
 # $results: one row per gene, sorted by p-value
-head(res_PACAP$results[, c("Gene", "logFC", "PValue", "FDR", "diffexpressed")])
-#> # A tibble: 6 × 5
-#>   Gene     logFC   PValue   FDR diffexpressed
-#>   <chr>    <dbl>    <dbl> <dbl> <chr>        
-#> 1 Birc5   -0.567 0        0     NO           
-#> 2 Dhx15    0.471 0.000215 0.547 NO           
-#> 3 Tbc1d13 -0.369 0.000231 0.547 NO           
-#> 4 Tm2d2    0.110 0.000320 0.547 NO           
-#> 5 Sox3    -1.04  0.000464 0.547 NO           
-#> 6 Elof1    0.905 0.000560 0.547 NO
+head(warm_de$results)
+#> # A tibble: 6 × 7
+#>   Gene     logFC t_statistic    PValue   FDR treatment diffexpressed
+#>   <chr>    <dbl>       <dbl>     <dbl> <dbl> <chr>     <chr>        
+#> 1 Xpr1    -0.775      -210.  0.0000226 0.178 WC        NO           
+#> 2 Slain1  -1.98       -152.  0.0000435 0.178 WC        NO           
+#> 3 Larp6   -0.717      -149.  0.0000453 0.178 WC        NO           
+#> 4 Zfp187  -0.827      -135.  0.0000548 0.178 WC        NO           
+#> 5 Gm10032 -0.617       -95.5 0.000110  0.209 WC        NO           
+#> 6 Wars2   -0.735       -91.9 0.000118  0.209 WC        NO
 ```
+
+### `$results`: per-gene differential expression.
+
+The `$results` output is a tibble with one row per gene, sorted by
+p-value. The columns include log fold change (logFC), p-value, FDR, and
+a classification of whether the gene is differentially expressed (DE)
+based on user-defined thresholds for logFC and FDR. By default, the
+function uses a logFC threshold of 1 (meaning a 2-fold change) and an
+FDR threshold of 0.05 to classify genes as “UP” (enriched in IP), “DOWN”
+(depleted in IP), or “NO” (not DE).
 
 ### Understanding the output columns
 
@@ -208,7 +201,7 @@ and
 [`ptrap_volcano2()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_volcano2.md)
 recompute the classification from your chosen thresholds.
 
-### \$fe: per-animal fold enrichments
+### `$fe`: per-animal fold enrichments
 
 The paired t-test also returns a `$fe` tibble with each animal’s
 IP/INPUT fold enrichment (FE) for every gene. This is useful for
@@ -217,88 +210,54 @@ spot-checking individual genes or running your own downstream analyses.
 ``` r
 
 # Per-animal fold enrichment for the top 5 genes
-head(res_PACAP$fe, 5)
-#> # A tibble: 5 × 4
-#>   Gene     FE_1  FE_2 log2_mean_FE
-#>   <chr>   <dbl> <dbl>        <dbl>
-#> 1 Adcyap1  5.71  5.06         2.43
-#> 2 Bdnf     3.51  7.05         2.40
-#> 3 Ucn3     5.01  9.78         2.89
-#> 4 Gng8     8.11 16.3          3.61
-#> 5 Nme4     2.52  6.95         2.24
+head(warm_de$fe, 5)
+#> # A tibble: 5 × 5
+#>   Gene           FE_1  FE_2  FE_3 log2_mean_FE
+#>   <chr>         <dbl> <dbl> <dbl>        <dbl>
+#> 1 0610007C21Rik 0.314 0.627 1.17       -0.507 
+#> 2 0610007L01Rik 0.930 0.734 0.522      -0.457 
+#> 3 0610007P08Rik 0.678 0.522 0.315      -0.985 
+#> 4 0610007P14Rik 0.394 0.848 1.64       -0.0572
+#> 5 0610007P22Rik 1.01  1.17  1.11        0.136
 ```
 
-### Running with a GLM method (for better-powered experiments)
-
-With ≥ 4 replicates, the edgeR LRT is the recommended method. The call
-is nearly identical — just change `test_method` and drop `norm.method`
-(edgeR normalises internally via TMM):
-
-``` r
-
-# Example only — requires >= 4 replicates to produce reliable estimates.
-# Use the raw count matrix (GLM methods normalise internally via TMM).
-res_lrt <- ptrap_de(
-  counts_mat = counts_raw,
-  treatment_name = "PACAP",
-  test_method = "LRT",
-  input_level = "Input"
-)
-head(res_lrt[, c("Gene", "logFC", "PValue", "FDR", "diffexpressed")])
-```
-
-### Comparing enrichment *between* two conditions (unpaired t-test)
-
-The `"unpaired.ttest"` method answers a different question: not “which
-genes are enriched in IP vs. INPUT?” but “which genes show *different*
-enrichment between the PACAP and BDNF groups?” Genes that are enriched
-equally in both will score near zero; genes that are specifically
-enriched in warm-activated cells will stand out.
-
-``` r
-
-res_compare <- ptrap_de(
-  counts_mat = counts_rpkm,
-  treatment_name = "PACAP",
-  control_name = "BDNF",
-  test_method = "unpaired.ttest",
-  norm.method = "none",
-  input_level = "Input"
-)
-head(res_compare[, c("Gene", "logFC", "diff_FE", "PValue", "FDR")])
-```
-
-The output adds `diff_FE` (the ratio of mean fold enrichments) and
-per-group mean fold enrichments alongside the usual logFC, PValue, and
-FDR columns.
-
-------------------------------------------------------------------------
-
-## Step 2 — Visualise with `ptrap_volcano()`
+## Step 2 — Visualise the results with `ptrap_volcano()`
 
 A **volcano plot** puts logFC on the x-axis and statistical significance
 (-log p-value) on the y-axis. Genes in the **upper-right corner** are
-both strongly enriched *and* statistically reliable — the most
+both strongly enriched *and* statistically significant — the most
 interesting candidates. Genes in the upper-left are strongly depleted.
-Grey points fail one or both thresholds.
+Grey points fail one or both thresholds. The argument `genes.annot`
+takes a character vector of gene names to label on the plot. In the
+example below, we label highly enriched and known warm-sensitive markers
+shown in figure 1D in Tan et al. (2016), including Adcyap1 (PACAP) and
+Bdnf.
 
 ``` r
 
-ptrap_volcano(
-  res_PACAP$results,
-  fdr = FALSE, # use raw p-values (n=2; FDR is very conservative)
-  log_base = 2, # -log2(p) on y-axis, matching Tan et al. 2016
-  genes.annot = c("Adcyap1", "Bdnf", "Ucn3", "Gng8"),
-  title = "Warm-exposed neurons (PACAP) — Preoptic Area"
-)
+warm_de$results |>
+  ptrap_volcano(
+    fdr = FALSE, # use raw p-values (n=3; FDR is very conservative)
+    log_base = 2, # -log2(p) on y-axis, matching Tan et al. 2016
+    genes.annot = c(
+      "Fosl2",
+      "Egr2",
+      "Bdnf",
+      "Adcyap1",
+      "Junb",
+      "Fosb",
+      "Rrad",
+      "Gadd45b"
+    ),
+    point_alpha = 0.3,
+    title = "Differential gene expression in warm-sensitive neurons"
+  )
 ```
 
-![Volcano plot for the PACAP (warm-exposed) group. Known warm-sensitive
-markers are
-labeled.](getting-started_files/figure-html/ptrap-volcano-1.png)
+![Volcano plot showing known warm-sensitive markers in Tan et al.
+(2016).](getting-started_files/figure-html/ptrap-volcano-1.png)
 
-Volcano plot for the PACAP (warm-exposed) group. Known warm-sensitive
-markers are labeled.
+Volcano plot showing known warm-sensitive markers in Tan et al. (2016).
 
 Key arguments:
 
@@ -317,12 +276,12 @@ Pass a named vector to override the defaults:
 
 ``` r
 
-ptrap_volcano(
-  res_PACAP$results,
-  fdr = FALSE,
-  colors = c("UP" = "#D55E00", "DOWN" = "#56B4E9"),
-  title = "PACAP — custom colours"
-)
+warm_de$results |>
+  ptrap_volcano(
+    fdr = FALSE,
+    colors = c("UP" = "#D55E00", "DOWN" = "#56B4E9"),
+    title = "Volcano plot — custom colours"
+  )
 ```
 
 The function returns a ggplot2 object, so you can add or override any
@@ -332,7 +291,8 @@ layer with standard ggplot2 syntax:
 
 library(ggplot2)
 
-ptrap_volcano(res_PACAP$results, fdr = FALSE) +
+warm_de$results |>
+  ptrap_volcano(fdr = FALSE) +
   theme(plot.title = element_text(face = "bold")) +
   xlim(-10, 10)
 ```
@@ -341,9 +301,103 @@ ptrap_volcano(res_PACAP$results, fdr = FALSE) +
 
 ## Step 3 — Compare two conditions with `ptrap_volcano2()`
 
-When you have run
+**Dataset 2: Characterising warm-sensitive neurons** ***Experiment:***
+The authors created BDNF-Cre and PACAP-Cre transgenic mice and used TRAP
+to sequence the genes expressed in these warm-sensitive neuron
+populations. This data set has RPKM normalized counts for 8863 genes
+across 2 biological replicates (2 mice - IP and Input sample each) for
+both BDNF-Cre and PACAP-Cre lines.
+
+``` r
+
+# Pre-computed RPKM values — already normalised; use with norm.method = "none"
+counts_rpkm <- read.delim(
+  system.file("extdata", "TAN_etal_2016_RPKM.txt", package = "pTRAPPING")
+)
+
+dim(counts_rpkm) # 8863 genes × 9 columns (1 gene-ID + 8 samples)
+#> [1] 8863    9
+names(counts_rpkm) # column names encode treatment, fraction, and replicate
+#> [1] "Gene"          "PACAP_Input_1" "PACAP_IP_1"    "PACAP_Input_2"
+#> [5] "PACAP_IP_2"    "BDNF_Input_1"  "BDNF_IP_1"     "BDNF_Input_2" 
+#> [9] "BDNF_IP_2"
+```
+
+Run
 [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md)
-for two groups,
+for both conditions separately to get two DE result tables, which are
+the input for
+[`ptrap_volcano2()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_volcano2.md).
+
+``` r
+
+pacap_de <- counts_rpkm |>
+  filter(dplyr::if_any(dplyr::where(is.numeric), ~ .x > 1)) |> #keep counts > 1
+  mutate(gene = make.unique(Gene)) |>
+  column_to_rownames("gene") |>
+  #round() |>
+  ptrap_de(
+    test_method = "paired.ttest",
+    norm.method = "none",
+    treatment_name = "PACAP",
+    filter = FALSE,
+    lfc_threshold = 0.3,
+    prior.count = 0
+  )
+
+# Inspect the per-gene fold enrichment
+pacap_de$fe
+#> # A tibble: 8,863 × 4
+#>    Gene       FE_1  FE_2 log2_mean_FE
+#>    <chr>     <dbl> <dbl>        <dbl>
+#>  1 Adcyap1    7.87  6.64         2.86
+#>  2 Bdnf       4.98 10.1          2.91
+#>  3 Ucn3       6.80 30.4          4.22
+#>  4 Gng8       8.47 18.6          3.76
+#>  5 Nme4       5.26 15.3          3.36
+#>  6 Nxph4     11.0  20.6          3.98
+#>  7 Hist1h2bg 13.5   1.72         2.93
+#>  8 Ghrh       4.41  9.91         2.84
+#>  9 Hist1h4m   5.54  4.82         2.37
+#> 10 Samd3      5.44  6.43         2.57
+#> # ℹ 8,853 more rows
+
+bdnf_de <- counts_rpkm |>
+  filter(dplyr::if_any(dplyr::where(is.numeric), ~ .x > 1)) |> #keep counts > 1
+  mutate(gene = make.unique(Gene)) |>
+  column_to_rownames("gene") |>
+  #round() |>
+  ptrap_de(
+    test_method = "paired.ttest",
+    norm.method = "none",
+    treatment_name = "BDNF",
+    filter = FALSE,
+    lfc_threshold = 0.3,
+    prior.count = 0
+  )
+
+# Inspect the per-gene fold enrichment
+bdnf_de$fe
+#> # A tibble: 8,863 × 4
+#>    Gene        FE_1   FE_2 log2_mean_FE
+#>    <chr>      <dbl>  <dbl>        <dbl>
+#>  1 Adcyap1    6.16   9.05          2.93
+#>  2 Bdnf       2.77   5.30          2.01
+#>  3 Ucn3      14.3    7.96          3.47
+#>  4 Gng8       7.38  12.7           3.33
+#>  5 Nme4       9.51   4.21          2.78
+#>  6 Nxph4      3.35   4.66          2.00
+#>  7 Hist1h2bg  0.400 14.2           2.87
+#>  8 Ghrh       6.31   5.17          2.52
+#>  9 Hist1h4m  15.2    0.455         2.97
+#> 10 Samd3      4.85   7.39          2.61
+#> # ℹ 8,853 more rows
+```
+
+BDNF and PACAP cells co-express both BDNF and PACAP genes and almost the
+same set of genes, including Unc3, Nxph4, Ghrh, etc.
+
+Then
 [`ptrap_volcano2()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_volcano2.md)
 places both results on a single 2D scatter plot:
 
@@ -358,25 +412,22 @@ one, or in neither are shown in distinct colours.
 
 ``` r
 
-# Run ptrap_de() for the second group using the same pre-normalised matrix
-res_BDNF <- ptrap_de(
-  counts_mat = counts_rpkm,
-  treatment_name = "BDNF",
-  test_method = "paired.ttest",
-  norm.method = "none",
-  input_level = "Input",
-  filter = FALSE
-)
-```
-
-``` r
-
 ptrap_volcano2(
-  de_result_1 = res_PACAP$results,
-  de_result_2 = res_BDNF$results,
+  de_result_1 = pacap_de$results,
+  de_result_2 = bdnf_de$results,
   fdr = FALSE,
   title = "PACAP vs BDNF — Preoptic Area",
-  genes.annot = c("Adcyap1", "Bdnf", "Ucn3", "Gng8")
+  genes.annot = c(
+    "Adcyap1",
+    "Bdnf",
+    "Ucn3",
+    "Gng8",
+    "Nxph4",
+    "Ghrh",
+    "Emx2",
+    "Fezf1",
+    "Nhlh2"
+  )
 )
 ```
 
@@ -387,11 +438,8 @@ conditions.](getting-started_files/figure-html/ptrap-volcano2-1.png)
 Scatter comparison of PACAP and BDNF enrichment. Genes on the diagonal
 are enriched equally in both conditions.
 
-Genes that sit in the **upper-right quadrant above the diagonal** are
-more enriched in PACAP (warm-activated) than BDNF — these are the
-warm-specific genes. Genes near the diagonal are similarly enriched in
-both groups, meaning they are expressed in the target cell type
-regardless of thermal state.
+Genes near the diagonal are similarly enriched in both PACAP and BDNF
+cells.
 
 ### Customising colours
 
@@ -401,42 +449,14 @@ Pass a `colors` vector using those names:
 ``` r
 
 ptrap_volcano2(
-  res_BDNF$results,
-  res_PACAP$results,
+  pacap_de$results,
+  bdnf_de$results,
   fdr = FALSE,
   colors = c(
     "DE in both" = "#D55E00",
     "DE only PACAP" = "#0072B2",
     "DE only BDNF" = "#009E73"
   )
-)
-```
-
-------------------------------------------------------------------------
-
-## Providing sample metadata manually
-
-The examples above rely on automatic column-name parsing. If your column
-names do not follow the expected pattern, you can supply a `sample_df`
-data frame explicitly. It must have at minimum a `sample` column
-(matching the count matrix column names), a `fraction` column, and a
-`block` column:
-
-``` r
-
-sample_df <- data.frame(
-  sample = c("s1_ip", "s1_input", "s2_ip", "s2_input"),
-  treatment = c("pb", "pb", "pb", "pb"),
-  fraction = c("IP", "INPUT", "IP", "INPUT"),
-  block = c("1", "1", "2", "2")
-)
-
-res <- ptrap_de(
-  counts_mat = counts_mat,
-  sample_df = sample_df,
-  gene_ids = gene_ids,
-  treatment_name = "pb",
-  test_method = "LRT"
 )
 ```
 
@@ -471,73 +491,3 @@ res <- ptrap_de(
   `norm.method = "none"` instead — no lengths needed.
 
 ------------------------------------------------------------------------
-
-## Session info
-
-``` r
-
-sessionInfo()
-#> R version 4.6.0 (2026-04-24)
-#> Platform: x86_64-pc-linux-gnu
-#> Running under: Ubuntu 24.04.4 LTS
-#> 
-#> Matrix products: default
-#> BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3 
-#> LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.26.so;  LAPACK version 3.12.0
-#> 
-#> locale:
-#>  [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
-#>  [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
-#>  [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
-#> [10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
-#> 
-#> time zone: UTC
-#> tzcode source: system (glibc)
-#> 
-#> attached base packages:
-#> [1] stats     graphics  grDevices utils     datasets  methods   base     
-#> 
-#> other attached packages:
-#> [1] pTRAPPING_0.0.0.9000
-#> 
-#> loaded via a namespace (and not attached):
-#>  [1] SummarizedExperiment_1.42.0 gtable_0.3.6               
-#>  [3] xfun_0.57                   bslib_0.10.0               
-#>  [5] ggplot2_4.0.3               ggrepel_0.9.8              
-#>  [7] Biobase_2.72.0              lattice_0.22-9             
-#>  [9] vctrs_0.7.3                 tools_4.6.0                
-#> [11] generics_0.1.4              stats4_4.6.0               
-#> [13] parallel_4.6.0              tibble_3.3.1               
-#> [15] pkgconfig_2.0.3             Matrix_1.7-5               
-#> [17] RColorBrewer_1.1-3          S7_0.2.2                   
-#> [19] desc_1.4.3                  S4Vectors_0.50.0           
-#> [21] lifecycle_1.0.5             stringr_1.6.0              
-#> [23] compiler_4.6.0              farver_2.1.2               
-#> [25] textshaping_1.0.5           statmod_1.5.1              
-#> [27] DESeq2_1.52.0               Seqinfo_1.2.0              
-#> [29] codetools_0.2-20            htmltools_0.5.9            
-#> [31] sass_0.4.10                 yaml_2.3.12                
-#> [33] pkgdown_2.2.0               pillar_1.11.1              
-#> [35] jquerylib_0.1.4             BiocParallel_1.46.0        
-#> [37] DelayedArray_0.38.1         cachem_1.1.0               
-#> [39] limma_3.68.2                abind_1.4-8                
-#> [41] tidyselect_1.2.1            locfit_1.5-9.12            
-#> [43] digest_0.6.39               stringi_1.8.7              
-#> [45] dplyr_1.2.1                 labeling_0.4.3             
-#> [47] fastmap_1.2.0               grid_4.6.0                 
-#> [49] cli_3.6.6                   SparseArray_1.12.2         
-#> [51] magrittr_2.0.5              S4Arrays_1.12.0            
-#> [53] utf8_1.2.6                  withr_3.0.2                
-#> [55] edgeR_4.10.0                scales_1.4.0               
-#> [57] rmarkdown_2.31              XVector_0.52.0             
-#> [59] matrixStats_1.5.0           ragg_1.5.2                 
-#> [61] kableExtra_1.4.0            evaluate_1.0.5             
-#> [63] knitr_1.51                  GenomicRanges_1.64.0       
-#> [65] IRanges_2.46.0              viridisLite_0.4.3          
-#> [67] rlang_1.2.0                 Rcpp_1.1.1-1.1             
-#> [69] glue_1.8.1                  xml2_1.5.2                 
-#> [71] BiocGenerics_0.58.0         svglite_2.2.2              
-#> [73] rstudioapi_0.18.0           jsonlite_2.0.0             
-#> [75] R6_2.6.1                    MatrixGenerics_1.24.0      
-#> [77] systemfonts_1.3.2           fs_2.1.0
-```
