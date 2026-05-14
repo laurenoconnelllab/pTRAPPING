@@ -301,10 +301,8 @@ needed for cross-gene comparisons within a sample</td>
 <p><strong>Note on <code>"RPKM"</code>:</strong> this option requires
 you to supply gene lengths via <code>gene.length</code> (a named numeric
 vector, in base pairs). Without it, the function will throw an error.
-Gene lengths can be obtained from annotation packages such as
-<code>TxDb.*</code> or via BioMart. When you already have a
-pre-normalised matrix — as in the Tan et al. dataset below — use
-<code>norm.method = "none"</code> instead.</p>
+When you already have a pre-normalised matrix — as in the Tan et
+al. dataset below — use <code>norm.method = "none"</code> instead.</p>
 <p><strong>Note on <code>filter = FALSE</code>:</strong> by default,
 <code><a href="../reference/ptrap_de.html">ptrap_de()</a></code> removes low-expression genes using
 <code>filterByExpr</code>, which expects raw integer counts. When

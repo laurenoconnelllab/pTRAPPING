@@ -109,10 +109,9 @@ via `norm.method`:
 
 > **Note on `"RPKM"`:** this option requires you to supply gene lengths
 > via `gene.length` (a named numeric vector, in base pairs). Without it,
-> the function will throw an error. Gene lengths can be obtained from
-> annotation packages such as `TxDb.*` or via BioMart. When you already
-> have a pre-normalised matrix — as in the Tan et al. dataset below —
-> use `norm.method = "none"` instead.
+> the function will throw an error. When you already have a
+> pre-normalised matrix — as in the Tan et al. dataset below — use
+> `norm.method = "none"` instead.
 >
 > **Note on `filter = FALSE`:** by default,
 > [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md)
