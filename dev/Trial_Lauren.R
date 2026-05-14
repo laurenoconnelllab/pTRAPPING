@@ -496,7 +496,9 @@ bdnf_de$results |>
       )
   )
 
-
+##
+## Figure 1L Tan et al
+##
 ptrap_volcano2(
   bdnf_de$results,
   pacap_de$results,
@@ -548,7 +550,9 @@ warm_de <- read.delim(
     lfc_threshold = 0.3
   )
 
-
+##
+## Figrue 1D Tan et al
+##
 warm_de$results |>
   ptrap_volcano(
     fdr = FALSE,
@@ -564,7 +568,8 @@ warm_de$results |>
       "Rrad",
       "Gadd45b"
     ),
-    log_base = 2
+    log_base = 2,
+    point_alpha = 0.3
   )
 
 left_join(
@@ -637,4 +642,12 @@ write.table(
   sep = "\t",
   quote = FALSE,
   row.names = FALSE
+)
+
+
+sample_df <- data.frame(
+  sample = c("s1_input", "s1_ip", "s2_input", "s2_ip", "s3_input", "s3_ip"),
+  Treatment = c(rep("wc", 6)),
+  fraction = c("IP", "INPUT", "IP", "INPUT", "IP", "INPUT"),
+  block = c("1", "1", "2", "2", "3", "3")
 )
