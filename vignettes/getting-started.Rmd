@@ -115,8 +115,7 @@ methods you can choose a normalisation via `norm.method`:
 
 > **Note on `"RPKM"`:** this option requires you to supply gene lengths via
 > `gene.length` (a named numeric vector, in base pairs). Without it, the
-> function will throw an error. Gene lengths can be obtained from annotation
-> packages such as `TxDb.*` or via BioMart. When you already have a
+> function will throw an error. When you already have a
 > pre-normalised matrix — as in the Tan et al. dataset below — use
 > `norm.method = "none"` instead.
 >
