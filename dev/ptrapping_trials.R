@@ -489,3 +489,32 @@ colnames(rvar_poa) <- samples_rv |>
   mutate(sample2 = paste(Treatment, tube, fraction, sep = "_")) |>
   select(sample2) |>
   pull()
+
+
+# Counts matrix: column names can be anything
+counts <- data.frame(
+  Gene = c("Actb", "Gapdh", "Tuba1a"),
+  s1_a = c(120, 340, 210),
+  s1_b = c(980, 210, 870),
+  s2_a = c(130, 360, 190),
+  s2_b = c(910, 230, 800),
+  s3_a = c(115, 320, 220),
+  s3_b = c(950, 200, 850)
+)
+
+# sample_df: explicitly maps each column to its metadata
+sample_df <- data.frame(
+  sample = c("s1_a", "s1_b", "s2_a", "s2_b", "s3_a", "s3_b"),
+  Treatment = rep("WT", 6),
+  block = c("1", "1", "2", "2", "3", "3"),
+  fraction = c("INPUT", "IP", "INPUT", "IP", "INPUT", "IP")
+)
+
+ptrap_de(
+  counts_mat = counts,
+  sample_df = sample_df,
+  sample_col = "sample",
+  treatment_col = "Treatment",
+  block_col = "block",
+  fraction_col = "fraction"
+)
