@@ -81,7 +81,7 @@ ptrap_de(
 )
 ```
 
-Plot the same results in an interactive volcano plot and hover over the points to see gene labels, logFC, p-value, and FDR:
+Plot the same results in a volcano plot and annotate any genes of interest:
 
 ```{r quick-volcano, message = FALSE, warning = FALSE, fig.alt = "Volcano plot of IP vs INPUT enrichment in PACAP"}
 # Volcano plot — label a few genes of interest
@@ -90,19 +90,23 @@ ptrap_de(
   treatment_name = "PACAP"
 ) |>
   ptrap_volcano(
-    interactive = TRUE
+    fdr = FALSE, # use raw p-values (n=3; FDR is very conservative)
+    genes.annot = c(
+      "Adcyap1",
+      "Bdnf",
+      "Ucn3",
+      "Gng8",
+      "Fosl2",
+      "Junb",
+      "Trappc12",
+      "Gfap"
+    )
   )
 ```
 
-## Learn more
+Check [Getting started with pTRAPPING](https://laurenoconnelllab.github.io/pTRAPPING/articles/getting-started.html) to see how to run the full workflow, including comparing two conditions head-to-head and making interactive volcano plots!
 
-- **Full walkthrough:** [Getting started with pTRAPPING](https://laurenoconnelllab.github.io/pTRAPPING/articles/getting-started.html)
-
-- The example dataset is from:
-
-> Tan, C.L., Cooke, E.K., Leib, D.E., Lin, Y.-C., Daly, G.E., Zimmerman, C.A.,
-> and Knight, Z.A. (2016). Warm-sensitive neurons that control body temperature.
-> *Cell* 167, 47–59. <https://doi.org/10.1016/j.cell.2016.08.028>
+## References
 
 - The PhosphoTRAP method was introduced in:
 
@@ -110,3 +114,19 @@ ptrap_de(
 > Emiliano, A., Ekstrand, M.I., and Friedman, J.M. (2012). Molecular profiling of
 > activated neurons by phosphorylated ribosome capture. *Cell* 151, 1126–1137.
 > <https://doi.org/10.1016/j.cell.2012.10.039>
+
+- Bioconductor packages used for differential expression analysis:
+
+> edgeR: Robinson, M.D., McCarthy, D.J., and Smyth, G.K. (2010). edgeR: a Bioconductor package for differential expression analysis of digital gene expression data. *Bioinformatics* 26, 139–140. <https://doi.org/10.1093/bioinformatics/btp616> 
+
+> limma: Ritchie, M.E., Phipson, B., Wu, D., Hu, Y., Law, C.W., Shi, W., and Smyth, G.K. (2015). limma powers differential expression analyses for RNA-sequencing and microarray studies. *Nucleic Acids Res* 43, e47. <https://doi.org/10.1093/nar/gkv007>
+
+> DESeq2: Love, M.I., Huber, W., and Anders, S. (2014). Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. *Genome Biol* 15, 550. <https://doi.org/10.1186/s13059-014-0550-8>
+
+- The example dataset is from:
+
+> Tan, C.L., Cooke, E.K., Leib, D.E., Lin, Y.-C., Daly, G.E., Zimmerman, C.A.,
+> and Knight, Z.A. (2016). Warm-sensitive neurons that control body temperature.
+> *Cell* 167, 47–59. <https://doi.org/10.1016/j.cell.2016.08.028>
+
+
