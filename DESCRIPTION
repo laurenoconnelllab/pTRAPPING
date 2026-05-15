@@ -21,6 +21,7 @@ Imports:
     kableExtra,
     knitr,
     ggplot2,
+    plotly,
     dplyr (>= 1.0.4),
     tibble
 URL: https://github.com/laurenoconnelllab/pTRAPPING, https://laurenoconnelllab.github.io/pTRAPPING/
@@ -32,3 +33,4 @@ Suggests:
 VignetteBuilder: knitr
 Config/roxygen2/version: 8.0.0
 Config/testthat/edition: 3
+RoxygenNote: 7.3.3

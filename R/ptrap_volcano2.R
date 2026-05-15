@@ -50,16 +50,21 @@
 #' @param point_alpha Opacity of the coloured (significant) points.
 #'   Default is `0.7`.
 #' @param genes.annot Character vector of gene names to label on the plot via
-#'   [ggrepel::geom_text_repel()]. Names must match values in the column
-#'   specified by `gene_col`; an error is raised if any names are not found.
-#'   Default is `NULL` (no labels).
+#'   [ggrepel::geom_text_repel()] (static mode only). Names must match values
+#'   in the column specified by `gene_col`; an error is raised if any names
+#'   are not found. Default is `NULL` (no labels).
 #' @param max_overlaps Passed to [ggrepel::geom_text_repel()]. Controls how
 #'   many overlapping labels are allowed before they are hidden. Default
 #'   is `20`.
 #' @param title Plot title. If `NULL` (default), the brain region name
 #'   extracted from `de_result_1` is used.
+#' @param interactive Logical. If `TRUE`, returns an interactive
+#'   [plotly::ggplotly()] object with hover tooltips showing gene name, logFC
+#'   for each condition, p-value, and FDR. Gene labels (`genes.annot`) are
+#'   omitted in this mode. Default `FALSE`.
 #'
-#' @return A [ggplot2::ggplot()] object.
+#' @return A [ggplot2::ggplot()] object, or a plotly object when
+#'   `interactive = TRUE`.
 #'
 #' @export
 #'
@@ -76,6 +81,9 @@
 #' # Use raw p-values for the DE classification
 #' ptrap_volcano2(res_pb, res_sol, fdr = FALSE)
 #'
+#' # Interactive with hover tooltips
+#' ptrap_volcano2(res_pb, res_sol, interactive = TRUE)
+#'
 #' # Custom thresholds, title and colours
 #' ptrap_volcano2(res_pb, res_sol,
 #'                lfc_threshold = 0.5,
@@ -90,6 +98,7 @@
 #' @importFrom rlang .data :=
 #' @importFrom ggplot2 ggplot aes geom_point geom_abline geom_vline geom_hline scale_fill_manual theme_classic labs
 #' @importFrom ggrepel geom_text_repel
+#' @importFrom plotly ggplotly layout toWebGL
 
 ptrap_volcano2 <- function(
   de_result_1,
@@ -105,7 +114,8 @@ ptrap_volcano2 <- function(
   point_alpha = 0.7,
   genes.annot = NULL,
   max_overlaps = 20,
-  title = NULL
+  title = NULL,
+  interactive = FALSE
 ) {
   # --- extract treatment and region names from the result tables --------------
   t1 <- unique(de_result_1[[treatment_col]])
@@ -124,15 +134,26 @@ ptrap_volcano2 <- function(
     names(colors) <- c(class_both, class_only1, class_only2)
   }
 
-  # --- choose p-value column based on fdr argument ----------------------------
-  p_col <- if (fdr) "FDR" else "PValue"
+  # --- which p-value column drives DE classification --------------------------
+  stat_col_1 <- if (fdr) "fdr_1" else "pval_1"
+  stat_col_2 <- if (fdr) "fdr_2" else "pval_2"
 
-  # --- join the two results by gene -------------------------------------------
+  # --- join both conditions, keeping PValue and FDR for hover -----------------
   combined <- de_result_1 |>
-    select(all_of(gene_col), logFC_1 = "logFC", stat_1 = all_of(p_col)) |>
+    select(
+      all_of(gene_col),
+      logFC_1 = "logFC",
+      pval_1 = "PValue",
+      fdr_1 = "FDR"
+    ) |>
     left_join(
       de_result_2 |>
-        select(all_of(gene_col), logFC_2 = "logFC", stat_2 = all_of(p_col)),
+        select(
+          all_of(gene_col),
+          logFC_2 = "logFC",
+          pval_2 = "PValue",
+          fdr_2 = "FDR"
+        ),
       by = gene_col
     )
 
@@ -152,14 +173,14 @@ ptrap_volcano2 <- function(
       filter(!is.na(.data$logFC_1), !is.na(.data$logFC_2))
   }
 
-  # --- classify genes based on significance in each condition -----------------
+  # --- classify genes and build hover text ------------------------------------
   combined <- combined |>
     mutate(
-      sig_1 = !is.na(.data$stat_1) &
-        .data$stat_1 < fdr_threshold &
+      sig_1 = !is.na(.data[[stat_col_1]]) &
+        .data[[stat_col_1]] < fdr_threshold &
         abs(.data$logFC_1) > lfc_threshold,
-      sig_2 = !is.na(.data$stat_2) &
-        .data$stat_2 < fdr_threshold &
+      sig_2 = !is.na(.data[[stat_col_2]]) &
+        .data[[stat_col_2]] < fdr_threshold &
         abs(.data$logFC_2) > lfc_threshold
     ) |>
     mutate(
@@ -168,6 +189,15 @@ ptrap_volcano2 <- function(
         .data$sig_1 & !.data$sig_2 ~ class_only1,
         !.data$sig_1 & .data$sig_2 ~ class_only2,
         TRUE ~ class_none
+      ),
+      text_hover = paste0(
+        "<b>", .data[[gene_col]], "</b><br>",
+        "logFC (", t1, "): ", round(.data$logFC_1, 3), "<br>",
+        "logFC (", t2, "): ", round(.data$logFC_2, 3), "<br>",
+        "PValue (", t1, "): ", signif(.data$pval_1, 3), "<br>",
+        "FDR (", t1, "): ", signif(.data$fdr_1, 3), "<br>",
+        "PValue (", t2, "): ", signif(.data$pval_2, 3), "<br>",
+        "FDR (", t2, "): ", signif(.data$fdr_2, 3)
       )
     ) |>
     arrange(.data$DE_class)
@@ -194,7 +224,14 @@ ptrap_volcano2 <- function(
   }
 
   # --- build plot -------------------------------------------------------------
-  ggplot(combined, aes(x = .data$logFC_2, y = .data$logFC_1)) +
+  p <- ggplot(
+    combined,
+    aes(
+      x = .data$logFC_2,
+      y = .data$logFC_1,
+      text = .data$text_hover
+    )
+  ) +
     geom_point(
       data = combined[combined$DE_class == class_none, ],
       color = "grey80",
@@ -226,14 +263,6 @@ ptrap_volcano2 <- function(
       stroke = 0.5,
       color = "black"
     ) +
-    geom_text_repel(
-      data = annot_data,
-      aes(label = .data[[gene_col]]),
-      size = 4.3,
-      color = "black",
-      max.overlaps = max_overlaps,
-      min.segment.length = 0
-    ) +
     theme_classic() +
     labs(
       x = paste0("logFC IP/Input (", t2, ")"),
@@ -241,4 +270,25 @@ ptrap_volcano2 <- function(
       title = title,
       fill = "DE class"
     )
+
+  if (!interactive) {
+    p <- p + geom_text_repel(
+      data = annot_data,
+      aes(label = .data[[gene_col]]),
+      size = 4.3,
+      color = "black",
+      max.overlaps = max_overlaps,
+      min.segment.length = 0
+    )
+  }
+
+  if (interactive) {
+    plt <- plotly::ggplotly(p, tooltip = "text", width = NULL, height = 500) |>
+      plotly::layout(dragmode = "zoom", autosize = TRUE)
+    # scattergl (used by toWebGL) does not support 'hoveron'; remove it first
+    plt$x$data <- lapply(plt$x$data, function(tr) { tr$hoveron <- NULL; tr })
+    plotly::toWebGL(plt)
+  } else {
+    p
+  }
 }

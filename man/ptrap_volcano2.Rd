@@ -18,7 +18,8 @@ ptrap_volcano2(
   point_alpha = 0.7,
   genes.annot = NULL,
   max_overlaps = 20,
-  title = NULL
+  title = NULL,
+  interactive = FALSE
 )
 }
 \arguments{
@@ -62,9 +63,9 @@ If \code{NULL} (default), a colourblind-friendly palette is used.}
 Default is \code{0.7}.}
 
 \item{genes.annot}{Character vector of gene names to label on the plot via
-\code{\link[ggrepel:geom_text_repel]{ggrepel::geom_text_repel()}}. Names must match values in the column
-specified by \code{gene_col}; an error is raised if any names are not found.
-Default is \code{NULL} (no labels).}
+\code{\link[ggrepel:geom_text_repel]{ggrepel::geom_text_repel()}} (static mode only). Names must match values
+in the column specified by \code{gene_col}; an error is raised if any names
+are not found. Default is \code{NULL} (no labels).}
 
 \item{max_overlaps}{Passed to \code{\link[ggrepel:geom_text_repel]{ggrepel::geom_text_repel()}}. Controls how
 many overlapping labels are allowed before they are hidden. Default
@@ -72,9 +73,15 @@ is \code{20}.}
 
 \item{title}{Plot title. If \code{NULL} (default), the brain region name
 extracted from \code{de_result_1} is used.}
+
+\item{interactive}{Logical. If \code{TRUE}, returns an interactive
+\code{\link[plotly:ggplotly]{plotly::ggplotly()}} object with hover tooltips showing gene name, logFC
+for each condition, p-value, and FDR. Gene labels (\code{genes.annot}) are
+omitted in this mode. Default \code{FALSE}.}
 }
 \value{
-A \code{\link[ggplot2:ggplot]{ggplot2::ggplot()}} object.
+A \code{\link[ggplot2:ggplot]{ggplot2::ggplot()}} object, or a plotly object when
+\code{interactive = TRUE}.
 }
 \description{
 When you have run \code{\link[=ptrap_de]{ptrap_de()}} for two treatment groups (e.g.,
@@ -113,6 +120,9 @@ ptrap_volcano2(res_pb, res_sol)
 
 # Use raw p-values for the DE classification
 ptrap_volcano2(res_pb, res_sol, fdr = FALSE)
+
+# Interactive with hover tooltips
+ptrap_volcano2(res_pb, res_sol, interactive = TRUE)
 
 # Custom thresholds, title and colours
 ptrap_volcano2(res_pb, res_sol,

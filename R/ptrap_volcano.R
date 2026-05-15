@@ -10,9 +10,9 @@
 #' Takes a single tibble from [pTRAPPING::ptrap_de()] (for
 #' `test_method = "paired.ttest"`, pass the `$results` component). Gene
 #' labels are drawn only for genes listed in `genes.annot`, via
-#' [ggrepel::geom_text_repel()]. The DE classification is recomputed inside
-#' this function from the supplied thresholds, so you can explore different
-#' cutoffs without re-running `ptrap_de()`.
+#' [ggrepel::geom_text_repel()] (static mode only). The DE classification is
+#' recomputed inside this function from the supplied thresholds, so you can
+#' explore different cutoffs without re-running `ptrap_de()`.
 #'
 #' @param de_result A tibble returned by [pTRAPPING::ptrap_de()]. For
 #'   `test_method = "paired.ttest"`, pass the `$results` component.
@@ -33,27 +33,38 @@
 #'   Default is colourblind-friendly: `"#0072b2"` (UP), `"#E69f00"` (DOWN).
 #' @param point_size Size of points. Default `3.5`.
 #' @param point_alpha Opacity of highlighted points. Default `0.7`.
-#' @param genes.annot Character vector of gene names to label. Default `NULL`.
+#' @param genes.annot Character vector of gene names to label. In static mode
+#'   labels are drawn via [ggrepel::geom_text_repel()]; in interactive mode
+#'   they are omitted (use the hover tooltip instead). Default `NULL`.
 #' @param max_overlaps Passed to [ggrepel::geom_text_repel()]. Default `20`.
 #' @param title Plot title. Auto-generated from region and treatment if `NULL`.
+#' @param interactive Logical. If `TRUE`, returns an interactive
+#'   [plotly::ggplotly()] object with hover tooltips showing gene name, logFC,
+#'   p-value, and FDR. Gene labels (`genes.annot`) are omitted in this mode.
+#'   Default `FALSE`.
 #'
-#' @return A [ggplot2::ggplot()] object.
+#' @return A [ggplot2::ggplot()] object, or a plotly object when
+#'   `interactive = TRUE`.
 #'
 #' @export
 #'
 #' @examples
 #' \dontrun{
-#' # Default: -log10(FDR)
+#' # Default: -log10(FDR), static
 #' ptrap_volcano(res)
 #'
 #' # Raw p-values, log2 scale -- as in Tan et al. 2016
 #' ptrap_volcano(res, fdr = FALSE, log_base = 2)
+#'
+#' # Interactive with hover tooltips
+#' ptrap_volcano(res, interactive = TRUE)
 #' }
 #'
 #' @importFrom dplyr mutate case_when
 #' @importFrom rlang .data
 #' @importFrom ggplot2 ggplot aes geom_point geom_vline geom_hline scale_fill_manual theme_classic labs
 #' @importFrom ggrepel geom_text_repel
+#' @importFrom plotly ggplotly layout toWebGL
 #' @importFrom cli cli_abort
 
 ptrap_volcano <- function(
@@ -70,7 +81,8 @@ ptrap_volcano <- function(
   point_alpha = 0.7,
   genes.annot = NULL,
   max_overlaps = 20,
-  title = NULL
+  title = NULL,
+  interactive = FALSE
 ) {
   # --- validate log_base -------------------------------------------------
   if (
@@ -104,13 +116,16 @@ ptrap_volcano <- function(
   } else {
     log_base
   }
-  y_label <- if (fdr) {
+  # plotly cannot parse bquote() expressions; use plain text for interactive
+  y_label <- if (interactive) {
+    if (fdr) paste0("-log", base_int, "(FDR)") else paste0("-log", base_int, "(p-value)")
+  } else if (fdr) {
     bquote(-log[.(base_int)](FDR))
   } else {
     bquote(-log[.(base_int)]("p-value"))
   }
 
-  # --- recompute DE classification ---------------------------------------
+  # --- recompute DE classification and build hover text ------------------
   plot_data <- de_result |>
     mutate(
       DE = case_when(
@@ -122,7 +137,13 @@ ptrap_volcano <- function(
           .data[[p_col]] < fdr_threshold ~ "DOWN",
         TRUE ~ "Not DE"
       ),
-      y_val = .data[[p_col]]
+      y_val = .data[[p_col]],
+      text_hover = paste0(
+        "<b>", .data[[gene_col]], "</b><br>",
+        "logFC: ", round(.data$logFC, 3), "<br>",
+        "PValue: ", signif(.data$PValue, 3), "<br>",
+        "FDR: ", signif(.data$FDR, 3)
+      )
     )
 
   # --- annotation data ---------------------------------------------------
@@ -147,9 +168,13 @@ ptrap_volcano <- function(
   }
 
   # --- build plot --------------------------------------------------------
-  ggplot(
+  p <- ggplot(
     plot_data,
-    aes(x = .data$logFC, y = -log(.data$y_val, base = log_base))
+    aes(
+      x = .data$logFC,
+      y = -log(.data$y_val, base = log_base),
+      text = .data$text_hover
+    )
   ) +
     geom_point(
       data = plot_data[plot_data$DE == "Not DE", ],
@@ -181,19 +206,32 @@ ptrap_volcano <- function(
       stroke = 0.5,
       color = "black"
     ) +
-    geom_text_repel(
+    theme_classic() +
+    labs(
+      x = if (interactive) "log2 Fold Change (IP / Input)" else expression(log[2] ~ "Fold Change (IP / Input)"),
+      y = y_label,
+      title = title,
+      fill = "DE"
+    )
+
+  if (!interactive) {
+    p <- p + geom_text_repel(
       data = annot_data,
       aes(label = .data[[gene_col]]),
       size = 4.3,
       color = "black",
       max.overlaps = max_overlaps,
       min.segment.length = 0
-    ) +
-    theme_classic() +
-    labs(
-      x = expression(log[2] ~ "Fold Change (IP / Input)"),
-      y = y_label,
-      title = title,
-      fill = "DE"
     )
+  }
+
+  if (interactive) {
+    plt <- plotly::ggplotly(p, tooltip = "text", width = NULL, height = 500) |>
+      plotly::layout(dragmode = "zoom", autosize = TRUE)
+    # scattergl (used by toWebGL) does not support 'hoveron'; remove it first
+    plt$x$data <- lapply(plt$x$data, function(tr) { tr$hoveron <- NULL; tr })
+    plotly::toWebGL(plt)
+  } else {
+    p
+  }
 }

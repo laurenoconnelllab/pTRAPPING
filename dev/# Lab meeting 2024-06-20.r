@@ -51,21 +51,10 @@ bdnf_de <- counts_rpkm |>
     prior.count = 0
   )
 
-
 ptrap_volcano2(
   de_result_1 = pacap_de$results,
   de_result_2 = bdnf_de$results,
   fdr = FALSE,
   title = "PACAP vs BDNF — Preoptic Area",
-  genes.annot = c(
-    "Adcyap1",
-    "Bdnf",
-    "Ucn3",
-    "Gng8",
-    "Nxph4",
-    "Ghrh",
-    "Emx2",
-    "Fezf1",
-    "Nhlh2"
-  )
+  interactive = TRUE
 )

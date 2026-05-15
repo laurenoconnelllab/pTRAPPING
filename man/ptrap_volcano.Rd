@@ -18,7 +18,8 @@ ptrap_volcano(
   point_alpha = 0.7,
   genes.annot = NULL,
   max_overlaps = 20,
-  title = NULL
+  title = NULL,
+  interactive = FALSE
 )
 }
 \arguments{
@@ -52,14 +53,22 @@ Default is colourblind-friendly: \code{"#0072b2"} (UP), \code{"#E69f00"} (DOWN).
 
 \item{point_alpha}{Opacity of highlighted points. Default \code{0.7}.}
 
-\item{genes.annot}{Character vector of gene names to label. Default \code{NULL}.}
+\item{genes.annot}{Character vector of gene names to label. In static mode
+labels are drawn via \code{\link[ggrepel:geom_text_repel]{ggrepel::geom_text_repel()}}; in interactive mode
+they are omitted (use the hover tooltip instead). Default \code{NULL}.}
 
 \item{max_overlaps}{Passed to \code{\link[ggrepel:geom_text_repel]{ggrepel::geom_text_repel()}}. Default \code{20}.}
 
 \item{title}{Plot title. Auto-generated from region and treatment if \code{NULL}.}
+
+\item{interactive}{Logical. If \code{TRUE}, returns an interactive
+\code{\link[plotly:ggplotly]{plotly::ggplotly()}} object with hover tooltips showing gene name, logFC,
+p-value, and FDR. Gene labels (\code{genes.annot}) are omitted in this mode.
+Default \code{FALSE}.}
 }
 \value{
-A \code{\link[ggplot2:ggplot]{ggplot2::ggplot()}} object.
+A \code{\link[ggplot2:ggplot]{ggplot2::ggplot()}} object, or a plotly object when
+\code{interactive = TRUE}.
 }
 \description{
 A volcano plot puts log2 fold change (logFC, x-axis) against statistical
@@ -73,17 +82,20 @@ enriched in IP, \code{"DOWN"} for depleted).
 Takes a single tibble from \code{\link[=ptrap_de]{ptrap_de()}} (for
 \code{test_method = "paired.ttest"}, pass the \verb{$results} component). Gene
 labels are drawn only for genes listed in \code{genes.annot}, via
-\code{\link[ggrepel:geom_text_repel]{ggrepel::geom_text_repel()}}. The DE classification is recomputed inside
-this function from the supplied thresholds, so you can explore different
-cutoffs without re-running \code{ptrap_de()}.
+\code{\link[ggrepel:geom_text_repel]{ggrepel::geom_text_repel()}} (static mode only). The DE classification is
+recomputed inside this function from the supplied thresholds, so you can
+explore different cutoffs without re-running \code{ptrap_de()}.
 }
 \examples{
 \dontrun{
-# Default: -log10(FDR)
+# Default: -log10(FDR), static
 ptrap_volcano(res)
 
 # Raw p-values, log2 scale -- as in Tan et al. 2016
 ptrap_volcano(res, fdr = FALSE, log_base = 2)
+
+# Interactive with hover tooltips
+ptrap_volcano(res, interactive = TRUE)
 }
 
 }
