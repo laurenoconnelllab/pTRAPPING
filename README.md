@@ -38,6 +38,9 @@ automatically.
 
 ## Quick start
 
+Get differential expression results of interesting genes from your
+counts matrix in just a few lines of code:
+
 ``` r
 library(pTRAPPING)
 
@@ -135,7 +138,7 @@ Gng8
 
 <td style="text-align:right;">
 
-41.232
+39.952
 </td>
 
 <td style="text-align:left;">
@@ -169,7 +172,7 @@ Ucn3
 
 <td style="text-align:right;">
 
-3.948
+3.949
 </td>
 
 <td style="text-align:right;">
@@ -179,7 +182,7 @@ Ucn3
 
 <td style="text-align:right;">
 
-25.888
+25.454
 </td>
 
 <td style="text-align:left;">
@@ -213,7 +216,7 @@ Bdnf
 
 <td style="text-align:right;">
 
-4.336
+4.338
 </td>
 
 <td style="text-align:right;">
@@ -223,7 +226,7 @@ Bdnf
 
 <td style="text-align:right;">
 
-23.351
+23.035
 </td>
 
 <td style="text-align:left;">
@@ -252,22 +255,22 @@ UP
 
 <td style="text-align:left;font-weight: bold;">
 
-Gfap
+Trappc12
 </td>
 
 <td style="text-align:right;">
 
--2.979
+-3.345
 </td>
 
 <td style="text-align:right;">
 
-5.086
+1.809
 </td>
 
 <td style="text-align:right;">
 
-10.697
+10.679
 </td>
 
 <td style="text-align:left;">
@@ -277,7 +280,7 @@ Gfap
 
 <td style="text-align:left;">
 
-0.028
+0.030
 </td>
 
 <td style="text-align:left;">
@@ -296,22 +299,22 @@ DOWN
 
 <td style="text-align:left;font-weight: bold;">
 
-Trappc12
+Gfap
 </td>
 
 <td style="text-align:right;">
 
--3.350
+-2.979
 </td>
 
 <td style="text-align:right;">
 
-1.809
+5.086
 </td>
 
 <td style="text-align:right;">
 
-10.479
+10.628
 </td>
 
 <td style="text-align:left;">
@@ -321,7 +324,7 @@ Trappc12
 
 <td style="text-align:left;">
 
-0.030
+0.031
 </td>
 
 <td style="text-align:left;">
@@ -355,17 +358,17 @@ Fosl2
 
 <td style="text-align:right;">
 
-3.988
+3.694
 </td>
 
 <td style="text-align:left;">
 
-0.046
+0.055
 </td>
 
 <td style="text-align:left;">
 
-0.266
+0.304
 </td>
 
 <td style="text-align:left;">
@@ -399,17 +402,17 @@ Adcyap1
 
 <td style="text-align:right;">
 
-2.691
+2.708
 </td>
 
 <td style="text-align:left;">
 
-0.101
+0.100
 </td>
 
 <td style="text-align:left;">
 
-0.387
+0.398
 </td>
 
 <td style="text-align:left;">
@@ -443,17 +446,17 @@ Junb
 
 <td style="text-align:right;">
 
-1.343
+1.385
 </td>
 
 <td style="text-align:left;">
 
-0.247
+0.239
 </td>
 
 <td style="text-align:left;">
 
-0.597
+0.600
 </td>
 
 <td style="text-align:left;">
@@ -472,6 +475,9 @@ NO
 
 </table>
 
+Plot the same results in an interactive volcano plot and hover over the
+points to see gene labels, logFC, p-value, and FDR:
+
 ``` r
 # Volcano plot — label a few genes of interest
 ptrap_de(
@@ -479,17 +485,7 @@ ptrap_de(
   treatment_name = "PACAP"
 ) |>
   ptrap_volcano(
-    genes.annot = c(
-      "Adcyap1",
-      "Bdnf",
-      "Ucn3",
-      "Gng8",
-      "Fosl2",
-      "Junb",
-      "Trappc12",
-      "Gfap"
-    ),
-    title = "PACAP"
+    interactive = TRUE
   )
 ```
 
@@ -497,8 +493,8 @@ ptrap_de(
 
 ## Learn more
 
-- **Full walkthrough:**
-  `vignette("getting-started", package = "pTRAPPING")`
+- **Full walkthrough:** [Getting started with
+  pTRAPPING](https://laurenoconnelllab.github.io/pTRAPPING/articles/getting-started.html)
 
 - The example dataset is from:
 

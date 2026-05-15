@@ -53,6 +53,8 @@ automatically.
 
 ## Quick start
 
+Get differential expression results of interesting genes from your counts matrix in just a few lines of code: 
+
 ```{r quick-start, message = FALSE, warning = FALSE}
 library(pTRAPPING)
 
@@ -79,6 +81,8 @@ ptrap_de(
 )
 ```
 
+Plot the same results in an interactive volcano plot and hover over the points to see gene labels, logFC, p-value, and FDR:
+
 ```{r quick-volcano, message = FALSE, warning = FALSE, fig.alt = "Volcano plot of IP vs INPUT enrichment in PACAP"}
 # Volcano plot — label a few genes of interest
 ptrap_de(
@@ -86,23 +90,13 @@ ptrap_de(
   treatment_name = "PACAP"
 ) |>
   ptrap_volcano(
-    genes.annot = c(
-      "Adcyap1",
-      "Bdnf",
-      "Ucn3",
-      "Gng8",
-      "Fosl2",
-      "Junb",
-      "Trappc12",
-      "Gfap"
-    ),
-    title = "PACAP"
+    interactive = TRUE
   )
 ```
 
 ## Learn more
 
-- **Full walkthrough:** `vignette("getting-started", package = "pTRAPPING")`
+- **Full walkthrough:** [Getting started with pTRAPPING](https://laurenoconnelllab.github.io/pTRAPPING/articles/getting-started.html)
 
 - The example dataset is from:
 
