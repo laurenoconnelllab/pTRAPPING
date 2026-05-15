@@ -226,11 +226,9 @@ A **volcano plot** puts logFC on the x-axis and statistical significance
 (-log p-value) on the y-axis. Genes in the **upper-right corner** are
 both strongly enriched *and* statistically significant — the most
 interesting candidates. Genes in the upper-left are strongly depleted.
-Grey points fail one or both thresholds. The argument `genes.annot`
-takes a character vector of gene names to label on the plot. In the
-example below, we label highly enriched and known warm-sensitive markers
-shown in figure 1D in Tan et al. (2016), including Adcyap1 (PACAP) and
-Bdnf.
+Grey points fail one or both thresholds. If `interactive = FALSE`
+(default), labels are always shown for the genes in `genes.annot` (if
+specified).
 
 ``` r
 
@@ -238,6 +236,7 @@ warm_de$results |>
   ptrap_volcano(
     fdr = FALSE, # use raw p-values (n=3; FDR is very conservative)
     log_base = 2, # -log2(p) on y-axis, matching Tan et al. 2016
+    point_alpha = 0.3,
     genes.annot = c(
       "Fosl2",
       "Egr2",
@@ -247,14 +246,28 @@ warm_de$results |>
       "Fosb",
       "Rrad",
       "Gadd45b"
-    ),
-    point_alpha = 0.3,
-    title = "Differential gene expression in warm-sensitive neurons"
+    ) # known warm-sensitive markers
   )
 ```
 
 ![Volcano plot showing known warm-sensitive markers in Tan et al.
-(2016).](getting-started_files/figure-html/ptrap-volcano-1.png)
+(2016).](getting-started_files/figure-html/ptrap-volcano-annot-1.png)
+
+Volcano plot showing known warm-sensitive markers in Tan et al. (2016).
+
+When `interactive = TRUE`, the plot becomes interactive via `Plotly` and
+users can zoom in and hover over points to see gene labels, logFC,
+p-value, and FDR.
+
+``` r
+
+warm_de$results |>
+  ptrap_volcano(
+    fdr = FALSE,
+    log_base = 2, # -log2(p) on y-axis, matching Tan et al. 2016
+    point_alpha = 0.3,
+    interactive = TRUE) # hover to show gene labels and info
+```
 
 Volcano plot showing known warm-sensitive markers in Tan et al. (2016).
 
@@ -415,24 +428,9 @@ ptrap_volcano2(
   de_result_1 = pacap_de$results,
   de_result_2 = bdnf_de$results,
   fdr = FALSE,
-  title = "PACAP vs BDNF — Preoptic Area",
-  genes.annot = c(
-    "Adcyap1",
-    "Bdnf",
-    "Ucn3",
-    "Gng8",
-    "Nxph4",
-    "Ghrh",
-    "Emx2",
-    "Fezf1",
-    "Nhlh2"
-  )
+  interactive = TRUE
 )
 ```
-
-![Scatter comparison of PACAP and BDNF enrichment. Genes on the diagonal
-are enriched equally in both
-conditions.](getting-started_files/figure-html/ptrap-volcano2-1.png)
 
 Scatter comparison of PACAP and BDNF enrichment. Genes on the diagonal
 are enriched equally in both conditions.

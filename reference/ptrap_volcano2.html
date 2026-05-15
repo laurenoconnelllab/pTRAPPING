@@ -70,7 +70,8 @@ and condition 2 on the x-axis. Each point is one gene.</p>
 <span>  point_alpha <span class="op">=</span> <span class="fl">0.7</span>,</span>
 <span>  genes.annot <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  max_overlaps <span class="op">=</span> <span class="fl">20</span>,</span>
-<span>  title <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  title <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  interactive <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -141,9 +142,9 @@ Default is <code>0.7</code>.</p></dd>
 
 <dt id="arg-genes-annot">genes.annot<a class="anchor" aria-label="anchor" href="#arg-genes-annot"></a></dt>
 <dd><p>Character vector of gene names to label on the plot via
-<code><a href="https://ggrepel.slowkow.com/reference/geom_text_repel.html" class="external-link">ggrepel::geom_text_repel()</a></code>. Names must match values in the column
-specified by <code>gene_col</code>; an error is raised if any names are not found.
-Default is <code>NULL</code> (no labels).</p></dd>
+<code><a href="https://ggrepel.slowkow.com/reference/geom_text_repel.html" class="external-link">ggrepel::geom_text_repel()</a></code> (static mode only). Names must match values
+in the column specified by <code>gene_col</code>; an error is raised if any names
+are not found. Default is <code>NULL</code> (no labels).</p></dd>
 
 
 <dt id="arg-max-overlaps">max_overlaps<a class="anchor" aria-label="anchor" href="#arg-max-overlaps"></a></dt>
@@ -156,10 +157,18 @@ is <code>20</code>.</p></dd>
 <dd><p>Plot title. If <code>NULL</code> (default), the brain region name
 extracted from <code>de_result_1</code> is used.</p></dd>
 
+
+<dt id="arg-interactive">interactive<a class="anchor" aria-label="anchor" href="#arg-interactive"></a></dt>
+<dd><p>Logical. If <code>TRUE</code>, returns an interactive
+<code><a href="https://rdrr.io/pkg/plotly/man/ggplotly.html" class="external-link">plotly::ggplotly()</a></code> object with hover tooltips showing gene name, logFC
+for each condition, p-value, and FDR. Gene labels (<code>genes.annot</code>) are
+omitted in this mode. Default <code>FALSE</code>.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A <code><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot2::ggplot()</a></code> object.</p>
+    <p>A <code><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot2::ggplot()</a></code> object, or a plotly object when
+<code>interactive = TRUE</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -189,6 +198,9 @@ explore different cutoffs without re-running <code><a href="ptrap_de.html">ptrap
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Use raw p-values for the DE classification</span></span></span>
 <span class="r-in"><span><span class="fu">ptrap_volcano2</span><span class="op">(</span><span class="va">res_pb</span>, <span class="va">res_sol</span>, fdr <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Interactive with hover tooltips</span></span></span>
+<span class="r-in"><span><span class="fu">ptrap_volcano2</span><span class="op">(</span><span class="va">res_pb</span>, <span class="va">res_sol</span>, interactive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Custom thresholds, title and colours</span></span></span>
 <span class="r-in"><span><span class="fu">ptrap_volcano2</span><span class="op">(</span><span class="va">res_pb</span>, <span class="va">res_sol</span>,</span></span>

@@ -24,7 +24,8 @@ ptrap_volcano(
   point_alpha = 0.7,
   genes.annot = NULL,
   max_overlaps = 20,
-  title = NULL
+  title = NULL,
+  interactive = FALSE
 )
 ```
 
@@ -85,7 +86,11 @@ ptrap_volcano(
 
 - genes.annot:
 
-  Character vector of gene names to label. Default `NULL`.
+  Character vector of gene names to label. In static mode labels are
+  drawn via
+  [`ggrepel::geom_text_repel()`](https://ggrepel.slowkow.com/reference/geom_text_repel.html);
+  in interactive mode they are omitted (use the hover tooltip instead).
+  Default `NULL`.
 
 - max_overlaps:
 
@@ -97,11 +102,18 @@ ptrap_volcano(
 
   Plot title. Auto-generated from region and treatment if `NULL`.
 
+- interactive:
+
+  Logical. If `TRUE`, returns an interactive
+  [`plotly::ggplotly()`](https://rdrr.io/pkg/plotly/man/ggplotly.html)
+  object with hover tooltips showing gene name, logFC, p-value, and FDR.
+  Gene labels (`genes.annot`) are omitted in this mode. Default `FALSE`.
+
 ## Value
 
 A
 [`ggplot2::ggplot()`](https://ggplot2.tidyverse.org/reference/ggplot.html)
-object.
+object, or a plotly object when `interactive = TRUE`.
 
 ## Details
 
@@ -109,20 +121,23 @@ Takes a single tibble from
 [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md)
 (for `test_method = "paired.ttest"`, pass the `$results` component).
 Gene labels are drawn only for genes listed in `genes.annot`, via
-[`ggrepel::geom_text_repel()`](https://ggrepel.slowkow.com/reference/geom_text_repel.html).
-The DE classification is recomputed inside this function from the
-supplied thresholds, so you can explore different cutoffs without
-re-running
+[`ggrepel::geom_text_repel()`](https://ggrepel.slowkow.com/reference/geom_text_repel.html)
+(static mode only). The DE classification is recomputed inside this
+function from the supplied thresholds, so you can explore different
+cutoffs without re-running
 [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md).
 
 ## Examples
 
 ``` r
 if (FALSE) { # \dontrun{
-# Default: -log10(FDR)
+# Default: -log10(FDR), static
 ptrap_volcano(res)
 
 # Raw p-values, log2 scale -- as in Tan et al. 2016
 ptrap_volcano(res, fdr = FALSE, log_base = 2)
+
+# Interactive with hover tooltips
+ptrap_volcano(res, interactive = TRUE)
 } # }
 ```

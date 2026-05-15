@@ -35,6 +35,9 @@ automatically.
 
 ## Quick start
 
+Get differential expression results of interesting genes from your
+counts matrix in just a few lines of code:
+
 ``` r
 
 library(pTRAPPING)
@@ -64,14 +67,17 @@ ptrap_de(
 
 | Gene     |  logFC | logCPM |     LR | PValue  | FDR     | treatment | diffexpressed |
 |:---------|-------:|-------:|-------:|:--------|:--------|:----------|:--------------|
-| Gng8     |  4.056 |  5.578 | 41.232 | \<0.001 | \<0.001 | PACAP     | UP            |
-| Ucn3     |  3.948 |  5.218 | 25.888 | \<0.001 | \<0.001 | PACAP     | UP            |
-| Bdnf     |  4.336 |  3.090 | 23.351 | \<0.001 | \<0.001 | PACAP     | UP            |
-| Gfap     | -2.979 |  5.086 | 10.697 | 0.001   | 0.028   | PACAP     | DOWN          |
-| Trappc12 | -3.350 |  1.809 | 10.479 | 0.001   | 0.030   | PACAP     | DOWN          |
-| Fosl2    |  0.781 |  6.990 |  3.988 | 0.046   | 0.266   | PACAP     | NO            |
-| Adcyap1  |  1.516 |  3.665 |  2.691 | 0.101   | 0.387   | PACAP     | NO            |
-| Junb     |  0.757 |  4.568 |  1.343 | 0.247   | 0.597   | PACAP     | NO            |
+| Gng8     |  4.056 |  5.578 | 39.952 | \<0.001 | \<0.001 | PACAP     | UP            |
+| Ucn3     |  3.949 |  5.218 | 25.454 | \<0.001 | \<0.001 | PACAP     | UP            |
+| Bdnf     |  4.338 |  3.090 | 23.035 | \<0.001 | \<0.001 | PACAP     | UP            |
+| Trappc12 | -3.345 |  1.809 | 10.679 | 0.001   | 0.030   | PACAP     | DOWN          |
+| Gfap     | -2.979 |  5.086 | 10.628 | 0.001   | 0.031   | PACAP     | DOWN          |
+| Fosl2    |  0.781 |  6.990 |  3.694 | 0.055   | 0.304   | PACAP     | NO            |
+| Adcyap1  |  1.516 |  3.665 |  2.708 | 0.100   | 0.398   | PACAP     | NO            |
+| Junb     |  0.757 |  4.568 |  1.385 | 0.239   | 0.600   | PACAP     | NO            |
+
+Plot the same results in an interactive volcano plot and hover over the
+points to see gene labels, logFC, p-value, and FDR:
 
 ``` r
 
@@ -81,17 +87,7 @@ ptrap_de(
   treatment_name = "PACAP"
 ) |>
   ptrap_volcano(
-    genes.annot = c(
-      "Adcyap1",
-      "Bdnf",
-      "Ucn3",
-      "Gng8",
-      "Fosl2",
-      "Junb",
-      "Trappc12",
-      "Gfap"
-    ),
-    title = "PACAP"
+    interactive = TRUE
   )
 ```
 
@@ -100,8 +96,8 @@ PACAP](reference/figures/README-quick-volcano-1.png)
 
 ## Learn more
 
-- **Full walkthrough:**
-  [`vignette("getting-started", package = "pTRAPPING")`](https://laurenoconnelllab.github.io/pTRAPPING/articles/getting-started.md)
+- **Full walkthrough:** [Getting started with
+  pTRAPPING](https://laurenoconnelllab.github.io/pTRAPPING/articles/getting-started.html)
 
 - The example dataset is from:
 

@@ -26,7 +26,8 @@ ptrap_volcano2(
   point_alpha = 0.7,
   genes.annot = NULL,
   max_overlaps = 20,
-  title = NULL
+  title = NULL,
+  interactive = FALSE
 )
 ```
 
@@ -96,10 +97,10 @@ ptrap_volcano2(
 - genes.annot:
 
   Character vector of gene names to label on the plot via
-  [`ggrepel::geom_text_repel()`](https://ggrepel.slowkow.com/reference/geom_text_repel.html).
-  Names must match values in the column specified by `gene_col`; an
-  error is raised if any names are not found. Default is `NULL` (no
-  labels).
+  [`ggrepel::geom_text_repel()`](https://ggrepel.slowkow.com/reference/geom_text_repel.html)
+  (static mode only). Names must match values in the column specified by
+  `gene_col`; an error is raised if any names are not found. Default is
+  `NULL` (no labels).
 
 - max_overlaps:
 
@@ -113,11 +114,19 @@ ptrap_volcano2(
   Plot title. If `NULL` (default), the brain region name extracted from
   `de_result_1` is used.
 
+- interactive:
+
+  Logical. If `TRUE`, returns an interactive
+  [`plotly::ggplotly()`](https://rdrr.io/pkg/plotly/man/ggplotly.html)
+  object with hover tooltips showing gene name, logFC for each
+  condition, p-value, and FDR. Gene labels (`genes.annot`) are omitted
+  in this mode. Default `FALSE`.
+
 ## Value
 
 A
 [`ggplot2::ggplot()`](https://ggplot2.tidyverse.org/reference/ggplot.html)
-object.
+object, or a plotly object when `interactive = TRUE`.
 
 ## Details
 
@@ -153,6 +162,9 @@ ptrap_volcano2(res_pb, res_sol)
 
 # Use raw p-values for the DE classification
 ptrap_volcano2(res_pb, res_sol, fdr = FALSE)
+
+# Interactive with hover tooltips
+ptrap_volcano2(res_pb, res_sol, interactive = TRUE)
 
 # Custom thresholds, title and colours
 ptrap_volcano2(res_pb, res_sol,

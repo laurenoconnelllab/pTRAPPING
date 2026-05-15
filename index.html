@@ -104,6 +104,7 @@
 <div class="section level2">
 <h2 id="quick-start">Quick start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
 </h2>
+<p>Get differential expression results of interesting genes from your counts matrix in just a few lines of code:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/laurenoconnelllab/pTRAPPING" class="external-link">pTRAPPING</a></span><span class="op">)</span></span>
 <span></span>
@@ -167,7 +168,7 @@ Gng8
 5.578
 </td>
 <td style="text-align:right;">
-41.232
+39.952
 </td>
 <td style="text-align:left;">
 &lt;0.001
@@ -187,13 +188,13 @@ UP
 Ucn3
 </td>
 <td style="text-align:right;">
-3.948
+3.949
 </td>
 <td style="text-align:right;">
 5.218
 </td>
 <td style="text-align:right;">
-25.888
+25.454
 </td>
 <td style="text-align:left;">
 &lt;0.001
@@ -213,13 +214,13 @@ UP
 Bdnf
 </td>
 <td style="text-align:right;">
-4.336
+4.338
 </td>
 <td style="text-align:right;">
 3.090
 </td>
 <td style="text-align:right;">
-23.351
+23.035
 </td>
 <td style="text-align:left;">
 &lt;0.001
@@ -236,22 +237,22 @@ UP
 </tr>
 <tr>
 <td style="text-align:left;font-weight: bold;">
-Gfap
+Trappc12
 </td>
 <td style="text-align:right;">
--2.979
+-3.345
 </td>
 <td style="text-align:right;">
-5.086
+1.809
 </td>
 <td style="text-align:right;">
-10.697
+10.679
 </td>
 <td style="text-align:left;">
 0.001
 </td>
 <td style="text-align:left;">
-0.028
+0.030
 </td>
 <td style="text-align:left;">
 PACAP
@@ -262,22 +263,22 @@ DOWN
 </tr>
 <tr>
 <td style="text-align:left;font-weight: bold;">
-Trappc12
+Gfap
 </td>
 <td style="text-align:right;">
--3.350
+-2.979
 </td>
 <td style="text-align:right;">
-1.809
+5.086
 </td>
 <td style="text-align:right;">
-10.479
+10.628
 </td>
 <td style="text-align:left;">
 0.001
 </td>
 <td style="text-align:left;">
-0.030
+0.031
 </td>
 <td style="text-align:left;">
 PACAP
@@ -297,13 +298,13 @@ Fosl2
 6.990
 </td>
 <td style="text-align:right;">
-3.988
+3.694
 </td>
 <td style="text-align:left;">
-0.046
+0.055
 </td>
 <td style="text-align:left;">
-0.266
+0.304
 </td>
 <td style="text-align:left;">
 PACAP
@@ -323,13 +324,13 @@ Adcyap1
 3.665
 </td>
 <td style="text-align:right;">
-2.691
+2.708
 </td>
 <td style="text-align:left;">
-0.101
+0.100
 </td>
 <td style="text-align:left;">
-0.387
+0.398
 </td>
 <td style="text-align:left;">
 PACAP
@@ -349,13 +350,13 @@ Junb
 4.568
 </td>
 <td style="text-align:right;">
-1.343
+1.385
 </td>
 <td style="text-align:left;">
-0.247
+0.239
 </td>
 <td style="text-align:left;">
-0.597
+0.600
 </td>
 <td style="text-align:left;">
 PACAP
@@ -366,6 +367,7 @@ NO
 </tr>
 </tbody>
 </table>
+<p>Plot the same results in an interactive volcano plot and hover over the points to see gene labels, logFC, p-value, and FDR:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Volcano plot — label a few genes of interest</span></span>
 <span><span class="fu"><a href="reference/ptrap_de.html">ptrap_de</a></span><span class="op">(</span></span>
@@ -373,17 +375,7 @@ NO
 <span>  treatment_name <span class="op">=</span> <span class="st">"PACAP"</span></span>
 <span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="reference/ptrap_volcano.html">ptrap_volcano</a></span><span class="op">(</span></span>
-<span>    genes.annot <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
-<span>      <span class="st">"Adcyap1"</span>,</span>
-<span>      <span class="st">"Bdnf"</span>,</span>
-<span>      <span class="st">"Ucn3"</span>,</span>
-<span>      <span class="st">"Gng8"</span>,</span>
-<span>      <span class="st">"Fosl2"</span>,</span>
-<span>      <span class="st">"Junb"</span>,</span>
-<span>      <span class="st">"Trappc12"</span>,</span>
-<span>      <span class="st">"Gfap"</span></span>
-<span>    <span class="op">)</span>,</span>
-<span>    title <span class="op">=</span> <span class="st">"PACAP"</span></span>
+<span>    interactive <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
 <p><img src="reference/figures/README-quick-volcano-1.png" alt="Volcano plot of IP vs INPUT enrichment in PACAP" width="80%"></p>
 </div>
@@ -391,7 +383,7 @@ NO
 <h2 id="learn-more">Learn more<a class="anchor" aria-label="anchor" href="#learn-more"></a>
 </h2>
 <ul>
-<li><p><strong>Full walkthrough:</strong> <code><a href="articles/getting-started.html">vignette("getting-started", package = "pTRAPPING")</a></code></p></li>
+<li><p><strong>Full walkthrough:</strong> <a href="https://laurenoconnelllab.github.io/pTRAPPING/articles/getting-started.html">Getting started with pTRAPPING</a></p></li>
 <li><p>The example dataset is from:</p></li>
 </ul>
 <blockquote>
