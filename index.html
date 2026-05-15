@@ -367,7 +367,7 @@ NO
 </tr>
 </tbody>
 </table>
-<p>Plot the same results in an interactive volcano plot and hover over the points to see gene labels, logFC, p-value, and FDR:</p>
+<p>Plot the same results in a volcano plot and annotate any genes of interest:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Volcano plot — label a few genes of interest</span></span>
 <span><span class="fu"><a href="reference/ptrap_de.html">ptrap_de</a></span><span class="op">(</span></span>
@@ -375,25 +375,47 @@ NO
 <span>  treatment_name <span class="op">=</span> <span class="st">"PACAP"</span></span>
 <span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="reference/ptrap_volcano.html">ptrap_volcano</a></span><span class="op">(</span></span>
-<span>    interactive <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span>    fdr <span class="op">=</span> <span class="cn">FALSE</span>, <span class="co"># use raw p-values (n=3; FDR is very conservative)</span></span>
+<span>    genes.annot <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>      <span class="st">"Adcyap1"</span>,</span>
+<span>      <span class="st">"Bdnf"</span>,</span>
+<span>      <span class="st">"Ucn3"</span>,</span>
+<span>      <span class="st">"Gng8"</span>,</span>
+<span>      <span class="st">"Fosl2"</span>,</span>
+<span>      <span class="st">"Junb"</span>,</span>
+<span>      <span class="st">"Trappc12"</span>,</span>
+<span>      <span class="st">"Gfap"</span></span>
+<span>    <span class="op">)</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
 <p><img src="reference/figures/README-quick-volcano-1.png" alt="Volcano plot of IP vs INPUT enrichment in PACAP" width="80%"></p>
+<p>Check <a href="https://laurenoconnelllab.github.io/pTRAPPING/articles/getting-started.html">Getting started with pTRAPPING</a> to see how to run the full workflow, including comparing two conditions head-to-head and making interactive volcano plots!</p>
 </div>
 <div class="section level2">
-<h2 id="learn-more">Learn more<a class="anchor" aria-label="anchor" href="#learn-more"></a>
+<h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>
-<ul>
-<li><p><strong>Full walkthrough:</strong> <a href="https://laurenoconnelllab.github.io/pTRAPPING/articles/getting-started.html">Getting started with pTRAPPING</a></p></li>
-<li><p>The example dataset is from:</p></li>
-</ul>
-<blockquote>
-<p>Tan, C.L., Cooke, E.K., Leib, D.E., Lin, Y.-C., Daly, G.E., Zimmerman, C.A., and Knight, Z.A. (2016). Warm-sensitive neurons that control body temperature. <em>Cell</em> 167, 47–59. <a href="https://doi.org/10.1016/j.cell.2016.08.028" class="external-link uri">https://doi.org/10.1016/j.cell.2016.08.028</a></p>
-</blockquote>
 <ul>
 <li>The PhosphoTRAP method was introduced in:</li>
 </ul>
 <blockquote>
 <p>Knight, Z.A., Tan, K., Birsoy, K., Schmidt, S., Garrison, J.L., Wysocki, R.W., Emiliano, A., Ekstrand, M.I., and Friedman, J.M. (2012). Molecular profiling of activated neurons by phosphorylated ribosome capture. <em>Cell</em> 151, 1126–1137. <a href="https://doi.org/10.1016/j.cell.2012.10.039" class="external-link uri">https://doi.org/10.1016/j.cell.2012.10.039</a></p>
+</blockquote>
+<ul>
+<li>Bioconductor packages used for differential expression analysis:</li>
+</ul>
+<blockquote>
+<p>edgeR: Robinson, M.D., McCarthy, D.J., and Smyth, G.K. (2010). edgeR: a Bioconductor package for differential expression analysis of digital gene expression data. <em>Bioinformatics</em> 26, 139–140. <a href="https://doi.org/10.1093/bioinformatics/btp616" class="external-link uri">https://doi.org/10.1093/bioinformatics/btp616</a></p>
+</blockquote>
+<blockquote>
+<p>limma: Ritchie, M.E., Phipson, B., Wu, D., Hu, Y., Law, C.W., Shi, W., and Smyth, G.K. (2015). limma powers differential expression analyses for RNA-sequencing and microarray studies. <em>Nucleic Acids Res</em> 43, e47. <a href="https://doi.org/10.1093/nar/gkv007" class="external-link uri">https://doi.org/10.1093/nar/gkv007</a></p>
+</blockquote>
+<blockquote>
+<p>DESeq2: Love, M.I., Huber, W., and Anders, S. (2014). Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. <em>Genome Biol</em> 15, 550. <a href="https://doi.org/10.1186/s13059-014-0550-8" class="external-link uri">https://doi.org/10.1186/s13059-014-0550-8</a></p>
+</blockquote>
+<ul>
+<li>The example dataset is from:</li>
+</ul>
+<blockquote>
+<p>Tan, C.L., Cooke, E.K., Leib, D.E., Lin, Y.-C., Daly, G.E., Zimmerman, C.A., and Knight, Z.A. (2016). Warm-sensitive neurons that control body temperature. <em>Cell</em> 167, 47–59. <a href="https://doi.org/10.1016/j.cell.2016.08.028" class="external-link uri">https://doi.org/10.1016/j.cell.2016.08.028</a></p>
 </blockquote>
 </div>
 </div>
