@@ -118,7 +118,11 @@ ptrap_volcano <- function(
   }
   # plotly cannot parse bquote() expressions; use plain text for interactive
   y_label <- if (interactive) {
-    if (fdr) paste0("-log", base_int, "(FDR)") else paste0("-log", base_int, "(p-value)")
+    if (fdr) {
+      paste0("-log", base_int, "(FDR)")
+    } else {
+      paste0("-log", base_int, "(p-value)")
+    }
   } else if (fdr) {
     bquote(-log[.(base_int)](FDR))
   } else {
@@ -139,10 +143,17 @@ ptrap_volcano <- function(
       ),
       y_val = .data[[p_col]],
       text_hover = paste0(
-        "<b>", .data[[gene_col]], "</b><br>",
-        "logFC: ", round(.data$logFC, 3), "<br>",
-        "PValue: ", signif(.data$PValue, 3), "<br>",
-        "FDR: ", signif(.data$FDR, 3)
+        "<b>",
+        .data[[gene_col]],
+        "</b><br>",
+        "logFC: ",
+        round(.data$logFC, 3),
+        "<br>",
+        "PValue: ",
+        signif(.data$PValue, 3),
+        "<br>",
+        "FDR: ",
+        signif(.data$FDR, 3)
       )
     )
 
@@ -208,28 +219,36 @@ ptrap_volcano <- function(
     ) +
     theme_classic() +
     labs(
-      x = if (interactive) "log2 Fold Change (IP / Input)" else expression(log[2] ~ "Fold Change (IP / Input)"),
+      x = if (interactive) {
+        "log2 Fold Change (IP / Input)"
+      } else {
+        expression(log[2] ~ "Fold Change (IP / Input)")
+      },
       y = y_label,
       title = title,
       fill = "DE"
     )
 
   if (!interactive) {
-    p <- p + geom_text_repel(
-      data = annot_data,
-      aes(label = .data[[gene_col]]),
-      size = 4.3,
-      color = "black",
-      max.overlaps = max_overlaps,
-      min.segment.length = 0
-    )
+    p <- p +
+      geom_text_repel(
+        data = annot_data,
+        aes(label = .data[[gene_col]]),
+        size = 4.3,
+        color = "black",
+        max.overlaps = max_overlaps,
+        min.segment.length = 0
+      )
   }
 
   if (interactive) {
-    plt <- plotly::ggplotly(p, tooltip = "text", width = NULL, height = 500) |>
+    plt <- plotly::ggplotly(p, tooltip = "text") |>
       plotly::layout(dragmode = "zoom", autosize = TRUE)
     # scattergl (used by toWebGL) does not support 'hoveron'; remove it first
-    plt$x$data <- lapply(plt$x$data, function(tr) { tr$hoveron <- NULL; tr })
+    plt$x$data <- lapply(plt$x$data, function(tr) {
+      tr$hoveron <- NULL
+      tr
+    })
     plotly::toWebGL(plt)
   } else {
     p

@@ -9,50 +9,52 @@ library(ggpubr)
 #Data sets
 
 bolt_counts <- read_tsv(
-  "/Users/camilorl/Library/CloudStorage/Dropbox/LOBSU_postdoc/Figures4Lauren/bolt_counts_matrix.txt"
+  "/Users/camilorl/Library/CloudStorage/Dropbox/LOBSU_postdoc/Figures4Lauren/Tad_begging/bolt_counts/bolt_counts_merged.txt"
 )
 
 food_counts <- read_tsv(
-  "/Users/camilorl/Library/CloudStorage/Dropbox/LOBSU_postdoc/Figures4Lauren/food_counts_matrix.txt"
+  "/Users/camilorl/Library/CloudStorage/Dropbox/LOBSU_postdoc/Figures4Lauren/Tad_begging/food_counts/food_counts_merged.txt"
 )
 
 female_counts <- read_tsv(
-  "/Users/camilorl/Library/CloudStorage/Dropbox/LOBSU_postdoc/Figures4Lauren/female_counts_matrix.txt"
+  "/Users/camilorl/Library/CloudStorage/Dropbox/LOBSU_postdoc/Figures4Lauren/Tad_begging/female_counts/female_counts_merged.txt"
 )
 
 tad_counts <- read_tsv(
-  "/Users/camilorl/Library/CloudStorage/Dropbox/LOBSU_postdoc/Figures4Lauren/tad_counts_matrix.txt"
+  "/Users/camilorl/Library/CloudStorage/Dropbox/LOBSU_postdoc/Figures4Lauren/Tad_begging/tad_counts/tad_counts_merged.txt"
 )
 
 
-bolt_de <- bolt_counts |>
-  rename_with(
-    ~ sub(
-      "^(bolt)_(input|ip)_([0-9]+)$",
-      "\\1_\\3_\\2",
-      .x,
-      ignore.case = TRUE
-    ),
-    .cols = -gene
+genenames <- read_csv(
+  "/Users/camilorl/Library/CloudStorage/Dropbox/LOBSU_postdoc/Figures4Lauren/Tad_begging/RiTad_GeneNames.csv"
+) |>
+  select(GeneID, gene = `Gene Abbr`) |>
+  mutate(
+    GeneID = str_remove(GeneID, "_i\\d+$"),
+    gene = if_else(gene == "---NA---", NA_character_, gene),
+    gene = str_remove(gene, "_[A-Z0-9]+$")
   ) |>
+  distinct(GeneID, .keep_all = TRUE) |>
+  mutate(gene = coalesce(gene, GeneID))
+
+
+bolt_de <- bolt_counts |>
+  rename(GeneID = gene_id) |>
+  left_join(genenames, by = "GeneID") |>
+  select(-GeneID) |>
+  mutate(gene = make.unique(gene)) |>
   column_to_rownames("gene") |>
-  round() |>
   ptrap_de(
     test_method = "deseq"
   )
 
 bolt_de_tt <- bolt_counts |>
-  rename_with(
-    ~ sub(
-      "^(bolt)_(input|ip)_([0-9]+)$",
-      "\\1_\\3_\\2",
-      .x,
-      ignore.case = TRUE
-    ),
-    .cols = -gene
-  ) |>
+  rename(GeneID = gene_id) |>
+  left_join(genenames, by = "GeneID") |>
+  select(-GeneID) |>
+  mutate(gene = make.unique(gene)) |>
   column_to_rownames("gene") |>
-  round() |>
+  filter(if_any(where(is.numeric), ~ .x > 1)) |>
   ptrap_de(
     test_method = "paired.ttest",
     norm.method = "none",
@@ -63,92 +65,82 @@ bolt_de_tt <- bolt_counts |>
 
 
 food_de <- food_counts |>
-  rename_with(
-    ~ sub(
-      "^(food)_(input|ip)_([0-9]+)$",
-      "\\1_\\3_\\2",
-      .x,
-      ignore.case = TRUE
-    ),
-    .cols = -gene
-  ) |>
+  rename(GeneID = gene_id) |>
+  left_join(genenames, by = "GeneID") |>
+  select(-GeneID) |>
+  mutate(gene = make.unique(gene)) |>
   column_to_rownames("gene") |>
-  round() |>
+  filter(if_any(where(is.numeric), ~ .x > 1)) |>
   ptrap_de(
     test_method = "deseq"
   )
 
 food_de_tt <- food_counts |>
-  rename_with(
-    ~ sub(
-      "^(food)_(input|ip)_([0-9]+)$",
-      "\\1_\\3_\\2",
-      .x,
-      ignore.case = TRUE
-    ),
-    .cols = -gene
-  ) |>
+  rename(GeneID = gene_id) |>
+  left_join(genenames, by = "GeneID") |>
+  select(-GeneID) |>
+  mutate(gene = make.unique(gene)) |>
   column_to_rownames("gene") |>
-  round() |>
-  ptrap_de(
-    test_method = "paired.ttest",
-    norm.method = "none",
-    filter = TRUE,
-    lfc_threshold = 0.3,
-    prior.count = 0
-  )
-
-
-female_de <- female_counts |>
-  rename_with(
-    ~ sub(
-      "^(female)_(input|ip)_([0-9]+)$",
-      "\\1_\\3_\\2",
-      .x,
-      ignore.case = TRUE
-    ),
-    .cols = -gene
-  ) |>
-  column_to_rownames("gene") |>
-  round() |>
-  ptrap_de(
-    test_method = "deseq"
-  )
-
-female_de_tt <- female_counts |>
-  rename_with(
-    ~ sub(
-      "^(female)_(input|ip)_([0-9]+)$",
-      "\\1_\\3_\\2",
-      .x,
-      ignore.case = TRUE
-    ),
-    .cols = -gene
-  ) |>
-  column_to_rownames("gene") |>
-  round() |>
+  filter(if_any(where(is.numeric), ~ .x > 1)) |>
   ptrap_de(
     test_method = "paired.ttest",
     norm.method = "none",
     filter = FALSE,
     lfc_threshold = 0.3,
-    prior.count = 0
+    prior.count = 0.1
+  )
+
+
+female_de <- female_counts |>
+  rename(GeneID = gene_id) |>
+  left_join(genenames, by = "GeneID") |>
+  select(-GeneID) |>
+  mutate(gene = make.unique(gene)) |>
+  column_to_rownames("gene") |>
+  filter(if_any(where(is.numeric), ~ .x > 1)) |>
+  ptrap_de(
+    test_method = "deseq"
+  )
+
+female_de_tt <- female_counts |>
+  rename(GeneID = gene_id) |>
+  left_join(genenames, by = "GeneID") |>
+  select(-GeneID) |>
+  mutate(gene = make.unique(gene)) |>
+  column_to_rownames("gene") |>
+  filter(if_any(where(is.numeric), ~ .x > 1)) |>
+  ptrap_de(
+    test_method = "paired.ttest",
+    norm.method = "none",
+    filter = FALSE,
+    lfc_threshold = 0.3,
+    prior.count = 0.1
   )
 
 tad_de <- tad_counts |>
-  rename_with(
-    ~ sub(
-      "^(tad)_(input|ip)_([0-9]+)$",
-      "\\1_\\3_\\2",
-      .x,
-      ignore.case = TRUE
-    ),
-    .cols = -gene
-  ) |>
+  rename(GeneID = gene_id) |>
+  left_join(genenames, by = "GeneID") |>
+  select(-GeneID) |>
+  mutate(gene = make.unique(gene)) |>
   column_to_rownames("gene") |>
-  round() |>
+  filter(if_any(where(is.numeric), ~ .x > 1)) |>
   ptrap_de(
     test_method = "deseq"
+  )
+
+tad_de_tt <- tad_counts |>
+  rename(GeneID = gene_id) |>
+  left_join(genenames, by = "GeneID") |>
+  select(-GeneID) |>
+  mutate(gene = make.unique(gene)) |>
+  column_to_rownames("gene") |>
+  filter(if_any(where(is.numeric), ~ .x > 1)) |>
+  ptrap_de(
+    test_method = "paired.ttest",
+    norm.method = "none",
+    filter = FALSE,
+    lfc_threshold = 0.3,
+    prior.count = 0.1
   )
 
 
@@ -158,7 +150,7 @@ bolt_de_tt$results |>
       c(
         "npy",
         "pomc",
-        "CARTPT",
+        "CART",
         "AGRP",
         "HCRT",
         "gal",
@@ -168,96 +160,193 @@ bolt_de_tt$results |>
       )
   )
 
-food_de |>
+female_de |>
   filter(
     Gene %in%
-      c("npy", "pomc", "CARTPT", "AGRP", "HCRT", "gal", "fmr1-b", "fmr1-a")
+      c("NPY", "COLI", "CART", "AGRP", "OREX", "GALA", "FMR1B", "FXRD1", "UCN1")
   )
 
 female_de_tt$results |>
   filter(
     Gene %in%
       c(
-        "npy",
-        "pomc",
-        "CARTPT",
+        "NPY",
+        "Pomc",
+        "CART",
         "AGRP",
-        "HCRT",
-        "gal",
-        "fmr1-b",
-        "fmr1-a",
-        "fmr1"
+        "OREX",
+        "GALR1",
+        "GALR2",
+        "TY3H.1",
+        "TY3H.2",
+        "DOPO.1",
+        "DOPO.2",
+        "DRD1C",
+        "DRD4",
+        "DRD5",
+        "DRD2A",
+        "NOS1",
+        "FMR1B",
+        "FMR1A",
+        "FMR1",
+        "FMR1B.1",
+        "FMR1.1",
+        "FXR1B",
+        "FXR1A",
+        "FXR1.2",
+        "FXR1.3",
+        "FXR1.38",
+        "COLI",
+        "UCN1"
       )
-  )
+  ) |>
+  print(n = 100)
 
-tad_de |>
+food_de |>
   filter(
     Gene %in%
-      c("npy", "pomc", "CARTPT", "AGRP", "HCRT", "gal", "fmr1-b", "fmr1-a")
+      c("NPY", "COLI", "CART", "AGRP", "OREX", "GALA", "FMR1B", "FXRD1", "UCN1")
   )
 
 bolt_food_plot <- ptrap_volcano2(
   bolt_de,
   food_de,
-  fdr = TRUE,
+  fdr = FALSE,
   point_alpha = 0.1,
+  point_size = 2.5,
   treatment_col = "treatment",
   genes.annot = c(
-    "npy",
-    "pomc",
-    "CARTPT",
+    "NPY",
+    "COLI",
+    "CART",
     "AGRP",
-    "HCRT",
-    "gal",
-    "fmr1-b",
-    "fmr1-a"
+    "OREX",
+    "GALA",
+    "FMR1B",
+    "FXRD1",
+    "UCN1"
+  )
+)
+
+bolt_female_plot <- ptrap_volcano2(
+  bolt_de,
+  female_de,
+  fdr = FALSE,
+  point_alpha = 0.1,
+  point_size = 2.5,
+  treatment_col = "treatment",
+  genes.annot = c(
+    "NPY",
+    "COLI",
+    "CART",
+    "AGRP",
+    "OREX",
+    "GALA",
+    "FMR1B",
+    "FXRD1",
+    "UCN1"
   )
 )
 
 
 female_food_plot <- ptrap_volcano2(
-  female_de_tt$results,
+  female_de,
   food_de,
-  fdr = TRUE,
+  fdr = FALSE,
   point_alpha = 0.1,
+  point_size = 2.5,
   treatment_col = "treatment",
-  genes.annot = c("npy", "pomc", "CARTPT", "HCRT", "gal", "fmr1-b", "fmr1-a")
+  genes.annot = c(
+    "NPY",
+    "COLI",
+    "CART",
+    "AGRP",
+    "OREX",
+    "GALA",
+    "FMR1B",
+    "FXRD1",
+    "UCN1"
+  )
 )
 
 female_bolt_plot <- ptrap_volcano2(
   female_de,
   bolt_de,
-  fdr = TRUE,
+  fdr = FALSE,
   point_alpha = 0.1,
+  point_size = 2.5,
   treatment_col = "treatment",
-  genes.annot = c("npy", "pomc", "CARTPT", "AGRP", "HCRT", "gal")
+  genes.annot = c(
+    "NPY",
+    "COLI",
+    "CART",
+    "AGRP",
+    "OREX",
+    "GALA",
+    "FMR1B",
+    "FXRD1",
+    "UCN1"
+  )
 )
 
 tad_food_plot <- ptrap_volcano2(
   tad_de,
   food_de,
-  fdr = TRUE,
+  fdr = FALSE,
   point_alpha = 0.1,
+  point_size = 2.5,
   treatment_col = "treatment",
-  genes.annot = c("npy", "pomc", "CARTPT", "AGRP", "HCRT", "gal")
+  genes.annot = c(
+    "NPY",
+    "COLI",
+    "CART",
+    "AGRP",
+    "OREX",
+    "GALA",
+    "FMR1B",
+    "FXRD1",
+    "UCN1"
+  )
 )
 
 tad_bolt_plot <- ptrap_volcano2(
   tad_de,
   bolt_de,
-  fdr = TRUE,
+  fdr = FALSE,
   point_alpha = 0.1,
+  point_size = 2.5,
   treatment_col = "treatment",
-  genes.annot = c("npy", "pomc", "CARTPT", "AGRP", "HCRT", "gal")
+  genes.annot = c(
+    "NPY",
+    "COLI",
+    "CART",
+    "AGRP",
+    "OREX",
+    "GALA",
+    "FMR1B",
+    "FXRD1",
+    "UCN1"
+  )
 )
 
 tad_female_plot <- ptrap_volcano2(
   tad_de,
   female_de,
-  fdr = TRUE,
+  fdr = FALSE,
   point_alpha = 0.1,
+  point_size = 2.5,
   treatment_col = "treatment",
-  genes.annot = c("npy", "pomc", "CARTPT", "AGRP", "HCRT", "gal")
+  genes.annot = c(
+    "NPY",
+    "COLI",
+    "CART",
+    "AGRP",
+    "OREX",
+    "GALA",
+    "FMR1B",
+    "FXRD1",
+    "UCN1"
+  )
 )
 
 
