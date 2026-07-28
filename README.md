@@ -15,8 +15,9 @@ replicate number, and whether it is IP (immunoprecipitated) or INPUT
 (total RNA); the package figures out the rest. Three functions cover the
 full workflow: differential expression with your choice of statistical
 engine (`ptrap_de()`), a classic volcano plot for one condition
-(`ptrap_volcano()`), and a paired scatter plot to compare two conditions
-head-to-head (`ptrap_volcano2()`).
+(`ptrap_volcano()`), a paired scatter plot to compare two conditions
+head-to-head (`ptrap_volcano2()`), and a bubble plot to compare effect
+sizes and significance across treatments (`ptrap_bubble()`).
 
 ## Installation
 
@@ -35,6 +36,7 @@ automatically.
 | `ptrap_de()` | Differential expression: IP vs INPUT. Six statistical methods. |
 | `ptrap_volcano()` | Volcano plot for a single condition. |
 | `ptrap_volcano2()` | Scatter plot comparing two conditions side-by-side. |
+| `ptrap_bubble()` | Bubble plot of logFC and significance across treatments. |
 
 ## Quick start
 
@@ -500,6 +502,41 @@ ptrap_de(
 ```
 
 <img src="man/figures/README-quick-volcano-1.png" alt="Volcano plot of IP vs INPUT enrichment in PACAP" width="80%" />
+
+Or compare effect sizes across treatments with a bubble plot:
+
+``` r
+library(dplyr)
+library(tibble)
+
+# Pre-computed RPKM values
+counts_rpkm <- read.delim(
+  system.file("extdata", "TAN_etal_2016_RPKM.txt", package = "pTRAPPING")
+)
+
+genes_oi <- c("Adcyap1", "Bdnf", "Ucn3", "Gng8",
+              "Fosl2", "Junb", "Trappc12", "Gfap")
+
+prep <- counts_rpkm |>
+  filter(if_any(where(is.numeric), ~ .x > 1)) |>
+  mutate(gene = make.unique(Gene)) |>
+  column_to_rownames("gene")
+
+pacap <- ptrap_de(prep, test_method = "paired.ttest", norm.method = "none",
+                  treatment_name = "PACAP", filter = FALSE,
+                  lfc_threshold = 0.3, prior.count = 0,
+                  genes.filter = genes_oi)
+
+bdnf <- ptrap_de(prep, test_method = "paired.ttest", norm.method = "none",
+                 treatment_name = "BDNF", filter = FALSE,
+                 lfc_threshold = 0.3, prior.count = 0,
+                 genes.filter = genes_oi)
+
+bind_rows(pacap$results, bdnf$results) |>
+  ptrap_bubble()
+```
+
+<img src="man/figures/README-quick-bubble-1.png" alt="Bubble plot comparing PACAP and BDNF enrichment for selected genes" width="80%" />
 
 Check [Getting started with
 pTRAPPING](https://laurenoconnelllab.github.io/pTRAPPING/articles/getting-started.html)

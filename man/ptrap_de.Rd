@@ -30,7 +30,8 @@ ptrap_de(
   ngenes.out = 20,
   genes.filter = NULL,
   kable.out = FALSE,
-  filter = TRUE
+  filter = TRUE,
+  filter_min = 10
 )
 }
 \arguments{
@@ -223,6 +224,12 @@ appropriate for raw count matrices. Set \code{filter = FALSE} when passing a
 pre-normalised matrix (e.g., RPKM, TPM) via \code{norm.method = "none"},
 because \code{filterByExpr} expects integer counts and will incorrectly discard
 genes whose normalised values fall below the count threshold.}
+
+\item{filter_min}{Numeric. Minimum count required for at least some samples,
+passed as the \code{min.count} argument to \code{\link[edgeR:filterByExpr]{edgeR::filterByExpr()}}. A gene is
+kept only if it has at least \code{filter_min} counts in a minimum number of
+samples (determined by the smallest group size). Ignored when
+\code{filter = FALSE}. Default is \code{10} (the edgeR default).}
 }
 \value{
 When \code{kable.out = FALSE} (default), a tibble with one row per gene

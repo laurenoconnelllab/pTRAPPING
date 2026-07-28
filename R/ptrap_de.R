@@ -416,6 +416,11 @@
 #'   pre-normalised matrix (e.g., RPKM, TPM) via `norm.method = "none"`,
 #'   because `filterByExpr` expects integer counts and will incorrectly discard
 #'   genes whose normalised values fall below the count threshold.
+#' @param filter_min Numeric. Minimum count required for at least some samples,
+#'   passed as the `min.count` argument to [edgeR::filterByExpr()]. A gene is
+#'   kept only if it has at least `filter_min` counts in a minimum number of
+#'   samples (determined by the smallest group size). Ignored when
+#'   `filter = FALSE`. Default is `10` (the edgeR default).
 #'
 #' @return When `kable.out = FALSE` (default), a tibble with one row per gene
 #'   sorted by p-value. Columns depend on `test_method`:
@@ -590,7 +595,8 @@ ptrap_de <- function(
   ngenes.out = 20,
   genes.filter = NULL,
   kable.out = FALSE,
-  filter = TRUE
+  filter = TRUE,
+  filter_min = 10
 ) {
   # ---- Step 1: match arguments -----------------------------------------------
   # Capture whether norm.method was explicitly supplied before match.arg()
@@ -970,7 +976,11 @@ ptrap_de <- function(
   dge$genes <- data.frame(Gene = gene_ids)
 
   if (filter) {
-    keep <- filterByExpr(dge, group = region_samples[[fraction_col]])
+    keep <- filterByExpr(
+      dge,
+      group = region_samples[[fraction_col]],
+      min.count = filter_min
+    )
     dge <- dge[keep, , keep.lib.sizes = FALSE]
   }
 
