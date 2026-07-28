@@ -86,7 +86,8 @@ ptrap_de(
   ngenes.out = 20,
   genes.filter = NULL,
   kable.out = FALSE,
-  filter = TRUE
+  filter = TRUE,
+  filter_min = 10
 )
 ```
 
@@ -348,6 +349,15 @@ ptrap_de(
   TPM) via `norm.method = "none"`, because `filterByExpr` expects
   integer counts and will incorrectly discard genes whose normalised
   values fall below the count threshold.
+
+- filter_min:
+
+  Numeric. Minimum count required for at least some samples, passed as
+  the `min.count` argument to
+  [`edgeR::filterByExpr()`](https://rdrr.io/pkg/edgeR/man/filterByExpr.html).
+  A gene is kept only if it has at least `filter_min` counts in a
+  minimum number of samples (determined by the smallest group size).
+  Ignored when `filter = FALSE`. Default is `10` (the edgeR default).
 
 ## Value
 

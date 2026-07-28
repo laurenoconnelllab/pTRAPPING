@@ -205,7 +205,8 @@ column or row names.</p>
 <span>  ngenes.out <span class="op">=</span> <span class="fl">20</span>,</span>
 <span>  genes.filter <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  kable.out <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  filter <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span>  filter <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  filter_min <span class="op">=</span> <span class="fl">10</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -446,6 +447,14 @@ pre-normalised matrix (e.g., RPKM, TPM) via <code>norm.method = "none"</code>,
 because <code>filterByExpr</code> expects integer counts and will incorrectly discard
 genes whose normalised values fall below the count threshold.</p></dd>
 
+
+<dt id="arg-filter-min">filter_min<a class="anchor" aria-label="anchor" href="#arg-filter-min"></a></dt>
+<dd><p>Numeric. Minimum count required for at least some samples,
+passed as the <code>min.count</code> argument to <code><a href="https://rdrr.io/pkg/edgeR/man/filterByExpr.html" class="external-link">edgeR::filterByExpr()</a></code>. A gene is
+kept only if it has at least <code>filter_min</code> counts in a minimum number of
+samples (determined by the smallest group size). Ignored when
+<code>filter = FALSE</code>. Default is <code>10</code> (the edgeR default).</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -621,7 +630,7 @@ change and dispersion for RNA-seq data with DESeq2. <em>Genome Biology</em> 15,
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>

@@ -64,7 +64,7 @@
 </div>
 <!-- badges: start -->
 <!-- badges: end -->
-<p><strong>pTRAPPING</strong> takes the raw count data from a TRAP-seq or PhosphoTRAP experiment and finds which genes are specifically enriched in your cell population of interest — all in a few lines of R. You give it a counts table where every sample column is labelled with its treatment group, replicate number, and whether it is IP (immunoprecipitated) or INPUT (total RNA); the package figures out the rest. Three functions cover the full workflow: differential expression with your choice of statistical engine (<code><a href="reference/ptrap_de.html">ptrap_de()</a></code>), a classic volcano plot for one condition (<code><a href="reference/ptrap_volcano.html">ptrap_volcano()</a></code>), and a paired scatter plot to compare two conditions head-to-head (<code><a href="reference/ptrap_volcano2.html">ptrap_volcano2()</a></code>).</p>
+<p><strong>pTRAPPING</strong> takes the raw count data from a TRAP-seq or PhosphoTRAP experiment and finds which genes are specifically enriched in your cell population of interest — all in a few lines of R. You give it a counts table where every sample column is labelled with its treatment group, replicate number, and whether it is IP (immunoprecipitated) or INPUT (total RNA); the package figures out the rest. Three functions cover the full workflow: differential expression with your choice of statistical engine (<code><a href="reference/ptrap_de.html">ptrap_de()</a></code>), a classic volcano plot for one condition (<code><a href="reference/ptrap_volcano.html">ptrap_volcano()</a></code>), a paired scatter plot to compare two conditions head-to-head (<code><a href="reference/ptrap_volcano2.html">ptrap_volcano2()</a></code>), and a bubble plot to compare effect sizes and significance across treatments (<code><a href="reference/ptrap_bubble.html">ptrap_bubble()</a></code>).</p>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
@@ -97,6 +97,10 @@
 <tr>
 <td><code><a href="reference/ptrap_volcano2.html">ptrap_volcano2()</a></code></td>
 <td>Scatter plot comparing two conditions side-by-side.</td>
+</tr>
+<tr>
+<td><code><a href="reference/ptrap_bubble.html">ptrap_bubble()</a></code></td>
+<td>Bubble plot of logFC and significance across treatments.</td>
 </tr>
 </tbody>
 </table>
@@ -388,6 +392,37 @@ NO
 <span>    <span class="op">)</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
 <p><img src="reference/figures/README-quick-volcano-1.png" alt="Volcano plot of IP vs INPUT enrichment in PACAP" width="80%"></p>
+<p>Or compare effect sizes across treatments with a bubble plot:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://tibble.tidyverse.org/" class="external-link">tibble</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Pre-computed RPKM values</span></span>
+<span><span class="va">counts_rpkm</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.delim</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"TAN_etal_2016_RPKM.txt"</span>, package <span class="op">=</span> <span class="st">"pTRAPPING"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">genes_oi</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Adcyap1"</span>, <span class="st">"Bdnf"</span>, <span class="st">"Ucn3"</span>, <span class="st">"Gng8"</span>,</span>
+<span>              <span class="st">"Fosl2"</span>, <span class="st">"Junb"</span>, <span class="st">"Trappc12"</span>, <span class="st">"Gfap"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">prep</span> <span class="op">&lt;-</span> <span class="va">counts_rpkm</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/across.html" class="external-link">if_any</a></span><span class="op">(</span><span class="fu"><a href="https://tidyselect.r-lib.org/reference/where.html" class="external-link">where</a></span><span class="op">(</span><span class="va">is.numeric</span><span class="op">)</span>, <span class="op">~</span> <span class="va">.x</span> <span class="op">&gt;</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>gene <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/make.unique.html" class="external-link">make.unique</a></span><span class="op">(</span><span class="va">Gene</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://tibble.tidyverse.org/reference/rownames.html" class="external-link">column_to_rownames</a></span><span class="op">(</span><span class="st">"gene"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">pacap</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/ptrap_de.html">ptrap_de</a></span><span class="op">(</span><span class="va">prep</span>, test_method <span class="op">=</span> <span class="st">"paired.ttest"</span>, norm.method <span class="op">=</span> <span class="st">"none"</span>,</span>
+<span>                  treatment_name <span class="op">=</span> <span class="st">"PACAP"</span>, filter <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>                  lfc_threshold <span class="op">=</span> <span class="fl">0.3</span>, prior.count <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>                  genes.filter <span class="op">=</span> <span class="va">genes_oi</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">bdnf</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/ptrap_de.html">ptrap_de</a></span><span class="op">(</span><span class="va">prep</span>, test_method <span class="op">=</span> <span class="st">"paired.ttest"</span>, norm.method <span class="op">=</span> <span class="st">"none"</span>,</span>
+<span>                 treatment_name <span class="op">=</span> <span class="st">"BDNF"</span>, filter <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>                 lfc_threshold <span class="op">=</span> <span class="fl">0.3</span>, prior.count <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>                 genes.filter <span class="op">=</span> <span class="va">genes_oi</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/bind_rows.html" class="external-link">bind_rows</a></span><span class="op">(</span><span class="va">pacap</span><span class="op">$</span><span class="va">results</span>, <span class="va">bdnf</span><span class="op">$</span><span class="va">results</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="reference/ptrap_bubble.html">ptrap_bubble</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p><img src="reference/figures/README-quick-bubble-1.png" alt="Bubble plot comparing PACAP and BDNF enrichment for selected genes" width="80%"></p>
 <p>Check <a href="https://laurenoconnelllab.github.io/pTRAPPING/articles/getting-started.html">Getting started with pTRAPPING</a> to see how to run the full workflow, including comparing two conditions head-to-head and making interactive volcano plots!</p>
 </div>
 <div class="section level2">
@@ -461,7 +496,7 @@ NO
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

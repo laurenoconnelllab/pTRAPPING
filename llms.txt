@@ -11,8 +11,11 @@ engine
 ([`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md)),
 a classic volcano plot for one condition
 ([`ptrap_volcano()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_volcano.md)),
-and a paired scatter plot to compare two conditions head-to-head
-([`ptrap_volcano2()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_volcano2.md)).
+a paired scatter plot to compare two conditions head-to-head
+([`ptrap_volcano2()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_volcano2.md)),
+and a bubble plot to compare effect sizes and significance across
+treatments
+([`ptrap_bubble()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_bubble.md)).
 
 ## Installation
 
@@ -32,6 +35,7 @@ automatically.
 | [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md) | Differential expression: IP vs INPUT. Six statistical methods. |
 | [`ptrap_volcano()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_volcano.md) | Volcano plot for a single condition. |
 | [`ptrap_volcano2()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_volcano2.md) | Scatter plot comparing two conditions side-by-side. |
+| [`ptrap_bubble()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_bubble.md) | Bubble plot of logFC and significance across treatments. |
 
 ## Quick start
 
@@ -104,6 +108,43 @@ ptrap_de(
 ![Volcano plot of IP vs INPUT enrichment in
 PACAP](reference/figures/README-quick-volcano-1.png)
 
+Or compare effect sizes across treatments with a bubble plot:
+
+``` r
+
+library(dplyr)
+library(tibble)
+
+# Pre-computed RPKM values
+counts_rpkm <- read.delim(
+  system.file("extdata", "TAN_etal_2016_RPKM.txt", package = "pTRAPPING")
+)
+
+genes_oi <- c("Adcyap1", "Bdnf", "Ucn3", "Gng8",
+              "Fosl2", "Junb", "Trappc12", "Gfap")
+
+prep <- counts_rpkm |>
+  filter(if_any(where(is.numeric), ~ .x > 1)) |>
+  mutate(gene = make.unique(Gene)) |>
+  column_to_rownames("gene")
+
+pacap <- ptrap_de(prep, test_method = "paired.ttest", norm.method = "none",
+                  treatment_name = "PACAP", filter = FALSE,
+                  lfc_threshold = 0.3, prior.count = 0,
+                  genes.filter = genes_oi)
+
+bdnf <- ptrap_de(prep, test_method = "paired.ttest", norm.method = "none",
+                 treatment_name = "BDNF", filter = FALSE,
+                 lfc_threshold = 0.3, prior.count = 0,
+                 genes.filter = genes_oi)
+
+bind_rows(pacap$results, bdnf$results) |>
+  ptrap_bubble()
+```
+
+![Bubble plot comparing PACAP and BDNF enrichment for selected
+genes](reference/figures/README-quick-bubble-1.png)
+
 Check [Getting started with
 pTRAPPING](https://laurenoconnelllab.github.io/pTRAPPING/articles/getting-started.html)
 to see how to run the full workflow, including comparing two conditions
@@ -146,6 +187,8 @@ head-to-head and making interactive volcano plots!
 
 ## All functions
 
+- [`ptrap_bubble()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_bubble.md)
+  : Bubble plot of differential expression across treatments
 - [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md)
   : Differential expression analysis for PhosphoTRAP data
 - [`ptrap_volcano()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_volcano.md)

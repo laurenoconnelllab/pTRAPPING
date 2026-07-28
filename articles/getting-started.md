@@ -20,7 +20,7 @@ population; a gene depleted in IP is present in the tissue but not in
 your cells of interest. Answering this question requires normalising the
 data, picking a statistical test, adjusting for multiple comparisons
 across thousands of genes, and visualising the results — all of which
-pTRAPPING handles for you with three functions.
+pTRAPPING handles for you with a handful of functions.
 
 **PhosphoTRAP** adds one more layer: instead of constitutively tagging
 ribosomes, it captures only ribosomes that carry a phosphorylated form
@@ -199,6 +199,8 @@ You can change these without re-running the analysis —
 and
 [`ptrap_volcano2()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_volcano2.md)
 recompute the classification from your chosen thresholds.
+[`ptrap_bubble()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_bubble.md)
+also uses the logFC and significance columns directly.
 
 ### `$fe`: per-animal fold enrichments
 
@@ -456,6 +458,107 @@ ptrap_volcano2(
   )
 )
 ```
+
+------------------------------------------------------------------------
+
+## Step 4 — Bubble plot across treatments with `ptrap_bubble()`
+
+When you have run
+[`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md)
+for multiple treatment conditions on the same set of genes, a **bubble
+plot** is a compact way to compare effect sizes and significance at a
+glance. Each bubble sits at the intersection of a gene (y-axis) and a
+treatment (x-axis); its **colour** encodes the logFC (blue = depleted,
+red = enriched) and its **size** encodes statistical significance
+($`-\log_{10}`$ FDR by default).
+
+Combine the `$results` tibbles from each condition with
+[`bind_rows()`](https://dplyr.tidyverse.org/reference/bind_rows.html)
+and pass the result to
+[`ptrap_bubble()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_bubble.md):
+
+``` r
+
+# Filter to genes of interest and combine
+genes_of_interest <- c(
+  "Adcyap1", "Bdnf", "Ucn3", "Gng8",
+  "Fosl2", "Junb", "Trappc12", "Gfap"
+)
+
+pacap_subset <- counts_rpkm |>
+  filter(dplyr::if_any(dplyr::where(is.numeric), ~ .x > 1)) |>
+  mutate(gene = make.unique(Gene)) |>
+  column_to_rownames("gene") |>
+  ptrap_de(
+    test_method = "paired.ttest",
+    norm.method = "none",
+    treatment_name = "PACAP",
+    filter = FALSE,
+    lfc_threshold = 0.3,
+    prior.count = 0,
+    genes.filter = genes_of_interest
+  )
+
+bdnf_subset <- counts_rpkm |>
+  filter(dplyr::if_any(dplyr::where(is.numeric), ~ .x > 1)) |>
+  mutate(gene = make.unique(Gene)) |>
+  column_to_rownames("gene") |>
+  ptrap_de(
+    test_method = "paired.ttest",
+    norm.method = "none",
+    treatment_name = "BDNF",
+    filter = FALSE,
+    lfc_threshold = 0.3,
+    prior.count = 0,
+    genes.filter = genes_of_interest
+  )
+
+bind_rows(pacap_subset$results, bdnf_subset$results) |>
+  ptrap_bubble()
+```
+
+![Bubble plot comparing PACAP and BDNF enrichment for selected
+genes.](getting-started_files/figure-html/ptrap-bubble-1.png)
+
+Bubble plot comparing PACAP and BDNF enrichment for selected genes.
+
+Key arguments:
+
+| Argument | Default | What it does |
+|----|----|----|
+| `sig_size` | `"FDR"` | Which column to use for the size aesthetic: `"FDR"` or `"PValue"` |
+| `colors_lfc` | 5-colour blue→red palette | Character vector (≥ 3 colours) for the logFC fill gradient |
+| `size_range` | `c(2, 12)` | Min and max bubble sizes |
+| `point_alpha` | `0.9` | Opacity of the bubbles |
+| `title` | `NULL` | Optional plot title |
+
+### Customising the colour gradient
+
+Pass a vector of at least three colours to `colors_lfc`:
+
+``` r
+
+bind_rows(pacap_subset$results, bdnf_subset$results) |>
+  ptrap_bubble(
+    colors_lfc = c("navy", "white", "firebrick"),
+    title = "Custom colour gradient"
+  )
+```
+
+### Using raw p-values for size
+
+Set `sig_size = "PValue"` to use raw p-values instead of FDR:
+
+``` r
+
+bind_rows(pacap_subset$results, bdnf_subset$results) |>
+  ptrap_bubble(sig_size = "PValue")
+```
+
+Like the volcano functions,
+[`ptrap_bubble()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_bubble.md)
+returns a ggplot2 object that you can extend with standard ggplot2
+layers.
 
 ------------------------------------------------------------------------
 

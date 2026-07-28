@@ -2,6 +2,8 @@
 
 ## All functions
 
+- [`ptrap_bubble()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_bubble.md)
+  : Bubble plot of differential expression across treatments
 - [`ptrap_de()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_de.md)
   : Differential expression analysis for PhosphoTRAP data
 - [`ptrap_volcano()`](https://laurenoconnelllab.github.io/pTRAPPING/reference/ptrap_volcano.md)
