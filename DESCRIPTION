@@ -3,9 +3,9 @@ Title: A Suite of Functions for the Analyses of PhosphoTRAP Data in R
 Version: 0.0.0.9000
 Authors@R: c(
     person("Camilo", "Rodríguez", , "camo.rodriguez@gmail.com", role = c("aut", "cre")),
-    person("Max", "Madrzyk", role = "ctb"),
-    person("Billie", "Goolsby", role = "ctb"),
-    person("Lauren", "O'Connell", role = c("aut", "ctb"))
+    person("Max", "Madrzyk", role = c("aut", "ctb")),
+    person("Billie", "Goolsby", role = c("aut", "ctb")),
+    person("Lauren", "O'Connell", role = c("aut", "ctb", "fnd"))
   )
 Description: Provides a toolkit for the analysis of PhosphoTRAP sequencing data, including preprocessing, 
     differential expression analysis, and visualization. Implements streamlined workflows and offers functions for
